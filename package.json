@@ -16,8 +16,7 @@
     "web3": "^1.5.3"
   },
   "dependencies": {
-    "@uniswap/v2-core": "^1.0.1",
-    "@uniswap/v2-periphery": "*",
+    "@openzeppelin/test-helpers": "^0.5.13",
     "dotenv": "^10.0.0"
   }
 }
