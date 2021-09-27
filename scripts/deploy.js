@@ -26,7 +26,7 @@ class WebArtifacts {
         throw err
       }
       console.log("artifact written to the web artifacts directory")
-  })
+    })
   }
 }
 const webData = new WebArtifacts()
@@ -55,8 +55,8 @@ async function main() {
 }
 
 main()
-	.then(() => process.exit(0))
-	.catch((error) => {
-		console.error(error);
-		process.exit(1);
-	});
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
