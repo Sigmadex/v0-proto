@@ -101,7 +101,7 @@ contract MasterChef is Ownable {
       Does this pool actually make sense in the SDEX usecase,
       notes for consideration - sdex and the syrup pools
       thinking emoji
-     */
+
     poolInfo.push(PoolInfo({
       lpToken: _cake,
       allocPoint: 1000,
@@ -110,6 +110,7 @@ contract MasterChef is Ownable {
     }));
 
     totalAllocPoint = 1000;
+     */
 
   }
 
@@ -154,14 +155,18 @@ contract MasterChef is Ownable {
   function updateStakingPool() internal {
     uint256 length = poolInfo.length;
     uint256 points = 0;
-    for (uint256 pid = 1; pid < length; ++pid) {
+    // pid = 1 -> pid = 1 (rm cake pool)
+    for (uint256 pid = 0; pid < length; ++pid) {
       points = points.add(poolInfo[pid].allocPoint);
     }
+    totalAllocPoint = points;
+    /* The div(3) mystery and the cake pool
     if (points != 0) {
       points = points.div(3);
       totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(points);
       poolInfo[0].allocPoint = points;
     }
+   */
   }
 
   // Set the migrator contract. Can only be called by the owner.

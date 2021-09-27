@@ -1,4 +1,4 @@
-//const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
@@ -16,26 +16,48 @@ describe('MasterChef', () => {
     alice = accounts[2]
     bob = accounts[3]
     carol = accounts[4]
+    cakeInstance = CakeToken.deployed()
     cake = await CakeToken.new({from: minter})
-    lp1 = await MockBEP20.new('LPToken', 'LP1', '1000000', { from: minter });
+    lp1TotalSupply = web3.utils.toWei('1000000', 'ether')
+    lp1 = await MockBEP20.new('LPToken', 'LP1', lp1TotalSupply, { from: minter });
     chef = await MasterChef.new(cake.address, dev, '1000', '100', { from: minter });
     await cake.transferOwnership(chef.address, { from: minter });
-    await lp1.transfer(bob, '2000', { from: minter });
-    await lp1.transfer(alice, '2000', { from: minter });
+    await lp1.transfer(
+      bob,
+      web3.utils.toWei('2000', 'ether'),
+      { from: minter });
+    await lp1.transfer(
+      alice,
+      web3.utils.toWei('2000', 'ether'),
+      { from: minter });
   })
 
   it("adds a yield farm", async () => {
     // The cake token is the first yield farm, kinda interesting
     // what use case could sdex have for the syrup pools
     let poolLength = (await chef.poolLength()).toString()
-    assert.equal(poolLength, "1");
-    assert.equal((await chef.poolInfo(poolLength - 1)).lpToken, cake.address);
+    assert.equal(poolLength, "0");
+    //let balanceMinter1 = await lp1.balanceOf(minter, { from: minter})
+    //console.log(web3.utils.fromWei(balanceMinter1))
+    let initialAlloc = await chef.totalAllocPoint();
+    let allocPoints = '2000'
+    await chef.add.sendTransaction(
+      allocPoints,
+      lp1.address,
+      true,
+      { from: minter }
+    );
     
-    await chef.add('2000', lp1.address, true, { from: minter });
     poolLength = (await chef.poolLength()).toString()
-    
-    assert.equal(poolLength, "2");
+    assert.equal(poolLength, "1");
     assert.equal((await chef.poolInfo(poolLength - 1)).lpToken, lp1.address);
+
+    let finalAlloc =  await chef.totalAllocPoint();
+    assert.equal(finalAlloc - initialAlloc, allocPoints)
+  })
+
+  it("allows user to stake", async () => {
+    console.log((await chef.poolLength()).toString())
   })
 })
 
