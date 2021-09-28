@@ -63,12 +63,58 @@ describe('MasterChef', () => {
       true,
       { from: minter }
     );
+    let poolId = (await chef.poolLength()).toString() - 1
+    let stakeAmount = web3.utils.toWei('20', 'ether')
+    
     let currentBlock = await web3.eth.getBlockNumber()
     time.advanceBlockTo(currentBlock + 100)
-    await lp1.approve(chef.address, '1000', { from: alice });
+
+    await lp1.approve(
+      chef.address,
+      stakeAmount,
+      { from: alice }
+    );
+
     assert.equal((await cake.balanceOf(alice)).toString(), '0');
+
+    let aliceLp1Balance1 = await lp1.balanceOf(alice)
+    await chef.deposit(
+      poolId,
+      stakeAmount,
+      { from: alice }
+    )
+    let aliceLp1Balance2 = await lp1.balanceOf(alice)
+    assert.equal(
+      aliceLp1Balance1 - aliceLp1Balance2,
+      stakeAmount
+    )
+
+    let userInfo = await chef.userInfo(
+      poolId,
+      alice
+    )
+    assert.equal((await cake.balanceOf(alice)).toString(), '0');
+    assert.equal(
+      userInfo.amount,
+      stakeAmount
+    )
+    await chef.withdraw(
+      poolId,
+      stakeAmount,
+      { from: alice }
+    )
+    userInfo = await chef.userInfo(
+      poolId,
+      alice
+    )
+    assert.equal(
+      userInfo.amount,
+      0
+    )
   })
 })
+
+
 
 /*
 contract('MasterChef', ([alice, bob, carol, dev, minter]) => {

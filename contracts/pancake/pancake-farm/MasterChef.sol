@@ -50,6 +50,8 @@ contract MasterChef is Ownable {
     //   3. User's `amount` gets updated.
     //   4. User's `rewardDebt` gets updated.
   }
+  // Info of each user that stakes LP tokens.
+  mapping (uint256 => mapping (address => UserInfo)) public userInfo;
 
   // Info of each pool.
   struct PoolInfo {
@@ -58,6 +60,8 @@ contract MasterChef is Ownable {
     uint256 lastRewardBlock;  // Last block number that CAKEs distribution occurs.
     uint256 accCakePerShare; // Accumulated CAKEs per share, times 1e12. See below.
   }
+  // Info of each pool.
+  PoolInfo[] public poolInfo;
 
   // The CAKE TOKEN!
   CakeToken public cake;
@@ -72,10 +76,6 @@ contract MasterChef is Ownable {
   // The migrator contract. It has a lot of power. Can only be set through governance (owner).
   IMigratorChef public migrator;
 
-  // Info of each pool.
-  PoolInfo[] public poolInfo;
-  // Info of each user that stakes LP tokens.
-  mapping (uint256 => mapping (address => UserInfo)) public userInfo;
   // Total allocation points. Must be the sum of all allocation points in all pools.
   uint256 public totalAllocPoint = 0;
   // The block number when CAKE mining starts.
@@ -235,9 +235,8 @@ contract MasterChef is Ownable {
 
   // Deposit LP tokens to MasterChef for CAKE allocation.
   function deposit(uint256 _pid, uint256 _amount) public {
-
-    require (_pid != 0, 'deposit CAKE by staking');
-
+    // rm syrup pool
+    //require (_pid != 0, 'deposit CAKE by staking');
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
     updatePool(_pid);
@@ -257,8 +256,8 @@ contract MasterChef is Ownable {
 
   // Withdraw LP tokens from MasterChef.
   function withdraw(uint256 _pid, uint256 _amount) public {
-
-    require (_pid != 0, 'withdraw CAKE by unstaking');
+    // rm cake pool
+    //require (_pid != 0, 'withdraw CAKE by unstaking');
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
     require(user.amount >= _amount, "withdraw: not good");
