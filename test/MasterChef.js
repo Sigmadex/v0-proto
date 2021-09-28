@@ -16,7 +16,6 @@ describe('MasterChef', () => {
     alice = accounts[2]
     bob = accounts[3]
     carol = accounts[4]
-    cakeInstance = CakeToken.deployed()
     cake = await CakeToken.new({from: minter})
     lp1TotalSupply = web3.utils.toWei('1000000', 'ether')
     lp1 = await MockBEP20.new('LPToken', 'LP1', lp1TotalSupply, { from: minter });
@@ -41,7 +40,7 @@ describe('MasterChef', () => {
     //console.log(web3.utils.fromWei(balanceMinter1))
     let initialAlloc = await chef.totalAllocPoint();
     let allocPoints = '2000'
-    await chef.add.sendTransaction(
+    await chef.add(
       allocPoints,
       lp1.address,
       true,
@@ -57,7 +56,17 @@ describe('MasterChef', () => {
   })
 
   it("allows user to stake", async () => {
-    console.log((await chef.poolLength()).toString())
+    let allocPoints = '2000'
+    await chef.add(
+      allocPoints,
+      lp1.address,
+      true,
+      { from: minter }
+    );
+    let currentBlock = await web3.eth.getBlockNumber()
+    time.advanceBlockTo(currentBlock + 100)
+    await lp1.approve(chef.address, '1000', { from: alice });
+    assert.equal((await cake.balanceOf(alice)).toString(), '0');
   })
 })
 
