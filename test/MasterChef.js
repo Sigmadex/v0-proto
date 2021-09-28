@@ -1,8 +1,9 @@
-const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { advanceBlocks } = require('./utilities.js');
 const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
+
 describe('MasterChef', () => {
   let accounts;
   let alice, bob, carol, dev, minter = '';
@@ -67,8 +68,7 @@ describe('MasterChef', () => {
     let stakeAmount = web3.utils.toWei('20', 'ether')
     
     let currentBlock = await web3.eth.getBlockNumber()
-    time.advanceBlockTo(currentBlock + 100)
-
+    console.log(currentBlock)
     await lp1.approve(
       chef.address,
       stakeAmount,
@@ -98,6 +98,7 @@ describe('MasterChef', () => {
       userInfo.amount,
       stakeAmount
     )
+    await advanceBlocks(100)
     await chef.withdraw(
       poolId,
       stakeAmount,
