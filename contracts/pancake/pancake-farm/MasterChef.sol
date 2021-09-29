@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
-import 'contracts/pancake/pancake-lib/access/Ownable.sol';
+import 'contracts/lib/access/Ownable.sol';
 
 import "./CakeToken.sol";
 //import "./SyrupBar.sol";

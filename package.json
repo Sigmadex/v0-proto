@@ -16,6 +16,7 @@
     "web3": "^1.5.3"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.3.2",
     "@openzeppelin/test-helpers": "^0.5.13",
     "dotenv": "^10.0.0"
   }

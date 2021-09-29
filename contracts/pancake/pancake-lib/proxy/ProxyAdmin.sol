@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.7;
 
-import "../access/Ownable.sol";
+import "contracts/lib/access/Ownable.sol";
 import "./TransparentUpgradeableProxy.sol";
 
 /**
