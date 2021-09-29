@@ -88,13 +88,12 @@ contract MasterChef is Ownable {
   constructor(
     CakeToken _cake,
     address _devaddr,
-    uint256 _cakePerBlock,
-    uint256 _startBlock
+    uint256 _cakePerBlock
   ) public {
     cake = _cake;
     devaddr = _devaddr;
     cakePerBlock = _cakePerBlock;
-    startBlock = _startBlock;
+    startBlock = block.number;
 
     // staking pool
     /*************
@@ -227,8 +226,9 @@ contract MasterChef is Ownable {
     }
     uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
     uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+    // Lol - are they really taking 10% of cake mint to personal addr?
     cake.mint(devaddr, cakeReward.div(10));
-    //cake.mint(address(syrup), cakeReward);
+    cake.mint(address(this), cakeReward);
     pool.accCakePerShare = pool.accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
     pool.lastRewardBlock = block.number;
   }
@@ -328,7 +328,7 @@ contract MasterChef is Ownable {
   }
 
   // Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.
-  function safeCakeTransfer(address _to, uint256 _amount) public onlyOwner {
+  function safeCakeTransfer(address _to, uint256 _amount) internal {
     uint256 cakeBal = cake.balanceOf(address(this));
     if (_amount > cakeBal) {
       cake.transfer(_to, cakeBal);

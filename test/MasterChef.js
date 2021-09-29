@@ -20,7 +20,8 @@ describe('MasterChef', () => {
     cake = await CakeToken.new({from: minter})
     lp1TotalSupply = web3.utils.toWei('1000000', 'ether')
     lp1 = await MockBEP20.new('LPToken', 'LP1', lp1TotalSupply, { from: minter });
-    chef = await MasterChef.new(cake.address, dev, '1000', '100', { from: minter });
+    let cakePerBlock = web3.utils.toWei('1', 'ether')
+    chef = await MasterChef.new(cake.address, dev, cakePerBlock, { from: minter });
     await cake.transferOwnership(chef.address, { from: minter });
     await lp1.transfer(
       bob,
@@ -108,6 +109,9 @@ describe('MasterChef', () => {
       poolId,
       alice
     )
+    // 1 cake per block, 100 blocks forward + current block
+    let cakeReward = web3.utils.toWei('101', 'ether')
+    assert.equal((await cake.balanceOf(alice)).toString(), cakeReward);
     assert.equal(
       userInfo.amount,
       0
