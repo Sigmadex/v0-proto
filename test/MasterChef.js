@@ -4,13 +4,13 @@ const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 
-describe('MasterChef', () => {
+contract('MasterChef', () => {
   let accounts;
   let alice, bob, carol, dev, minter = '';
   let cake;
   let lp1;
   let chef;
-  beforeEach(async () => {
+  before(async () => {
     accounts = await web3.eth.getAccounts()
     dev = accounts[0]
     minter = accounts[1]
@@ -59,17 +59,8 @@ describe('MasterChef', () => {
 
   it("allows user to stake", async () => {
     let allocPoints = '2000'
-    await chef.add(
-      allocPoints,
-      lp1.address,
-      true,
-      { from: minter }
-    );
     let poolId = (await chef.poolLength()).toString() - 1
     let stakeAmount = web3.utils.toWei('20', 'ether')
-    
-    let currentBlock = await web3.eth.getBlockNumber()
-    console.log(currentBlock)
     await lp1.approve(
       chef.address,
       stakeAmount,
