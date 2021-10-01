@@ -18,6 +18,7 @@
     "nodemon": "^2.0.13"
   },
   "dependencies": {
+    "csv": "^5.5.3",
     "quaternion": "^1.2.1"
   }
 }

@@ -1,4 +1,6 @@
 console.log('hello quaternion')
+const stringify = require('csv-stringify')
+const fs = require('fs')
 
 // get basic x,y
 // perform rotation matrix
@@ -14,7 +16,7 @@ console.log(Math.PI)
 let phase = (2 * Math.PI) / l
 //let y = A*t0*Math.sin(phase*t)
 function test(t) {
-  return A*t0*Math.sin(phase*t)
+  return A*t0*Math.sin(-phase*t)
 }
 console.log(test(0))
 
@@ -29,23 +31,20 @@ function shift(yIntercept, x, y) {
   y = y + b
   return  [x, y]
 }
-  /*
-for (let i = 0; i<t0*3; i++) {
+let input = []
+for (let i = 0; i<l/2; i++) {
   let xi = i
   let yi = test(xi)
   let [x1, y1] = rotate(s, xi, yi)
   let [x2, y2] = shift(b, x1, y1)
-  console.log(x2, y2)
-}
-*/
-let j = 0;
-while (true) {
-  let xi = j
-  let yi = test(xi)
-  let [x1, y1] = rotate(s, xi, yi)
-  let [x2, y2] = shift(b, x1, y1)
-  console.log(x2, y2)
-  if (y2 < 0) break
-  j++
+  input.push([x2, y2])
 }
 
+stringify(input, (err, output) => {
+  fs.writeFileSync('curve-test.csv', output, (err2) => {
+    if (err2) {
+      throw err2
+    }
+    console.log("artifact written to the web artifacts directory")
+  })
+})
