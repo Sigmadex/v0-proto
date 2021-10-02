@@ -1,9 +1,10 @@
+const fromExponential = require('from-exponential')
+
 const { advanceBlocks } = require('./utilities.js');
 const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
-
 contract('MasterChef', () => {
   let accounts;
   let alice, bob, carol, dev, minter = '';
@@ -37,7 +38,7 @@ contract('MasterChef', () => {
     // The cake token is the first yield farm, kinda interesting
     // what use case could sdex have for the syrup pools
     let poolLength = (await chef.poolLength()).toString()
-    assert.equal(poolLength, "0");
+    assert.equal(poolLength, "1");
     //let balanceMinter1 = await lp1.balanceOf(minter, { from: minter})
     //console.log(web3.utils.fromWei(balanceMinter1))
     let initialAlloc = await chef.totalAllocPoint();
@@ -50,7 +51,7 @@ contract('MasterChef', () => {
     );
     
     poolLength = (await chef.poolLength()).toString()
-    assert.equal(poolLength, "1");
+    assert.equal(poolLength, "2");
     assert.equal((await chef.poolInfo(poolLength - 1)).lpToken, lp1.address);
 
     let finalAlloc =  await chef.totalAllocPoint();
@@ -90,7 +91,8 @@ contract('MasterChef', () => {
       userInfo.amount,
       stakeAmount
     )
-    await advanceBlocks(100)
+    const blocksForward = 1
+    await advanceBlocks(blocksForward)
     await chef.withdraw(
       poolId,
       stakeAmount,
@@ -100,9 +102,15 @@ contract('MasterChef', () => {
       poolId,
       alice
     )
+    const cakePerBlock = (await chef.cakePerBlock()).toString()
+    const totalAllocPoints = (await chef.totalAllocPoint()).toString()
+    const lp1PoolAllocPoints = (await chef.poolInfo(1)).allocPoint.toString()
     // 1 cake per block, 100 blocks forward + current block
-    let cakeReward = web3.utils.toWei('101', 'ether')
-    assert.equal((await cake.balanceOf(alice)).toString(), cakeReward);
+    let numer = (blocksForward+1)*cakePerBlock*lp1PoolAllocPoints
+    const numerator = new web3.utils.BN(fromExponential(numer))
+    const denominator = new web3.utils.BN(totalAllocPoints)
+    const cakeReward = numerator.div(denominator)
+    assert.equal((await cake.balanceOf(alice)).toString(), cakeReward.toString());
     assert.equal(
       userInfo.amount,
       0

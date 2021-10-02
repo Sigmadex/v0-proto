@@ -58,7 +58,7 @@ contract MasterChef is Ownable {
     IBEP20 lpToken;           // Address of LP token contract.
     uint256 allocPoint;       // How many allocation points assigned to this pool. CAKEs to distribute per block.
     uint256 lastRewardBlock;  // Last block number that CAKEs distribution occurs.
-    uint256 accCakePerShare; // Accumulated CAKEs per share, times 1e12. See below.
+    uint256 accCakePerShare; // Accumulated CAKEs per share, times 1e27. See below.
   }
   // Info of each pool.
   PoolInfo[] public poolInfo;
@@ -95,22 +95,13 @@ contract MasterChef is Ownable {
     cakePerBlock = _cakePerBlock;
     startBlock = block.number;
 
-    // staking pool
-    /*************
-      Does this pool actually make sense in the SDEX usecase,
-      notes for consideration - sdex and the syrup pools
-      thinking emoji
-
     poolInfo.push(PoolInfo({
       lpToken: _cake,
       allocPoint: 1000,
       lastRewardBlock: startBlock,
       accCakePerShare: 0
     }));
-
     totalAllocPoint = 1000;
-     */
-
   }
 
   function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
@@ -199,9 +190,9 @@ contract MasterChef is Ownable {
     if (block.number > pool.lastRewardBlock && lpSupply != 0) {
       uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
       uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-      accCakePerShare = accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
+      accCakePerShare = accCakePerShare.add(cakeReward.mul(1e27).div(lpSupply));
     }
-    return user.amount.mul(accCakePerShare).div(1e12).sub(user.rewardDebt);
+    return user.amount.mul(accCakePerShare).div(1e27).sub(user.rewardDebt);
   }
 
   // Update reward variables for all pools. Be careful of gas spending!
@@ -227,9 +218,9 @@ contract MasterChef is Ownable {
     uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
     uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
     // Lol - are they really taking 10% of cake mint to personal addr?
-    cake.mint(devaddr, cakeReward.div(10));
+    //cake.mint(devaddr, cakeReward.div(10));
     cake.mint(address(this), cakeReward);
-    pool.accCakePerShare = pool.accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
+    pool.accCakePerShare = pool.accCakePerShare.add(cakeReward.mul(1e27).div(lpSupply));
     pool.lastRewardBlock = block.number;
   }
 
@@ -241,7 +232,7 @@ contract MasterChef is Ownable {
     UserInfo storage user = userInfo[_pid][msg.sender];
     updatePool(_pid);
     if (user.amount > 0) {
-      uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
+      uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
       if(pending > 0) {
         safeCakeTransfer(msg.sender, pending);
       }
@@ -250,7 +241,7 @@ contract MasterChef is Ownable {
       pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
       user.amount = user.amount.add(_amount);
     }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
     emit Deposit(msg.sender, _pid, _amount);
   }
 
@@ -263,7 +254,9 @@ contract MasterChef is Ownable {
     require(user.amount >= _amount, "withdraw: not good");
 
     updatePool(_pid);
-    uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
+    // (user.amount * pool.accCakePerShare / 1e27) - user.rewardDebt
+    uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
+
     if(pending > 0) {
       safeCakeTransfer(msg.sender, pending);
     }
@@ -271,7 +264,7 @@ contract MasterChef is Ownable {
       user.amount = user.amount.sub(_amount);
       pool.lpToken.safeTransfer(address(msg.sender), _amount);
     }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
     emit Withdraw(msg.sender, _pid, _amount);
   }
 
@@ -282,7 +275,7 @@ contract MasterChef is Ownable {
     UserInfo storage user = userInfo[0][msg.sender];
     updatePool(0);
     if (user.amount > 0) {
-      uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
+      uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
       if(pending > 0) {
         safeCakeTransfer(msg.sender, pending);
       }
@@ -291,7 +284,7 @@ contract MasterChef is Ownable {
       pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
       user.amount = user.amount.add(_amount);
     }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
 
     syrup.mint(msg.sender, _amount);
     emit Deposit(msg.sender, 0, _amount);
@@ -303,7 +296,7 @@ contract MasterChef is Ownable {
     UserInfo storage user = userInfo[0][msg.sender];
     require(user.amount >= _amount, "withdraw: not good");
     updatePool(0);
-    uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
+    uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
     if(pending > 0) {
       safeCakeTransfer(msg.sender, pending);
     }
@@ -311,7 +304,7 @@ contract MasterChef is Ownable {
       user.amount = user.amount.sub(_amount);
       pool.lpToken.safeTransfer(address(msg.sender), _amount);
     }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
+    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
 
     syrup.burn(msg.sender, _amount);
     emit Withdraw(msg.sender, 0, _amount);
