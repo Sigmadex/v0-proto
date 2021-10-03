@@ -9,6 +9,7 @@ contract('MasterChef', () => {
   let accounts;
   let alice, bob, carol, dev, minter = '';
   let cake;
+  let syrup;
   let lp1;
   let chef;
   before(async () => {
@@ -19,11 +20,13 @@ contract('MasterChef', () => {
     bob = accounts[3]
     carol = accounts[4]
     cake = await CakeToken.new({from: minter})
+    syrup = await SyrupBar.new(cake.address, {from: minter})
     lp1TotalSupply = web3.utils.toWei('1000000', 'ether')
     lp1 = await MockBEP20.new('LPToken', 'LP1', lp1TotalSupply, { from: minter });
     let cakePerBlock = web3.utils.toWei('1', 'ether')
-    chef = await MasterChef.new(cake.address, dev, cakePerBlock, { from: minter });
+    chef = await MasterChef.new(cake.address, syrup.address,  dev, cakePerBlock, { from: minter });
     await cake.transferOwnership(chef.address, { from: minter });
+    await syrup.transferOwnership(chef.address, { from: minter });
     await lp1.transfer(
       bob,
       web3.utils.toWei('2000', 'ether'),

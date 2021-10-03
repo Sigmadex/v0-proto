@@ -3,10 +3,10 @@ pragma solidity 0.8.7;
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
-import 'contracts/lib/access/Ownable.sol';
+import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
 import "./CakeToken.sol";
-//import "./SyrupBar.sol";
+import "./SyrupBar.sol";
 
 import "hardhat/console.sol";
 
@@ -66,7 +66,7 @@ contract MasterChef is Ownable {
   // The CAKE TOKEN!
   CakeToken public cake;
   // The SYRUP TOKEN!
-  //SyrupBar public syrup;
+  SyrupBar public syrup;
   // Dev address.
   address public devaddr;
   // CAKE tokens created per block.
@@ -87,10 +87,12 @@ contract MasterChef is Ownable {
 
   constructor(
     CakeToken _cake,
+    SyrupBar _syrup,
     address _devaddr,
     uint256 _cakePerBlock
   ) public {
     cake = _cake;
+    syrup = _syrup;
     devaddr = _devaddr;
     cakePerBlock = _cakePerBlock;
     startBlock = block.number;
@@ -269,7 +271,7 @@ contract MasterChef is Ownable {
   }
 
   // Stake CAKE tokens to MasterChef
-  /*
+  
   function enterStaking(uint256 _amount) public {
     PoolInfo storage pool = poolInfo[0];
     UserInfo storage user = userInfo[0][msg.sender];
@@ -309,7 +311,6 @@ contract MasterChef is Ownable {
     syrup.burn(msg.sender, _amount);
     emit Withdraw(msg.sender, 0, _amount);
   }
-  */
   // Withdraw without caring about rewards. EMERGENCY ONLY.
   function emergencyWithdraw(uint256 _pid) public {
     PoolInfo storage pool = poolInfo[_pid];

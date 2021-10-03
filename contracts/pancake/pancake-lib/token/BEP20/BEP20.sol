@@ -2,8 +2,8 @@
 
 pragma solidity >=0.4.0;
 
-import 'contracts/lib/access/Ownable.sol';
-import 'contracts/lib/GSN/Context.sol';
+import 'contracts/pancake/pancake-lib/access/Ownable.sol';
+import 'contracts/pancake/pancake-lib/GSN/Context.sol';
 import './IBEP20.sol';
 import '../../math/SafeMath.sol';
 import '../../utils/Address.sol';

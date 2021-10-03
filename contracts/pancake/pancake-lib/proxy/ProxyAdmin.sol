@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.7;
 
-import "contracts/lib/access/Ownable.sol";
+import "contracts/pancake/pancake-lib/access/Ownable.sol";
 import "./TransparentUpgradeableProxy.sol";
 
 /**
