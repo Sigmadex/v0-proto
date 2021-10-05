@@ -117,7 +117,6 @@ library SafeERC20 {
         address to,
         uint256 value
     ) internal {
-      console.log('token', address(token));
         _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
     }
 
@@ -170,7 +169,6 @@ library SafeERC20 {
      * @param data The call data (encoded using abi.encode or one of its variants).
      */
     function _callOptionalReturn(IERC20 token, bytes memory data) private {
-      console.log('test');
         // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
         // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
         // the target address contains contract code and also asserts for success in the low-level call.
@@ -568,7 +566,6 @@ contract CakeVault is Ownable, Pausable {
         uint256 currentAmount = (balanceOf().mul(_shares)).div(totalShares);
         user.shares = user.shares.sub(_shares);
         totalShares = totalShares.sub(_shares);
-
         uint256 bal = available();
         if (bal < currentAmount) {
             uint256 balWithdraw = currentAmount.sub(bal);
@@ -579,7 +576,6 @@ contract CakeVault is Ownable, Pausable {
                 currentAmount = bal.add(diff);
             }
         }
-
         if (block.timestamp < user.lastDepositedTime.add(withdrawFeePeriod)) {
             uint256 currentWithdrawFee = currentAmount.mul(withdrawFee).div(10000);
             token.safeTransfer(treasury, currentWithdrawFee);
@@ -593,7 +589,6 @@ contract CakeVault is Ownable, Pausable {
         }
 
         user.lastUserActionTime = block.timestamp;
-
         token.safeTransfer(msg.sender, currentAmount);
 
         emit Withdraw(msg.sender, currentAmount, _shares);

@@ -126,7 +126,6 @@ contract('MasterChef', () => {
     const numerator = new web3.utils.BN(fromExponential(numer))
     const denominator = new web3.utils.BN(totalAllocPoints)
     const cakeReward = numerator.div(denominator)
-    console.log((await cake.balanceOf(alice)).toString())
     assert.equal((await cake.balanceOf(alice)).toString(), cakeReward.toString());
     assert.equal(
       userInfo.amount,
@@ -135,15 +134,27 @@ contract('MasterChef', () => {
   })
 
   it("can deposit cake", async() => {
+    let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     let cakeDeposit = web3.utils.toWei('1', 'ether')
-    console.log((await cake.balanceOf(alice)).toString() - cakeDeposit)
     await cake.approve(
       cakeVault.address,
       cakeDeposit,
       {from: alice}
     )
     await cakeVault.deposit(cakeDeposit, {from: alice})
-    console.log('shares',(await cakeVault.userInfo(alice)).shares.toString())
+    assert.equal(cakeDeposit,(await cakeVault.userInfo(alice)).shares.toString())
+    let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
+    assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit) 
+  })
+
+  it("can withdrawal cake", async() => {
+    let aliceBalance1 = (await cake.balanceOf(alice)).toString()
+    const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
+    await cakeVault.withdraw(aliceShares, {from: alice})
+    const withdrawFee = (await cakeVault.withdrawFee()).toString() / 10000
+    let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
+    assert.equal(aliceBalance2 - aliceBalance1, aliceShares - (aliceShares*withdrawFee))
+
   })
 })
 
