@@ -10,6 +10,7 @@ import 'contracts/pancake/pancake-lib/GSN/Context.sol';
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 import 'contracts/pancake/pancake-lib/utils/Address.sol';
+import 'hardhat/console.sol';
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -116,6 +117,7 @@ library SafeERC20 {
         address to,
         uint256 value
     ) internal {
+      console.log('token', address(token));
         _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
     }
 
@@ -168,6 +170,7 @@ library SafeERC20 {
      * @param data The call data (encoded using abi.encode or one of its variants).
      */
     function _callOptionalReturn(IERC20 token, bytes memory data) private {
+      console.log('test');
         // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
         // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
         // the target address contains contract code and also asserts for success in the low-level call.

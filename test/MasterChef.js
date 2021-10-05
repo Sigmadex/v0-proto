@@ -5,28 +5,40 @@ const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
+const CakeVault = artifacts.require('CakeVault');
 contract('MasterChef', () => {
   let accounts;
-  let alice, bob, carol, dev, minter = '';
+  let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, minter = '';
   let cake;
   let syrup;
   let lp1;
   let chef;
+  let cakeVault;
   before(async () => {
     accounts = await web3.eth.getAccounts()
     dev = accounts[0]
     minter = accounts[1]
-    alice = accounts[2]
-    bob = accounts[3]
-    carol = accounts[4]
+    cakeVaultTreasury = accounts[2]
+    cakeVaultAdmin = accounts[3]
+    alice = accounts[4]
+    bob = accounts[5]
+    carol = accounts[6]
     cake = await CakeToken.new({from: minter})
     syrup = await SyrupBar.new(cake.address, {from: minter})
-    lp1TotalSupply = web3.utils.toWei('1000000', 'ether')
-    lp1 = await MockBEP20.new('LPToken', 'LP1', lp1TotalSupply, { from: minter });
     let cakePerBlock = web3.utils.toWei('1', 'ether')
     chef = await MasterChef.new(cake.address, syrup.address,  dev, cakePerBlock, { from: minter });
+    cakeVault = await CakeVault.new(
+      cake.address,
+      syrup.address,
+      chef.address,
+      cakeVaultAdmin,
+      cakeVaultTreasury,
+      {from: minter}
+    )
     await cake.transferOwnership(chef.address, { from: minter });
     await syrup.transferOwnership(chef.address, { from: minter });
+    lp1TotalSupply = web3.utils.toWei('1000000', 'ether')
+    lp1 = await MockBEP20.new('LPToken', 'LP1', lp1TotalSupply, { from: minter });
     await lp1.transfer(
       bob,
       web3.utils.toWei('2000', 'ether'),
@@ -37,6 +49,7 @@ contract('MasterChef', () => {
       { from: minter });
   })
 
+  
   it("adds a yield farm", async () => {
     // The cake token is the first yield farm, kinda interesting
     // what use case could sdex have for the syrup pools
@@ -113,11 +126,24 @@ contract('MasterChef', () => {
     const numerator = new web3.utils.BN(fromExponential(numer))
     const denominator = new web3.utils.BN(totalAllocPoints)
     const cakeReward = numerator.div(denominator)
+    console.log((await cake.balanceOf(alice)).toString())
     assert.equal((await cake.balanceOf(alice)).toString(), cakeReward.toString());
     assert.equal(
       userInfo.amount,
       0
     )
+  })
+
+  it("can deposit cake", async() => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    console.log((await cake.balanceOf(alice)).toString() - cakeDeposit)
+    await cake.approve(
+      cakeVault.address,
+      cakeDeposit,
+      {from: alice}
+    )
+    await cakeVault.deposit(cakeDeposit, {from: alice})
+    console.log('shares',(await cakeVault.userInfo(alice)).shares.toString())
   })
 })
 
