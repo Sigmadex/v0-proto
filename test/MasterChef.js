@@ -1,6 +1,6 @@
 const fromExponential = require('from-exponential')
 
-const { advanceBlocks } = require('./utilities.js');
+const { advanceBlocks, advanceTime } = require('./utilities.js');
 const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
@@ -154,7 +154,34 @@ contract('MasterChef', () => {
     const withdrawFee = (await cakeVault.withdrawFee()).toString() / 10000
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
     assert.equal(aliceBalance2 - aliceBalance1, aliceShares - (aliceShares*withdrawFee))
+  })
 
+  it("can withdraw cake after more elapsed time", async () => {
+    let aliceBalance1 = (await cake.balanceOf(alice))
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    await cake.approve(
+      cakeVault.address,
+      cakeDeposit,
+      {from: alice}
+    )
+    await cakeVault.deposit(cakeDeposit, {from: alice})
+    const withdrawFeePeriod = (await cakeVault.withdrawFeePeriod()).toString()
+    await advanceTime(withdrawFeePeriod)
+
+    const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
+    await cakeVault.withdraw(aliceShares, {from: alice})
+
+    const cakePerBlock = (await chef.cakePerBlock()).toString()
+    const totalAllocPoints = (await chef.totalAllocPoint()).toString()
+    const cakeAllocPoints= (await chef.poolInfo(0)).allocPoint.toString()
+    // only one block ahead, advance time doesn't jump block like one would think
+    let numer = (1)*cakePerBlock*cakeAllocPoints
+    const numerator = new web3.utils.BN(fromExponential(numer))
+    const denominator = new web3.utils.BN(totalAllocPoints)
+    const cakeReward = numerator.div(denominator)
+    
+    let aliceBalance2 =  (await cake.balanceOf(alice))
+    assert.equal((aliceBalance1.add(cakeReward)).toString(), aliceBalance2.toString())
   })
 })
 

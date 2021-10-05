@@ -581,7 +581,6 @@ contract CakeVault is Ownable, Pausable {
             token.safeTransfer(treasury, currentWithdrawFee);
             currentAmount = currentAmount.sub(currentWithdrawFee);
         }
-
         if (user.shares > 0) {
             user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
         } else {
