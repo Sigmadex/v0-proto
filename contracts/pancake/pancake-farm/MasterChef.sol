@@ -53,8 +53,8 @@ contract MasterChef is Ownable {
   // Info of each user that stakes LP tokens.
   mapping (uint256 => mapping (address => UserInfo)) public userInfo;
   struct UserInfoNew {
-    uint256 amount0;
-    uint256 amount1;
+    uint256 amountToken0;
+    uint256 amountToken1;
     uint256 lastRewardBlock;
     uint256 accCakePerShareAmount0;
     uint256 accCakePerShareAmount1;
@@ -104,8 +104,9 @@ contract MasterChef is Ownable {
   uint256 public startBlock;
 
   event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
-  event DepositNew(address indexed user, uint256 indexed pid, uint256 amount0, uint256 amount1);
+  event DepositNew(address indexed user, uint256 indexed pid, uint256 amountToken0, uint256 amountToken1);
   event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+  event WithdrawNew(address indexed user, uint256 indexed pid);
   event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
   constructor(
@@ -311,22 +312,22 @@ contract MasterChef is Ownable {
 
   function depositNew(
     uint256 _pid,
-    uint256 _amount0,
-    uint256 _amount1
+    uint256 _amountToken0,
+    uint256 _amountToken1
   ) public {
-    require (_amount0 > 0 && _amount1 > 0, 'If you wish to only stake this token, please use its single pool, otherwise please deposit the other token as well');
+    require (_amountToken0 > 0 && _amountToken1 > 0, 'If you wish to only stake this token, please use its single pool, otherwise please deposit the other token as well');
     PoolInfoNew storage pool = poolInfoNew[_pid];
     UserInfoNew storage user = userInfoNew[_pid][msg.sender];
     updatePoolNew(_pid);
     //reward debt question
-    if (user.amount0 > 0) {
-      uint256 pending0 = user.amount0.mul(pool.accCakePerShareToken0).div(1e27).sub(user.rewardDebtToken0);
+    if (user.amountToken0 > 0) {
+      uint256 pending0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27).sub(user.rewardDebtToken0);
       if (pending0 > 0) {
         safeCakeTransfer(msg.sender, pending0);
       }
     }
-    if (user.amount1 > 0) {
-      uint256 pending1 = user.amount1.mul(pool.accCakePerShareToken1).div(1e27).sub(user.rewardDebtToken1);
+    if (user.amountToken1 > 0) {
+      uint256 pending1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27).sub(user.rewardDebtToken1);
       if (pending1 > 0) {
         safeCakeTransfer(msg.sender, pending1);
       }
@@ -334,18 +335,18 @@ contract MasterChef is Ownable {
     pool.token0.safeTransferFrom(
       address(msg.sender),
       address(this),
-      _amount0
+      _amountToken0
     );
     pool.token1.safeTransferFrom(
       address(msg.sender),
       address(this),
-      _amount1
+      _amountToken1
     );
-    user.amount0 = user.amount0.add(_amount0);
-    user.amount1 = user.amount1.add(_amount1);
-    user.rewardDebtToken0 = user.amount0.mul(pool.accCakePerShareToken0).div(1e27);
-    user.rewardDebtToken1 = user.amount1.mul(pool.accCakePerShareToken1).div(1e27);
-    emit DepositNew(msg.sender, _pid, _amount0, _amount1);
+    user.amountToken0 = user.amountToken0.add(_amountToken0);
+    user.amountToken1 = user.amountToken1.add(_amountToken1);
+    user.rewardDebtToken0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27);
+    user.rewardDebtToken1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27);
+    emit DepositNew(msg.sender, _pid, _amountToken0, _amountToken1);
   }
   // Deposit LP tokens to MasterChef for CAKE allocation.
   function deposit(uint256 _pid, uint256 _amount) public {
@@ -372,8 +373,24 @@ contract MasterChef is Ownable {
     uint256 _pid
   ) public {
     PoolInfoNew storage pool = poolInfoNew[_pid];
-    UserInfo storage user = userInfo[_pid][msg.sender];
+    UserInfoNew storage user = userInfoNew[_pid][msg.sender];
     updatePoolNew(_pid);
+    
+    uint256 pendingToken0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27).sub(user.rewardDebtToken0);
+    uint256 pendingToken1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27).sub(user.rewardDebtToken1);
+    if (pendingToken0 > 0) {
+      safeCakeTransfer(msg.sender, pendingToken0);
+    }
+    if (pendingToken1 > 0) {
+      safeCakeTransfer(msg.sender, pendingToken1);
+    }
+    pool.token0.safeTransfer(address(msg.sender), user.amountToken0);
+    pool.token1.safeTransfer(address(msg.sender), user.amountToken1);
+    user.amountToken0 = 0;
+    user.amountToken1 = 0;
+    user.rewardDebtToken0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27);
+    user.rewardDebtToken1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27);
+    emit WithdrawNew(msg.sender, _pid);
   }
 
   // Withdraw LP tokens from MasterChef.
