@@ -38,14 +38,13 @@ contract MasterChefNew is Ownable {
 
   struct UserTokenData {
     uint256 amount;
-    uint256 accCakePerShare;
     uint256 rewardDebt;
   }
   struct UserInfo {
     UserTokenData[] tokenData;
     uint256 lastRewardBlock;
   }
-  mapping (uint256 => mapping (address => UserInfo)) userInfo;
+  mapping (uint256 => mapping (address => UserInfo)) internal userInfo;
 
   struct PoolTokenData {
     IBEP20 token;
@@ -116,7 +115,16 @@ contract MasterChefNew is Ownable {
 
   function getPoolInfo(uint256 _pid) public returns (PoolInfo memory pool) {
     PoolInfo memory pool =  poolInfo[_pid];
-    return pool;  
+    return pool;
+  }
+
+  function getUserInfo(uint256 _pid, address addr) public returns (UserInfo memory user) {
+    UserInfo memory user = userInfo[_pid][addr];
+    console.log('getuser');
+    console.log(user.tokenData[0].amount);
+    console.log(user.tokenData[1].amount);
+    console.log('getuser end');
+    return user;
   }
 
 
@@ -253,7 +261,11 @@ function updatePool(uint256 _pid) public {
   //cake.mint(devaddr, cakeReward.div(10));
   cake.mint(address(this), cakeReward);
   for (uint j=0; j < pool.tokenData.length; j++) {
+    console.log('cake reward', cakeReward);
+    console.log('unity', unity);
+    console.log('supply', supplies[j]);
     pool.tokenData[j].accCakePerShare = pool.tokenData[j].accCakePerShare + cakeReward * unity / supplies[j]; 
+    console.log(pool.tokenData[j].accCakePerShare, 'update acc');
   }
   pool.lastRewardBlock = block.number;
 }
@@ -267,7 +279,15 @@ function deposit(
   require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
   updatePool(_pid);
   //reward debt question
-  for (uint j=0; j< user.tokenData.length; j++) {
+  for (uint j=0; j < pool.tokenData.length; j++) {
+    console.log('j', j);
+    if (user.tokenData.length <= j) {
+      //first deposit
+      user.tokenData.push(UserTokenData({
+        amount: 0,
+        rewardDebt: 0
+      }));
+    }
     uint256 amount = user.tokenData[j].amount;
     uint256 rewardDebt = user.tokenData[j].rewardDebt;
     uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
@@ -281,10 +301,12 @@ function deposit(
     pool.tokenData[j].token.safeTransferFrom(
       address(msg.sender),
       address(this),
-      amount
+      _amounts[j]
     );
     user.tokenData[j].amount = amount + _amounts[j];
+    console.log('amount', j, user.tokenData[j].amount);
     user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
+    pool.tokenData[j].supply += _amounts[j];
   }
   emit Deposit(msg.sender, _pid, _amounts);
 }
@@ -298,9 +320,11 @@ function withdraw(
   updatePool(_pid); 
   for (uint j=0; j < user.tokenData.length; j++) {
     uint256 amount = user.tokenData[j].amount;
-    uint256 accCakePerShare = user.tokenData[j].accCakePerShare;
+    uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
+    console.log('accCakePerShare', accCakePerShare);
     uint256 rewardDebt = user.tokenData[j].rewardDebt;
     uint256 pending = amount * accCakePerShare / unity - rewardDebt;
+    console.log('pending', pending);
     if (pending > 0) {
       safeCakeTransfer(msg.sender, pending);
     }
@@ -308,7 +332,8 @@ function withdraw(
       address(msg.sender),
       amount
     );
-    pool.tokenData[j].supply = 0;
+    user.tokenData[j].amount = 0;
+    pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
     user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
   }
   emit Withdraw(msg.sender, _pid);
