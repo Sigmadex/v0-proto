@@ -185,20 +185,26 @@ contract('MasterChef', () => {
       userInfo.tokenData[0].amount,
       0
     )
+    assert.equal(
+      userInfo.tokenData[1].amount,
+      0
+    )
     const unity = new web3.utils.BN(fromExponential(1e27))
     const stakeBN = new web3.utils.BN(stakeAmount)
     const accCakePerShare = cakeReward.mul(unity).div(stakeBN)
     poolInfo = await chef.getPoolInfo.call(poolId)
     assert.equal(poolInfo.tokenData[0].token, erc20a.address)
     assert.equal(poolInfo.tokenData[0].supply, 0)
-    assert.equal(poolInfo.tokenData[0].accCakePerShare, accCakePerShare)
+    assert.equal(poolInfo.tokenData[0].accCakePerShare, accCakePerShare.toString() / 2)
     assert.equal(poolInfo.tokenData[1].token, erc20b.address)
     assert.equal(poolInfo.tokenData[1].supply, 0)
-    assert.equal(poolInfo.tokenData[1].accCakePerShare, accCakePerShare)
+    assert.equal(poolInfo.tokenData[1].accCakePerShare, accCakePerShare.toString() / 2)
     assert.equal(poolInfo.allocPoint, '2000')
     assert.equal(poolInfo.lastRewardBlock, await web3.eth.getBlockNumber())
+
+    console.log((await cake.balanceOf(alice)).toString())
+
   })
-  /*
   it("can deposit cake", async() => {
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     let cakeDeposit = web3.utils.toWei('1', 'ether')
@@ -210,8 +216,9 @@ contract('MasterChef', () => {
     await cakeVault.deposit(cakeDeposit, {from: alice})
     assert.equal(cakeDeposit,(await cakeVault.userInfo(alice)).shares.toString())
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
-    assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit) 
+    assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit)
   })
+  /*
 
   it("can withdrawal cake", async() => {
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
