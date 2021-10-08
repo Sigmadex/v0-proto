@@ -205,7 +205,7 @@ contract('MasterChef', () => {
     console.log((await cake.balanceOf(alice)).toString())
 
   })
-  it("can deposit cake", async() => {
+  it("can deposit (auto) cake", async() => {
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     let cakeDeposit = web3.utils.toWei('1', 'ether')
     await cake.approve(
@@ -217,8 +217,10 @@ contract('MasterChef', () => {
     assert.equal(cakeDeposit,(await cakeVault.userInfo(alice)).shares.toString())
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
     assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit)
+    const chefUserInfo = await chef.getUserInfo(0, alice)
+    assert.equal((await syrup.balanceOf(alice)).toString(), 0)
+    assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), cakeDeposit)
   })
-  /*
 
   it("can withdrawal cake", async() => {
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
@@ -227,6 +229,7 @@ contract('MasterChef', () => {
     const withdrawFee = (await cakeVault.withdrawFee()).toString() / 10000
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
     assert.equal(aliceBalance2 - aliceBalance1, aliceShares - (aliceShares*withdrawFee))
+    assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), 0)
   })
 
   it("can withdraw cake after more elapsed time", async () => {
@@ -246,17 +249,15 @@ contract('MasterChef', () => {
 
     const cakePerBlock = (await chef.cakePerBlock()).toString()
     const totalAllocPoints = (await chef.totalAllocPoint()).toString()
-    const cakeAllocPoints= (await chef.poolInfo(0)).allocPoint.toString()
+    const cakeAllocPoints= (await chef.getPoolInfo.call(0)).allocPoint.toString()
     // only one block ahead, advance time doesn't jump block like one would think
     let numer = (1)*cakePerBlock*cakeAllocPoints
     const numerator = new web3.utils.BN(fromExponential(numer))
     const denominator = new web3.utils.BN(totalAllocPoints)
     const cakeReward = numerator.div(denominator)
-    
     let aliceBalance2 =  (await cake.balanceOf(alice))
     assert.equal((aliceBalance1.add(cakeReward)).toString(), aliceBalance2.toString())
   })
-*/
 })
 
 

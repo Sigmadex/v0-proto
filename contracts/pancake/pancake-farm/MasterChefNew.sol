@@ -144,7 +144,7 @@ contract MasterChefNew is Ownable {
       }));
     }
     poolLength += 1;
-    //updateStakingPool();
+    updateStakingPool();
   }
 
   // Update the given pool's CAKE allocation point. Can only be called by the owner.
@@ -244,7 +244,6 @@ function migrate(uint256 _pid) public {
       supplies[j] = pool.tokenData[j].supply; 
       supplySum += pool.tokenData[j].supply;
     }
-
     if (supplySum == 0) {
       pool.lastRewardBlock = block.number;
       return;
@@ -254,8 +253,6 @@ function migrate(uint256 _pid) public {
     // Lol - are they really taking 10% of cake mint to personal addr?
     //cake.mint(devaddr, cakeReward.div(10));
     cake.mint(address(this), cakeReward);
-    uint256 modCheck = (cakeReward/pool.tokenData.length) * pool.tokenData.length;
-    uint256 diff = cakeReward - modCheck;
     for (uint j=0; j < pool.tokenData.length; j++) {
       pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (cakeReward)* unity / (pool.tokenData.length*supplies[j]); 
     }
@@ -362,7 +359,7 @@ function migrate(uint256 _pid) public {
       user.tokenData[0].amount = user.tokenData[0].amount.add(_amount);
     }
     user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
-
+    pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
     syrup.mint(msg.sender, _amount);
     uint256[] memory amounts = new uint256[](1);
     amounts[0] = _amount;
@@ -382,6 +379,7 @@ function migrate(uint256 _pid) public {
     if(_amount > 0) {
       user.tokenData[0].amount = user.tokenData[0].amount.sub(_amount);
       pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+      pool.tokenData[0].supply -= _amount;
     }
     user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
 
