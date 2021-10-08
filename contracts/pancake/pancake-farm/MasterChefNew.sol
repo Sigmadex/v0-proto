@@ -120,10 +120,6 @@ contract MasterChefNew is Ownable {
 
   function getUserInfo(uint256 _pid, address addr) public returns (UserInfo memory user) {
     UserInfo memory user = userInfo[_pid][addr];
-    console.log('getuser');
-    console.log(user.tokenData[0].amount);
-    console.log(user.tokenData[1].amount);
-    console.log('getuser end');
     return user;
   }
 
@@ -147,7 +143,6 @@ contract MasterChefNew is Ownable {
         supply: 0,
         accCakePerShare: 0
       }));
-      console.log('hi');
     }
     poolLength += 1;
     //updateStakingPool();
@@ -261,11 +256,7 @@ function updatePool(uint256 _pid) public {
   //cake.mint(devaddr, cakeReward.div(10));
   cake.mint(address(this), cakeReward);
   for (uint j=0; j < pool.tokenData.length; j++) {
-    console.log('cake reward', cakeReward);
-    console.log('unity', unity);
-    console.log('supply', supplies[j]);
     pool.tokenData[j].accCakePerShare = pool.tokenData[j].accCakePerShare + cakeReward * unity / supplies[j]; 
-    console.log(pool.tokenData[j].accCakePerShare, 'update acc');
   }
   pool.lastRewardBlock = block.number;
 }
@@ -280,7 +271,6 @@ function deposit(
   updatePool(_pid);
   //reward debt question
   for (uint j=0; j < pool.tokenData.length; j++) {
-    console.log('j', j);
     if (user.tokenData.length <= j) {
       //first deposit
       user.tokenData.push(UserTokenData({
@@ -304,7 +294,6 @@ function deposit(
       _amounts[j]
     );
     user.tokenData[j].amount = amount + _amounts[j];
-    console.log('amount', j, user.tokenData[j].amount);
     user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
     pool.tokenData[j].supply += _amounts[j];
   }
@@ -321,10 +310,8 @@ function withdraw(
   for (uint j=0; j < user.tokenData.length; j++) {
     uint256 amount = user.tokenData[j].amount;
     uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
-    console.log('accCakePerShare', accCakePerShare);
     uint256 rewardDebt = user.tokenData[j].rewardDebt;
     uint256 pending = amount * accCakePerShare / unity - rewardDebt;
-    console.log('pending', pending);
     if (pending > 0) {
       safeCakeTransfer(msg.sender, pending);
     }

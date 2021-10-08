@@ -79,7 +79,6 @@ contract('MasterChef', () => {
     poolLength = (await chef.poolLength()).toString()
     const blockNumber = await web3.eth.getBlockNumber()
     
-    console.log(poolLength)
     assert.equal(poolLength, "2");
     const poolInfo = await chef.getPoolInfo.call(poolLength-1)
     assert.equal(poolInfo.tokenData[0].token, erc20a.address)
@@ -94,7 +93,21 @@ contract('MasterChef', () => {
     let finalAlloc =  await chef.totalAllocPoint();
     assert.equal(finalAlloc - initialAlloc, allocPoints)
   })
+  it("updates a pool", async() => {
+    let poolId = (await chef.poolLength()).toString() - 1
+    let poolInfo = await chef.getPoolInfo.call(poolId)
+    assert.equal(poolInfo.tokenData[0].token, erc20a.address)
+    assert.equal(poolInfo.tokenData[0].supply, 0)
+    assert.equal(poolInfo.tokenData[0].accCakePerShare, 0)
+    assert.equal(poolInfo.tokenData[1].token, erc20b.address)
+    assert.equal(poolInfo.tokenData[1].supply, 0)
+    assert.equal(poolInfo.tokenData[1].accCakePerShare, 0)
+    assert.equal(poolInfo.allocPoint, '2000')
+    assert.equal(poolInfo.lastRewardBlock, await web3.eth.getBlockNumber())
+    await chef.updatePool(poolId)
+    poolInfo = await chef.getPoolInfo.call(poolId)
 
+  })
   it("allows user to stake", async () => {
     let allocPoints = '2000'
     let poolId = (await chef.poolLength()).toString() - 1
@@ -119,6 +132,15 @@ contract('MasterChef', () => {
       [stakeAmount, stakeAmount],
       { from: alice }
     )
+    let poolInfo = await chef.getPoolInfo.call(poolId)
+    assert.equal(poolInfo.tokenData[0].token, erc20a.address)
+    assert.equal(poolInfo.tokenData[0].supply, stakeAmount)
+    assert.equal(poolInfo.tokenData[0].accCakePerShare, 0)
+    assert.equal(poolInfo.tokenData[1].token, erc20b.address)
+    assert.equal(poolInfo.tokenData[1].supply, stakeAmount)
+    assert.equal(poolInfo.tokenData[1].accCakePerShare, 0)
+    assert.equal(poolInfo.allocPoint, '2000')
+    assert.equal(poolInfo.lastRewardBlock, await web3.eth.getBlockNumber())
     let aliceErc20ABalance2 = await erc20a.balanceOf(alice)
     let aliceErc20BBalance2 = await erc20b.balanceOf(alice)
     assert.equal(
@@ -131,7 +153,6 @@ contract('MasterChef', () => {
     )
 
     let userInfo = await chef.getUserInfo.call(poolId, alice)
-    console.log(userInfo.tokenData)
     assert.equal((await cake.balanceOf(alice)).toString(), '0');
     assert.equal(
       userInfo.tokenData[0].amount,
@@ -154,18 +175,28 @@ contract('MasterChef', () => {
     const cakePerBlock = (await chef.cakePerBlock()).toString()
     const totalAllocPoints = (await chef.totalAllocPoint()).toString()
     const poolAllocPoints = (await chef.getPoolInfo.call(1)).allocPoint.toString()
-    console.log(poolAllocPoints)
     // 1 cake per block, 100 blocks forward + current block
     let numer = (blocksForward+1)*cakePerBlock*poolAllocPoints
     const numerator = new web3.utils.BN(fromExponential(numer))
     const denominator = new web3.utils.BN(totalAllocPoints)
     const cakeReward = numerator.div(denominator)
-    console.log(cakeReward.toString())
     assert.equal((await cake.balanceOf(alice)).toString(), cakeReward.toString());
     assert.equal(
       userInfo.tokenData[0].amount,
       0
     )
+    const unity = new web3.utils.BN(fromExponential(1e27))
+    const stakeBN = new web3.utils.BN(stakeAmount)
+    const accCakePerShare = cakeReward.mul(unity).div(stakeBN)
+    poolInfo = await chef.getPoolInfo.call(poolId)
+    assert.equal(poolInfo.tokenData[0].token, erc20a.address)
+    assert.equal(poolInfo.tokenData[0].supply, 0)
+    assert.equal(poolInfo.tokenData[0].accCakePerShare, accCakePerShare)
+    assert.equal(poolInfo.tokenData[1].token, erc20b.address)
+    assert.equal(poolInfo.tokenData[1].supply, 0)
+    assert.equal(poolInfo.tokenData[1].accCakePerShare, accCakePerShare)
+    assert.equal(poolInfo.allocPoint, '2000')
+    assert.equal(poolInfo.lastRewardBlock, await web3.eth.getBlockNumber())
   })
   /*
   it("can deposit cake", async() => {
