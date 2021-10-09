@@ -314,11 +314,11 @@ function migrate(uint256 _pid) public {
       totalAmountShares += amount * accCakePerShare;
       totalRewardDebt += rewardDebt;
       uint256 pending = amount * accCakePerShare / unity - rewardDebt;
-      /*
+      
       if (pending > 0) {
         safeCakeTransfer(msg.sender, pending);
       }
-     */
+     
       pool.tokenData[j].token.safeTransfer(
         address(msg.sender),
         amount

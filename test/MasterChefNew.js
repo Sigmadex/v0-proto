@@ -257,6 +257,7 @@ contract('MasterChef', () => {
     
     const currentPerformanceFee = cakeReward * performanceFee / 10000
     const currentCallFee = Math.floor(cakeReward * callFee / 10000)
+    const cakeIter =Number(cakeDeposit) +Number(cakeReward) - currentPerformanceFee - currentCallFee
     await cakeVault.harvest()
     assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), currentPerformanceFee)
     assert.equal((await cake.balanceOf(dev)).toString(), currentCallFee)
@@ -275,7 +276,6 @@ contract('MasterChef', () => {
     //Alice pays
     //assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit)
     // masterchef holds the cake
-    const cakeIter =Number(cakeDeposit) +Number(cakeReward) - currentPerformanceFee - currentCallFee
 
     assert.equal((await cake.balanceOf(chef.address)).toString(), cakeIter)
     assert.equal((await cake.balanceOf(cakeVault.address)).toString(), 0)
@@ -293,18 +293,15 @@ contract('MasterChef', () => {
 
   })
 
-  /*
+
   it("can withdrawal cake", async() => {
-    let cakeInVault = await cake.balanceOf(cakeVault.address)
-    console.log('fristcake in vault', cakeInVault.toString())
+    const currentAmount = await cakeVault.balanceOf()
+    const cakeTreasury1 = await cake.balanceOf(cakeVaultTreasury)
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
-    console.log('alice-add', alice)
-    console.log('vault-add', cakeVault.address)
     // the harvest paradigm
     await cakeVault.withdraw(aliceShares, {from: alice})
-    cakeInVault = await cake.balanceOf(cakeVault.address)
-    console.log('fristcake in vault', web3.utils.fromWei(cakeInVault, 'ether'));
+    let cakeInVault = await cake.balanceOf(cakeVault.address)
     const withdrawFee = (await cakeVault.withdrawFee()).toString() / 10000
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
     
@@ -316,15 +313,18 @@ contract('MasterChef', () => {
     const numerator = new web3.utils.BN(fromExponential(numer))
     const denominator = new web3.utils.BN(totalAllocPoints)
     const cakeReward = numerator.div(denominator)
-    console.log(cakeReward.toString())
-    console.log(aliceShares - (aliceShares*withdrawFee)+Number(cakeReward), 'return')
-    console.log('balancediff', aliceBalance2-aliceBalance1)
-    assert.equal(aliceBalance2 - aliceBalance1, aliceShares - (aliceShares*withdrawFee) + Number(cakeReward))
+    const performanceFee = (await cakeVault.performanceFee())
+    const callFee = (await cakeVault.callFee())
+    const currentPerformanceFee= cakeReward * performanceFee
+ 
+    assert.equal(aliceBalance2 - aliceBalance1, currentAmount - (currentAmount*withdrawFee))
     assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), 0)
-    assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), (aliceShares*withdrawFee))
+    const treasuryDiff = (await cake.balanceOf(cakeVaultTreasury)) - cakeTreasury1
+    assert.equal(treasuryDiff, Math.floor(currentAmount*withdrawFee))
 
 
   })
+    /*
   it("can withdraw cake after more elapsed time", async () => {
     let cakeInVault = await cake.balanceOf(cakeVault.address)
     console.log('cake in vault', cakeInVault.toString())
