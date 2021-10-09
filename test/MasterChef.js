@@ -6,6 +6,8 @@ const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVault');
+
+/* Commented for reference, depreciated
 contract('MasterChef', () => {
   let accounts;
   let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, minter = '';
@@ -187,7 +189,6 @@ contract('MasterChef', () => {
 
 
 
-/*
 contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
     beforeEach(async () => {
         this.cake = await CakeToken.new({ from: minter });

@@ -570,7 +570,6 @@ abstract contract Pausable is Context {
       UserInfo storage user = userInfo[msg.sender];
       require(_shares > 0, "Nothing to withdraw");
       require(_shares <= user.shares, "Withdraw amount exceeds balance");
-
       uint256 currentAmount = (balanceOf().mul(_shares)).div(totalShares);
       user.shares = user.shares.sub(_shares);
       totalShares = totalShares.sub(_shares);
@@ -579,6 +578,7 @@ abstract contract Pausable is Context {
         uint256 balWithdraw = currentAmount.sub(bal);
         IMasterChefNew(masterchef).leaveStaking(balWithdraw);
         uint256 balAfter = available();
+        //theoretical
         uint256 diff = balAfter.sub(bal);
         if (diff < balWithdraw) {
           currentAmount = bal.add(diff);

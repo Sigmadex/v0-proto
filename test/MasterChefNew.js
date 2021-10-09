@@ -202,7 +202,6 @@ contract('MasterChef', () => {
     assert.equal(poolInfo.allocPoint, '2000')
     assert.equal(poolInfo.lastRewardBlock, await web3.eth.getBlockNumber())
 
-    console.log((await cake.balanceOf(alice)).toString())
 
   })
   it("can deposit (auto) cake", async() => {
@@ -214,25 +213,130 @@ contract('MasterChef', () => {
       {from: alice}
     )
     await cakeVault.deposit(cakeDeposit, {from: alice})
+
+    //cake vault state
+    // Alice get shares in Cake Vault
     assert.equal(cakeDeposit,(await cakeVault.userInfo(alice)).shares.toString())
+    assert.equal((await cakeVault.userInfo(chef.address)).shares.toString(), 0)
+    assert.equal((await cakeVault.userInfo(cakeVault.address)).shares.toString(), 0)
+
+    //cake token state
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
     assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit)
-    const chefUserInfo = await chef.getUserInfo(0, alice)
+    assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), 0)
+    assert.equal((await cake.balanceOf(dev)).toString(), 0)
+    assert.equal((await cake.balanceOf(chef.address)).toString(), cakeDeposit)
+    assert.equal((await cake.balanceOf(cakeVault.address)).toString(), 0)
+
+    //master chef state
+    assert.equal((await chef.getUserInfo(0, alice)).tokenData.length, 0)
+    assert.equal((await chef.getUserInfo(0, cakeVault.address)).tokenData[0].amount.toString(), cakeDeposit)
+
+    //syrup state
     assert.equal((await syrup.balanceOf(alice)).toString(), 0)
     assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), cakeDeposit)
+    assert.equal((await syrup.balanceOf(chef.address)).toString(), 0)
+
+
   })
 
+  it("harvest function restakes cake", async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
+    
+    const cakePerBlock = (await chef.cakePerBlock()).toString()
+    const totalAllocPoints = (await chef.totalAllocPoint()).toString()
+    const poolAllocPoints = (await chef.getPoolInfo.call(0)).allocPoint.toString()
+    let numer = (1)*cakePerBlock*poolAllocPoints
+    const numerator = new web3.utils.BN(fromExponential(numer))
+    const denominator = new web3.utils.BN(totalAllocPoints)
+    const cakeReward = numerator.div(denominator)
+
+    const performanceFee = (await cakeVault.performanceFee())
+    const callFee = (await cakeVault.callFee())
+    
+    const currentPerformanceFee = cakeReward * performanceFee / 10000
+    const currentCallFee = Math.floor(cakeReward * callFee / 10000)
+    await cakeVault.harvest()
+    assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), currentPerformanceFee)
+    assert.equal((await cake.balanceOf(dev)).toString(), currentCallFee)
+
+    // 1 cake per block, 100 blocks forward + current block
+
+
+    let aliceBalance3 =  (await cake.balanceOf(alice)).toString()
+    //cake vault state
+    // Alice get shares in Cake Vault
+    assert.equal(cakeDeposit,(await cakeVault.userInfo(alice)).shares.toString())
+    assert.equal((await cakeVault.userInfo(chef.address)).shares.toString(), 0)
+    assert.equal((await cakeVault.userInfo(cakeVault.address)).shares.toString(), 0)
+
+    //cake token state
+    //Alice pays
+    //assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit)
+    // masterchef holds the cake
+    const cakeIter =Number(cakeDeposit) +Number(cakeReward) - currentPerformanceFee - currentCallFee
+
+    assert.equal((await cake.balanceOf(chef.address)).toString(), cakeIter)
+    assert.equal((await cake.balanceOf(cakeVault.address)).toString(), 0)
+
+    //master chef state
+    assert.equal((await chef.getUserInfo(0, alice)).tokenData.length, 0)
+    // masterchef tracks cakevaults amount of cake
+    assert.equal((await chef.getUserInfo(0, cakeVault.address)).tokenData[0].amount.toString(), cakeIter)
+
+    //syrup state
+    assert.equal((await syrup.balanceOf(alice)).toString(), 0)
+    // cakevault has syrup (recipt token)
+    assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), cakeIter)
+    assert.equal((await syrup.balanceOf(chef.address)).toString(), 0)
+
+  })
+
+  /*
   it("can withdrawal cake", async() => {
+    let cakeInVault = await cake.balanceOf(cakeVault.address)
+    console.log('fristcake in vault', cakeInVault.toString())
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
+    console.log('alice-add', alice)
+    console.log('vault-add', cakeVault.address)
+    // the harvest paradigm
     await cakeVault.withdraw(aliceShares, {from: alice})
+    cakeInVault = await cake.balanceOf(cakeVault.address)
+    console.log('fristcake in vault', web3.utils.fromWei(cakeInVault, 'ether'));
     const withdrawFee = (await cakeVault.withdrawFee()).toString() / 10000
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
-    assert.equal(aliceBalance2 - aliceBalance1, aliceShares - (aliceShares*withdrawFee))
+    
+    const cakePerBlock = (await chef.cakePerBlock()).toString()
+    const totalAllocPoints = (await chef.totalAllocPoint()).toString()
+    const poolAllocPoints = (await chef.getPoolInfo.call(0)).allocPoint.toString()
+    // 1 cake per block, 100 blocks forward + current block
+    let numer = (1)*cakePerBlock*poolAllocPoints
+    const numerator = new web3.utils.BN(fromExponential(numer))
+    const denominator = new web3.utils.BN(totalAllocPoints)
+    const cakeReward = numerator.div(denominator)
+    console.log(cakeReward.toString())
+    console.log(aliceShares - (aliceShares*withdrawFee)+Number(cakeReward), 'return')
+    console.log('balancediff', aliceBalance2-aliceBalance1)
+    assert.equal(aliceBalance2 - aliceBalance1, aliceShares - (aliceShares*withdrawFee) + Number(cakeReward))
     assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), 0)
-  })
+    assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), (aliceShares*withdrawFee))
 
+
+  })
   it("can withdraw cake after more elapsed time", async () => {
+    let cakeInVault = await cake.balanceOf(cakeVault.address)
+    console.log('cake in vault', cakeInVault.toString())
+    let aliceUserInfoVault = await cakeVault.userInfo(alice)
+    let aliceUserInfo = await chef.getUserInfo(0, alice);
+    let chefUserInfo = await chef.getUserInfo(0, chef.address);
+    let vaultUserInfo = await chef.getUserInfo(0, cakeVault.address)
+    console.log('chef', chefUserInfo)
+    console.log('vault', vaultUserInfo)
+    assert.equal(aliceUserInfo.tokenData.length, 0)
+    assert.equal(aliceUserInfo.lastRewardBlock, 0)
+    assert.equal(aliceUserInfoVault.shares.toString(), 0)
     let aliceBalance1 = (await cake.balanceOf(alice))
     let cakeDeposit = web3.utils.toWei('1', 'ether')
     await cake.approve(
@@ -241,10 +345,15 @@ contract('MasterChef', () => {
       {from: alice}
     )
     await cakeVault.deposit(cakeDeposit, {from: alice})
+    vaultUserInfo = await chef.getUserInfo(0, cakeVault.address)
+    console.log('vault', vaultUserInfo)
+
+    
     const withdrawFeePeriod = (await cakeVault.withdrawFeePeriod()).toString()
     await advanceTime(withdrawFeePeriod)
 
     const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
+    console.log(aliceShares)
     await cakeVault.withdraw(aliceShares, {from: alice})
 
     const cakePerBlock = (await chef.cakePerBlock()).toString()
@@ -257,7 +366,18 @@ contract('MasterChef', () => {
     const cakeReward = numerator.div(denominator)
     let aliceBalance2 =  (await cake.balanceOf(alice))
     assert.equal((aliceBalance1.add(cakeReward)).toString(), aliceBalance2.toString())
+
+    aliceUserInfo = await chef.getUserInfo(0, alice);
+    chefUserInfo = await chef.getUserInfo(0, chef.address);
+    vaultUserInfo = await chef.getUserInfo(0, cakeVault.address)
+    //console.log(chefUserInfo)
+    //console.log(vaultUserInfo)
+    const poolInfo = await chef.getPoolInfo.call(0)
+    assert.equal(poolInfo.tokenData[0].supply, 0)
+    aliceUserInfoVault = await cakeVault.userInfo(alice)
+    assert.equal(aliceUserInfoVault.shares.toString(), 0)
   })
+  */
 })
 
 
