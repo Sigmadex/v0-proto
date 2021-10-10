@@ -324,16 +324,12 @@ contract('MasterChef', () => {
 
 
   })
-    /*
   it("can withdraw cake after more elapsed time", async () => {
     let cakeInVault = await cake.balanceOf(cakeVault.address)
-    console.log('cake in vault', cakeInVault.toString())
     let aliceUserInfoVault = await cakeVault.userInfo(alice)
     let aliceUserInfo = await chef.getUserInfo(0, alice);
     let chefUserInfo = await chef.getUserInfo(0, chef.address);
     let vaultUserInfo = await chef.getUserInfo(0, cakeVault.address)
-    console.log('chef', chefUserInfo)
-    console.log('vault', vaultUserInfo)
     assert.equal(aliceUserInfo.tokenData.length, 0)
     assert.equal(aliceUserInfo.lastRewardBlock, 0)
     assert.equal(aliceUserInfoVault.shares.toString(), 0)
@@ -346,14 +342,12 @@ contract('MasterChef', () => {
     )
     await cakeVault.deposit(cakeDeposit, {from: alice})
     vaultUserInfo = await chef.getUserInfo(0, cakeVault.address)
-    console.log('vault', vaultUserInfo)
 
     
     const withdrawFeePeriod = (await cakeVault.withdrawFeePeriod()).toString()
     await advanceTime(withdrawFeePeriod)
 
     const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
-    console.log(aliceShares)
     await cakeVault.withdraw(aliceShares, {from: alice})
 
     const cakePerBlock = (await chef.cakePerBlock()).toString()
@@ -370,14 +364,11 @@ contract('MasterChef', () => {
     aliceUserInfo = await chef.getUserInfo(0, alice);
     chefUserInfo = await chef.getUserInfo(0, chef.address);
     vaultUserInfo = await chef.getUserInfo(0, cakeVault.address)
-    //console.log(chefUserInfo)
-    //console.log(vaultUserInfo)
     const poolInfo = await chef.getPoolInfo.call(0)
     assert.equal(poolInfo.tokenData[0].supply, 0)
     aliceUserInfoVault = await cakeVault.userInfo(alice)
     assert.equal(aliceUserInfoVault.shares.toString(), 0)
   })
-  */
 })
 
 
