@@ -34,56 +34,30 @@ contract MasterChef is Ownable {
   using SafeMath for uint256;
   using SafeBEP20 for IBEP20;
 
-  // Info of each user.
+  uint256 unity = 1e27;
+
+  struct UserTokenData {
+    uint256 amount;
+    uint256 rewardDebt;
+  }
   struct UserInfo {
-    uint256 amount;     // How many LP tokens the user has provided.
-    uint256 rewardDebt; // Reward debt. See explanation below.
-    //
-    // We do some fancy math here. Basically, any point in time, the amount of CAKEs
-    // entitled to a user but is pending to be distributed is:
-    //
-    //   pending reward = (user.amount * pool.accCakePerShare) - user.rewardDebt
-    //
-    // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-    //   1. The pool's `accCakePerShare` (and `lastRewardBlock`) gets updated.
-    //   2. User receives the pending reward sent to his/her address.
-    //   3. User's `amount` gets updated.
-    //   4. User's `rewardDebt` gets updated.
-  }
-  // Info of each user that stakes LP tokens.
-  mapping (uint256 => mapping (address => UserInfo)) public userInfo;
-  struct UserInfoNew {
-    uint256 amountToken0;
-    uint256 amountToken1;
+    UserTokenData[] tokenData;
     uint256 lastRewardBlock;
-    uint256 accCakePerShareAmount0;
-    uint256 accCakePerShareAmount1;
-    uint256 rewardDebtToken0;
-    uint256 rewardDebtToken1;
   }
+  mapping (uint256 => mapping (address => UserInfo)) internal userInfo;
 
-  mapping (uint256 => mapping (address => UserInfoNew)) public userInfoNew;
-  // Info of each pool.
+  struct PoolTokenData {
+    IBEP20 token;
+    uint256 supply;
+    uint256 accCakePerShare;
+  }
   struct PoolInfo {
-    IBEP20 lpToken;           // Address of LP token contract.
-    uint256 allocPoint;       // How many allocation points assigned to this pool. CAKEs to distribute per block.
-    uint256 lastRewardBlock;  // Last block number that CAKEs distribution occurs.
-    uint256 accCakePerShare; // Accumulated CAKEs per share, times 1e27. See below.
-  }
-  // Info of each pool.
-  PoolInfo[] public poolInfo;
-
-  struct PoolInfoNew {
-    IBEP20 token0;
-    IBEP20 token1;
-    uint256 token0Supply;
-    uint256 token1Supply;
+    PoolTokenData[] tokenData;
     uint256 allocPoint;
     uint256 lastRewardBlock;
-    uint256 accCakePerShareToken0;
-    uint256 accCakePerShareToken1;
   }
-  PoolInfoNew[] public poolInfoNew;
+  uint256 public poolLength = 0;
+  mapping(uint256 => PoolInfo) internal poolInfo;
 
   // The CAKE TOKEN!
   CakeToken public cake;
@@ -103,11 +77,9 @@ contract MasterChef is Ownable {
   // The block number when CAKE mining starts.
   uint256 public startBlock;
 
-  event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
-  event DepositNew(address indexed user, uint256 indexed pid, uint256 amountToken0, uint256 amountToken1);
-  event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
-  event WithdrawNew(address indexed user, uint256 indexed pid);
-  event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+  event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
+  event Withdraw(address indexed user, uint256 indexed pid);
+  event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
   constructor(
     CakeToken _cake,
@@ -115,18 +87,22 @@ contract MasterChef is Ownable {
     address _devaddr,
     uint256 _cakePerBlock
   ) public {
-    cake = _cake;
+    cake = _cake; 
     syrup = _syrup;
     devaddr = _devaddr;
     cakePerBlock = _cakePerBlock;
     startBlock = block.number;
 
-    poolInfo.push(PoolInfo({
-      lpToken: _cake,
-      allocPoint: 1000,
-      lastRewardBlock: startBlock,
+    PoolTokenData memory poolTokenData = PoolTokenData({
+      token: _cake,
+      supply: 0,
       accCakePerShare: 0
-    }));
+    });
+    PoolInfo storage cakePool = poolInfo[poolLength];
+    cakePool.tokenData.push(poolTokenData);
+    cakePool.allocPoint = 1000;
+    cakePool.lastRewardBlock = startBlock;
+    poolLength += 1;
     totalAllocPoint = 1000;
   }
 
@@ -134,51 +110,41 @@ contract MasterChef is Ownable {
     BONUS_MULTIPLIER = multiplierNumber;
   }
 
-  function poolLength() external view returns (uint256) {
-    return poolInfo.length;
-  }
-
   // Add a new lp to the pool. Can only be called by the owner.
   // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-  function add(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) public onlyOwner {
+
+  function getPoolInfo(uint256 _pid) public returns (PoolInfo memory pool) {
+    PoolInfo memory pool =  poolInfo[_pid];
+    return pool;
+  }
+
+  function getUserInfo(uint256 _pid, address addr) public view returns (UserInfo memory user) {
+    UserInfo memory user = userInfo[_pid][addr];
+    return user;
+  }
+
+  function add(
+    IBEP20[] memory _tokens,
+    uint256 _allocPoint,
+    bool _withUpdate
+  ) public onlyOwner {
     if (_withUpdate) {
       massUpdatePools();
     }
     uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
     totalAllocPoint = totalAllocPoint.add(_allocPoint);
-    poolInfo.push(PoolInfo({
-      lpToken: _lpToken,
-      allocPoint: _allocPoint,
-      lastRewardBlock: lastRewardBlock,
-      accCakePerShare: 0
-    }));
-    updateStakingPool();
-  }
-
-  function addNew(
-    IBEP20 _token0,
-    IBEP20 _token1,
-    uint256 _allocPoint,
-    bool _withUpdate
-  ) public onlyOwner {
-    if (_withUpdate) {
-      massUpdatePoolsNew();
+    PoolInfo storage newPool = poolInfo[poolLength];
+    newPool.allocPoint = _allocPoint;
+    newPool.lastRewardBlock = lastRewardBlock;
+    for (uint j=0; j < _tokens.length; j++) {
+      newPool.tokenData.push(PoolTokenData({
+        token: _tokens[j],
+        supply: 0,
+        accCakePerShare: 0
+      }));
     }
-    uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
-    totalAllocPoint = totalAllocPoint.add(_allocPoint);
-    poolInfoNew.push(
-      PoolInfoNew({
-      token0: _token0,
-      token1: _token1,
-      token0Supply: 0,
-      token1Supply: 0,
-      allocPoint: _allocPoint,
-      lastRewardBlock: lastRewardBlock,
-      accCakePerShareToken0: 0,
-      accCakePerShareToken1: 0
-    })
-    );
-    //updateStakingPoolNew();
+    poolLength += 1;
+    updateStakingPool();
   }
 
   // Update the given pool's CAKE allocation point. Can only be called by the owner.
@@ -193,12 +159,10 @@ contract MasterChef is Ownable {
       updateStakingPool();
     }
   }
-
   function updateStakingPool() internal {
-    uint256 length = poolInfo.length;
     uint256 points = 0;
     // pid = 1 -> pid = 1 (rm cake pool)
-    for (uint256 pid = 0; pid < length; ++pid) {
+    for (uint256 pid = 0; pid < poolLength; ++pid) {
       points = points.add(poolInfo[pid].allocPoint);
     }
     totalAllocPoint = points;
@@ -207,26 +171,27 @@ contract MasterChef is Ownable {
       points = points.div(3);
       totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(points);
       poolInfo[0].allocPoint = points;
-    }
-   */
   }
+  */
+}
+// Set the migrator contract. Can only be called by the owner.
+function setMigrator(IMigratorChef _migrator) public onlyOwner {
+  migrator = _migrator;
+}
 
-  // Set the migrator contract. Can only be called by the owner.
-  function setMigrator(IMigratorChef _migrator) public onlyOwner {
-    migrator = _migrator;
+// Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
+function migrate(uint256 _pid) public {
+  require(address(migrator) != address(0), "migrate: no migrator");
+  PoolInfo storage pool = poolInfo[_pid];
+  for (uint j=0; j < pool.tokenData.length; j++) {
+    IBEP20 token = pool.tokenData[j].token;
+    uint256 bal = token.balanceOf(address(this));
+    token.safeApprove(address(migrator), bal);
+    IBEP20 newToken = migrator.migrate(token);
+    require(bal == newToken.balanceOf(address(this)), "migrate: bad");
+    pool.tokenData[j].token = newToken;
   }
-
-  // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
-  function migrate(uint256 _pid) public {
-    require(address(migrator) != address(0), "migrate: no migrator");
-    PoolInfo storage pool = poolInfo[_pid];
-    IBEP20 lpToken = pool.lpToken;
-    uint256 bal = lpToken.balanceOf(address(this));
-    lpToken.safeApprove(address(migrator), bal);
-    IBEP20 newLpToken = migrator.migrate(lpToken);
-    require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
-    pool.lpToken = newLpToken;
-  }
+}
 
   // Return reward multiplier over the given _from to _to block.
   function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
@@ -235,41 +200,51 @@ contract MasterChef is Ownable {
 
   // View function to see pending CAKEs on frontend.
   function pendingCake(uint256 _pid, address _user) external view returns (uint256) {
+    uint256 returnResult = 0;
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][_user];
-    uint256 accCakePerShare = pool.accCakePerShare;
-    uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-    if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-      uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-      uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-      accCakePerShare = accCakePerShare.add(cakeReward.mul(1e27).div(lpSupply));
+    uint256 supply = 0;
+    for (uint j=0; j < pool.tokenData.length; j++) {
+      supply += pool.tokenData[j].supply;
     }
-    return user.amount.mul(accCakePerShare).div(1e27).sub(user.rewardDebt);
+    if (block.number > pool.lastRewardBlock && supply != 0) {
+      uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+      uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint); 
+      for (uint j=0; j < pool.tokenData.length; j++) {
+        uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
+        uint256 supply = pool.tokenData[j].supply;
+        accCakePerShare = accCakePerShare + cakeReward * unity / supply;
+        returnResult += user.tokenData[j].amount * accCakePerShare / unity - user.tokenData[j].rewardDebt;
+      }
+      return returnResult;
+    }
+    for (uint j=0; j < pool.tokenData.length; j++) {
+      uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
+      uint256 supply = pool.tokenData[j].supply;
+      returnResult += user.tokenData[j].amount * accCakePerShare / unity - user.tokenData[j].rewardDebt;
+    }
+    return returnResult;
   }
 
   // Update reward variables for all pools. Be careful of gas spending!
   function massUpdatePools() public {
-    uint256 length = poolInfo.length;
-    for (uint256 pid = 0; pid < length; ++pid) {
+    for (uint256 pid = 0; pid < poolLength; ++pid) {
       updatePool(pid);
     }
   }
 
-  function massUpdatePoolsNew() public {
-    uint256 length = poolInfo.length;
-    for (uint256 pid = 0; pid < length; ++pid) {
-      updatePoolNew(pid);
-    }
-  }
-
-  // Update reward variables of the given pool to be up-to-date.
   function updatePool(uint256 _pid) public {
     PoolInfo storage pool = poolInfo[_pid];
     if (block.number <= pool.lastRewardBlock) {
       return;
     }
-    uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-    if (lpSupply == 0) {
+    uint256[] memory supplies = new uint256[](pool.tokenData.length);
+    uint256 supplySum = 0;
+    for (uint j=0; j < pool.tokenData.length; j++) {
+      supplies[j] = pool.tokenData[j].supply; 
+      supplySum += pool.tokenData[j].supply;
+    }
+    if (supplySum == 0) {
       pool.lastRewardBlock = block.number;
       return;
     }
@@ -278,193 +253,154 @@ contract MasterChef is Ownable {
     // Lol - are they really taking 10% of cake mint to personal addr?
     //cake.mint(devaddr, cakeReward.div(10));
     cake.mint(address(this), cakeReward);
-    pool.accCakePerShare = pool.accCakePerShare.add(cakeReward.mul(1e27).div(lpSupply));
+    for (uint j=0; j < pool.tokenData.length; j++) {
+      pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (cakeReward)* unity / (pool.tokenData.length*supplies[j]); 
+    }
     pool.lastRewardBlock = block.number;
   }
 
-
-
-  function updatePoolNew(uint256 _pid) public {
-    PoolInfoNew storage pool = poolInfoNew[_pid];
-    if (block.number <= pool.lastRewardBlock) {
-      return;
-    }
-    uint256 token0Supply = pool.token0.balanceOf(address(this));
-    uint256 token1Supply = pool.token1.balanceOf(address(this));
-    
-    if (pool.token0Supply == 0 && pool.token1Supply == 0) {
-      pool.lastRewardBlock = block.number;
-      return;
-    }
-    uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-    uint256 cakeReward = multiplier.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-    // Lol - are they really taking 10% of cake mint to personal addr?
-    //cake.mint(devaddr, cakeReward.div(10));
-    cake.mint(address(this), cakeReward);
-    pool.accCakePerShareToken0 = pool.accCakePerShareToken0.add(
-      cakeReward.mul(1e27).div(token0Supply)
-    );
-    pool.accCakePerShareToken1 = pool.accCakePerShareToken1.add(
-      cakeReward.mul(1e27).div(token1Supply)
-    );
-    pool.lastRewardBlock = block.number;
-  }
-
-  function depositNew(
+  function deposit(
     uint256 _pid,
-    uint256 _amountToken0,
-    uint256 _amountToken1
+    uint256[] memory _amounts
   ) public {
-    require (_amountToken0 > 0 && _amountToken1 > 0, 'If you wish to only stake this token, please use its single pool, otherwise please deposit the other token as well');
-    PoolInfoNew storage pool = poolInfoNew[_pid];
-    UserInfoNew storage user = userInfoNew[_pid][msg.sender];
-    updatePoolNew(_pid);
+    PoolInfo storage pool = poolInfo[_pid];
+    UserInfo storage user = userInfo[_pid][msg.sender];
+    require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
+    updatePool(_pid);
     //reward debt question
-    if (user.amountToken0 > 0) {
-      uint256 pending0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27).sub(user.rewardDebtToken0);
-      if (pending0 > 0) {
-        safeCakeTransfer(msg.sender, pending0);
+    for (uint j=0; j < pool.tokenData.length; j++) {
+      if (user.tokenData.length <= j) {
+        //first deposit
+        user.tokenData.push(UserTokenData({
+          amount: 0,
+          rewardDebt: 0
+        }));
       }
-    }
-    if (user.amountToken1 > 0) {
-      uint256 pending1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27).sub(user.rewardDebtToken1);
-      if (pending1 > 0) {
-        safeCakeTransfer(msg.sender, pending1);
+      uint256 amount = user.tokenData[j].amount;
+      uint256 rewardDebt = user.tokenData[j].rewardDebt;
+      uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
+
+      if (amount > 0) {
+        uint256 pending = amount * accCakePerShare / unity - rewardDebt;
+        if (pending > 0) {
+          safeCakeTransfer(msg.sender, pending);
+        }
       }
+      pool.tokenData[j].token.safeTransferFrom(
+        address(msg.sender),
+        address(this),
+        _amounts[j]
+      );
+      user.tokenData[j].amount = amount + _amounts[j];
+      user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
+      pool.tokenData[j].supply += _amounts[j];
     }
-    pool.token0.safeTransferFrom(
-      address(msg.sender),
-      address(this),
-      _amountToken0
-    );
-    pool.token1.safeTransferFrom(
-      address(msg.sender),
-      address(this),
-      _amountToken1
-    );
-    user.amountToken0 = user.amountToken0.add(_amountToken0);
-    user.amountToken1 = user.amountToken1.add(_amountToken1);
-    user.rewardDebtToken0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27);
-    user.rewardDebtToken1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27);
-    emit DepositNew(msg.sender, _pid, _amountToken0, _amountToken1);
+    emit Deposit(msg.sender, _pid, _amounts);
   }
   // Deposit LP tokens to MasterChef for CAKE allocation.
-  function deposit(uint256 _pid, uint256 _amount) public {
-    // rm syrup pool
-    //require (_pid != 0, 'deposit CAKE by staking');
-    PoolInfo storage pool = poolInfo[_pid];
-    UserInfo storage user = userInfo[_pid][msg.sender];
-    updatePool(_pid);
-    if (user.amount > 0) {
-      uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
-      if(pending > 0) {
-        safeCakeTransfer(msg.sender, pending);
-      }
-    }
-    if (_amount > 0) {
-      pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-      user.amount = user.amount.add(_amount);
-    }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
-    emit Deposit(msg.sender, _pid, _amount);
-  }
 
-  function withdrawNew(
+  function withdraw(
     uint256 _pid
   ) public {
-    PoolInfoNew storage pool = poolInfoNew[_pid];
-    UserInfoNew storage user = userInfoNew[_pid][msg.sender];
-    updatePoolNew(_pid);
-    
-    uint256 pendingToken0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27).sub(user.rewardDebtToken0);
-    uint256 pendingToken1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27).sub(user.rewardDebtToken1);
-    if (pendingToken0 > 0) {
-      safeCakeTransfer(msg.sender, pendingToken0);
-    }
-    if (pendingToken1 > 0) {
-      safeCakeTransfer(msg.sender, pendingToken1);
-    }
-    pool.token0.safeTransfer(address(msg.sender), user.amountToken0);
-    pool.token1.safeTransfer(address(msg.sender), user.amountToken1);
-    user.amountToken0 = 0;
-    user.amountToken1 = 0;
-    user.rewardDebtToken0 = user.amountToken0.mul(pool.accCakePerShareToken0).div(1e27);
-    user.rewardDebtToken1 = user.amountToken1.mul(pool.accCakePerShareToken1).div(1e27);
-    emit WithdrawNew(msg.sender, _pid);
-  }
-
-  // Withdraw LP tokens from MasterChef.
-  function withdraw(uint256 _pid, uint256 _amount) public {
-    // rm cake pool
-    //require (_pid != 0, 'withdraw CAKE by unstaking');
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
-    require(user.amount >= _amount, "withdraw: not good");
-
     updatePool(_pid);
-    // (user.amount * pool.accCakePerShare / 1e27) - user.rewardDebt
-    uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
-
-    if(pending > 0) {
+    uint256 totalAmountShares = 0;
+    uint256 totalRewardDebt = 0;
+    for (uint j=0; j < user.tokenData.length; j++) {
+      uint256 amount = user.tokenData[j].amount;
+      uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
+      uint256 rewardDebt = user.tokenData[j].rewardDebt;
+      totalAmountShares += amount * accCakePerShare;
+      totalRewardDebt += rewardDebt;
+      uint256 pending = amount * accCakePerShare / unity - rewardDebt;
+      
+      if (pending > 0) {
+        safeCakeTransfer(msg.sender, pending);
+      }
+     
+      pool.tokenData[j].token.safeTransfer(
+        address(msg.sender),
+        amount
+      );
+      user.tokenData[j].amount = 0;
+      pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
+      user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
+    }
+    uint256 pending = totalAmountShares / unity - totalRewardDebt;
+    if (pending > 0) {
       safeCakeTransfer(msg.sender, pending);
     }
-    if(_amount > 0) {
-      user.amount = user.amount.sub(_amount);
-      pool.lpToken.safeTransfer(address(msg.sender), _amount);
-    }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
-    emit Withdraw(msg.sender, _pid, _amount);
+    emit Withdraw(msg.sender, _pid);
   }
 
   // Stake CAKE tokens to MasterChef
-  
+
   function enterStaking(uint256 _amount) public {
     PoolInfo storage pool = poolInfo[0];
     UserInfo storage user = userInfo[0][msg.sender];
     updatePool(0);
-    if (user.amount > 0) {
-      uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
+    if (user.tokenData.length == 0) {
+      //new staker
+      UserTokenData memory cakeTokenData = UserTokenData({
+        amount: 0,
+        rewardDebt: 0
+      });
+      user.tokenData.push(cakeTokenData);
+    }
+    if (user.tokenData[0].amount > 0) {
+      uint256 pending = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(1e27).sub(user.tokenData[0].rewardDebt);
       if(pending > 0) {
         safeCakeTransfer(msg.sender, pending);
       }
     }
     if(_amount > 0) {
-      pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-      user.amount = user.amount.add(_amount);
+      pool.tokenData[0].token.safeTransferFrom(address(msg.sender), address(this), _amount);
+      user.tokenData[0].amount = user.tokenData[0].amount.add(_amount);
     }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
-
+    user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
+    pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
     syrup.mint(msg.sender, _amount);
-    emit Deposit(msg.sender, 0, _amount);
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = _amount;
+    emit Deposit(msg.sender, 0, amounts);
   }
 
   // Withdraw CAKE tokens from STAKING.
   function leaveStaking(uint256 _amount) public {
     PoolInfo storage pool = poolInfo[0];
     UserInfo storage user = userInfo[0][msg.sender];
-    require(user.amount >= _amount, "withdraw: not good");
+    require(user.tokenData[0].amount >= _amount, "withdraw: not good");
     updatePool(0);
-    uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e27).sub(user.rewardDebt);
+    uint256 pending = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity).sub(user.tokenData[0].rewardDebt);
     if(pending > 0) {
       safeCakeTransfer(msg.sender, pending);
     }
     if(_amount > 0) {
-      user.amount = user.amount.sub(_amount);
-      pool.lpToken.safeTransfer(address(msg.sender), _amount);
+      user.tokenData[0].amount = user.tokenData[0].amount.sub(_amount);
+      pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+      pool.tokenData[0].supply -= _amount;
     }
-    user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e27);
+    user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
 
     syrup.burn(msg.sender, _amount);
-    emit Withdraw(msg.sender, 0, _amount);
+    emit Withdraw(msg.sender, 0);
   }
   // Withdraw without caring about rewards. EMERGENCY ONLY.
   function emergencyWithdraw(uint256 _pid) public {
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
-    pool.lpToken.safeTransfer(address(msg.sender), user.amount);
-    emit EmergencyWithdraw(msg.sender, _pid, user.amount);
-    user.amount = 0;
-    user.rewardDebt = 0;
+    uint256[] memory  amounts = new uint256[](pool.tokenData.length);
+    for (uint j=0; j < pool.tokenData.length; j++) {
+      pool.tokenData[j].token.safeTransfer(
+        address(msg.sender),
+        user.tokenData[j].amount
+      );
+      amounts[j] = user.tokenData[j].amount;
+      user.tokenData[j].amount = 0;
+      user.tokenData[j].rewardDebt = 0;
+    }
+    emit EmergencyWithdraw(msg.sender, _pid, amounts);
   }
 
   // Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.

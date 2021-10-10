@@ -271,7 +271,7 @@ abstract contract Pausable is Context {
 }
 
 
-  interface IMasterChefNew {
+  interface IMasterChef {
     struct UserTokenData {
       uint256 amount;
       uint256 rewardDebt;
@@ -289,8 +289,8 @@ abstract contract Pausable is Context {
     function leaveStaking(uint256 _amount) external;
 
     function pendingCake(uint256 _pid, address _user) external view returns (uint256);
-
-    function getUserInfo(uint256 _pid, address _user) external view returns (UserInfo memory);
+    
+    function userInfo(uint256 _pid, address _user) external view returns (uint256, uint256);
 
     function emergencyWithdraw(uint256 _pid) external;
   }
@@ -298,7 +298,7 @@ abstract contract Pausable is Context {
   // File: contracts/CakeVault.sol
 
 
-  contract CakeVault is Ownable, Pausable {
+  contract CakeVaultOld is Ownable, Pausable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -312,7 +312,7 @@ abstract contract Pausable is Context {
     IERC20 public immutable token; // Cake token
     IERC20 public immutable receiptToken; // Syrup token
 
-    IMasterChefNew public immutable masterchef;
+    IMasterChef public immutable masterchef;
 
     mapping(address => UserInfo) public userInfo;
 
@@ -348,13 +348,13 @@ abstract contract Pausable is Context {
     constructor(
       IERC20 _token,
       IERC20 _receiptToken,
-      IMasterChefNew _masterchef,
+      IMasterChef _masterchef,
       address _admin,
       address _treasury
     ) public {
       token = _token;
       receiptToken = _receiptToken;
-      masterchef = IMasterChefNew(_masterchef);
+      masterchef = IMasterChef(_masterchef);
       admin = _admin;
       treasury = _treasury;
 
@@ -422,7 +422,7 @@ abstract contract Pausable is Context {
     * @dev Only possible when contract not paused.
       */
     function harvest() external notContract whenNotPaused {
-      IMasterChefNew(masterchef).leaveStaking(0);
+      IMasterChef(masterchef).leaveStaking(0);
 
       uint256 bal = available();
       uint256 currentPerformanceFee = bal.mul(performanceFee).div(10000);
@@ -500,7 +500,7 @@ abstract contract Pausable is Context {
     * @dev EMERGENCY ONLY. Only callable by the contract admin.
       */
     function emergencyWithdraw() external onlyAdmin {
-      IMasterChefNew(masterchef).emergencyWithdraw(0);
+      IMasterChef(masterchef).emergencyWithdraw(0);
     }
 
     /**
@@ -537,7 +537,7 @@ abstract contract Pausable is Context {
     * @return Expected reward to collect in CAKE
     */
     function calculateHarvestCakeRewards() external view returns (uint256) {
-      uint256 amount = IMasterChefNew(masterchef).pendingCake(0, address(this));
+      uint256 amount = IMasterChef(masterchef).pendingCake(0, address(this));
       amount = amount.add(available());
       uint256 currentCallFee = amount.mul(callFee).div(10000);
 
@@ -549,7 +549,7 @@ abstract contract Pausable is Context {
     * @return Returns total pending cake rewards
     */
     function calculateTotalPendingCakeRewards() external view returns (uint256) {
-      uint256 amount = IMasterChefNew(masterchef).pendingCake(0, address(this));
+      uint256 amount = IMasterChef(masterchef).pendingCake(0, address(this));
       amount = amount.add(available());
 
       return amount;
@@ -576,7 +576,7 @@ abstract contract Pausable is Context {
       uint256 bal = available();
       if (bal < currentAmount) {
         uint256 balWithdraw = currentAmount.sub(bal);
-        IMasterChefNew(masterchef).leaveStaking(balWithdraw);
+        IMasterChef(masterchef).leaveStaking(balWithdraw);
         uint256 balAfter = available();
         //theoretical
         uint256 diff = balAfter.sub(bal);
@@ -614,20 +614,17 @@ abstract contract Pausable is Context {
     * @dev It includes tokens held by the contract and held in MasterChef
     */
     function balanceOf() public view returns (uint256) {
-      IMasterChefNew.UserInfo memory chefUserInfo = IMasterChefNew(masterchef).getUserInfo(0, address(this));
-      if (chefUserInfo.tokenData.length == 0) {
-        return token.balanceOf(address(this));
-      } else {
-        return token.balanceOf(address(this)).add(chefUserInfo.tokenData[0].amount);
-      }
+        (uint256 amount, ) = IMasterChef(masterchef).userInfo(0, address(this));
+        return token.balanceOf(address(this)).add(amount);
     }
+
     /**
      * @notice Deposits tokens into MasterChef to earn staking rewards
      */
     function _earn() internal {
       uint256 bal = available();
       if (bal > 0) {
-        IMasterChefNew(masterchef).enterStaking(bal);
+        IMasterChef(masterchef).enterStaking(bal);
       }
     }
 
