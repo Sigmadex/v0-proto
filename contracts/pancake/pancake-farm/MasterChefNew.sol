@@ -340,21 +340,13 @@ function migrate(uint256 _pid) public {
       uint256 rewardDebt = user.tokenData[j].rewardDebt;
       totalAmountShares += amount * accCakePerShare;
       totalRewardDebt += rewardDebt;
-      uint256 pending = amount * accCakePerShare / unity - rewardDebt;
-      if (currentPosition.timeEnd > block.timestamp) {
-        if (pending > 0) {
-          safeCakeTransfer(msg.sender, pending);
-        }
-   
+      if (currentPosition.timeEnd < block.timestamp) {
         pool.tokenData[j].token.safeTransfer(
           address(msg.sender),
           amount
         );
       } else {
-        if (pending > 0) {
-          safeCakeTransfer(penaltyaddr, pending);
-        }
-        uint256 refund = calcRefund(
+        (uint256 refund, uint256 penalty) = calcRefund(
            user.positions[index].timeStart,
            user.positions[index].timeEnd,
            amount
@@ -365,7 +357,7 @@ function migrate(uint256 _pid) public {
         );
         pool.tokenData[j].token.safeTransfer(
           penaltyaddr,
-          amount - refund
+          penalty
         );
       }
       user.tokenData[j].amount -= currentPosition.amounts[j];
@@ -374,35 +366,25 @@ function migrate(uint256 _pid) public {
     }
     user.positions[index] = user.positions[user.positions.length - 1];
     uint256 pending = totalAmountShares / unity - totalRewardDebt;
-    // time penalty
-    if (block.timestamp < currentPosition.timeEnd && pending > 0) {
-      uint256 refund = calcRefund(
-         user.positions[index].timeStart,
-         user.positions[index].timeEnd,
-         pending
-      );  
-      
-      safeCakeTransfer(
-          address(msg.sender),
-          refund
-        );
-        safeCakeTransfer(
-          penaltyaddr,
-          pending - refund
-        );
+    if (pending > 0) {
+      if (currentPosition.timeEnd < block.timestamp) {
+        safeCakeTransfer(address(msg.sender), pending);
+      } else {
+        safeCakeTransfer(penaltyaddr, pending);
+      }
     }
-    if (block.timestamp >= currentPosition.timeEnd && pending > 0) {
-      safeCakeTransfer(msg.sender, pending);
-    }
-      
     emit Withdraw(msg.sender, _pid);
   }
 
-  function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256) {
+  function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     uint256 timeElapsed = block.timestamp - timeStart;
     uint256 timeTotal = timeEnd - timeStart;
     uint256 proportion = (timeElapsed * unity) / timeTotal;
-    return  amount * proportion / unity;
+    uint256 refund = amount * proportion / unity;
+    uint256 penalty = amount - refund;
+    require(amount == penalty + refund, 'calc fund is leaking rounding errors');
+    return (refund, penalty);
+    
   }
   // Stake CAKE tokens to MasterChef
 
