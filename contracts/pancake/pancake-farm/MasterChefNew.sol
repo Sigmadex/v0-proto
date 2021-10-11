@@ -275,8 +275,9 @@ function migrate(uint256 _pid) public {
   function deposit(
     uint256 _pid,
     uint256[] memory _amounts,
-    uint256 stakeTime
+    uint256 timeStake
   ) public {
+    require(_pid != 0, 'cake farm detected, please use enterstaking, or the cakeVault.deposit');
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
     require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
@@ -285,7 +286,7 @@ function migrate(uint256 _pid) public {
     
     UserPosition memory newPosition  = UserPosition({
       timeStart: block.timestamp,
-      timeEnd: block.timestamp + stakeTime,
+      timeEnd: block.timestamp + timeStake,
       amounts: _amounts
     });
 
@@ -388,9 +389,21 @@ function migrate(uint256 _pid) public {
   }
   // Stake CAKE tokens to MasterChef
 
-  function enterStaking(uint256 _amount) public {
+  function enterStaking(
+    uint256 _amount,
+    uint256 _timeStake
+  ) public {
     PoolInfo storage pool = poolInfo[0];
     UserInfo storage user = userInfo[0][msg.sender];
+    
+    uint256[] memory amountArr = new uint256[](1);
+    amountArr[0] = _amount;
+    UserPosition memory newPosition  = UserPosition({
+      timeStart: block.timestamp,
+      timeEnd: block.timestamp + _timeStake,
+      amounts: amountArr
+    });
+
     updatePool(0);
     if (user.tokenData.length == 0) {
       //new staker
@@ -401,7 +414,8 @@ function migrate(uint256 _pid) public {
       user.tokenData.push(cakeTokenData);
     }
     if (user.tokenData[0].amount > 0) {
-      uint256 pending = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(1e27).sub(user.tokenData[0].rewardDebt);
+      // definetly question this pending
+      uint256 pending = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity).sub(user.tokenData[0].rewardDebt);
       if(pending > 0) {
         safeCakeTransfer(msg.sender, pending);
       }
@@ -412,10 +426,12 @@ function migrate(uint256 _pid) public {
     }
     user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
     pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
+    
+    user.positions.push(newPosition);
+    userInfoPositionIndices[0][msg.sender][user.positions.length - 1] = user.positions.length - 1;
+
     syrup.mint(msg.sender, _amount);
-    uint256[] memory amounts = new uint256[](1);
-    amounts[0] = _amount;
-    emit Deposit(msg.sender, 0, amounts);
+    emit Deposit(msg.sender, 0, amountArr);
   }
 
   // Withdraw CAKE tokens from STAKING.

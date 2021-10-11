@@ -37,6 +37,8 @@ contract('MasterChefNew => Penalty Curve', () => {
       cakeVaultTreasury,
       {from: minter}
     )
+    // give bob a cake for testing before ownership transferred
+    await cake.mint(bob, web3.utils.toWei('1', 'ether'), {from: minter})
     await cake.transferOwnership(chef.address, { from: minter });
     await syrup.transferOwnership(chef.address, { from: minter });
     let erc20TotalSupply = web3.utils.toWei('1000000', 'ether')
@@ -250,7 +252,38 @@ contract('MasterChefNew => Penalty Curve', () => {
     assert.equal((await erc20a.balanceOf(alice)).sub(aliceErc20ABalance1), refundERC20A.toString())
 
   })
-    /*
+  it('can manual stake cake', async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    const hourInSeconds = 3600
+    let bobCake = (await cake.balanceOf(bob)).toString()
+    let chefCake = (await cake.balanceOf(chef.address)).toString()
+
+    await cake.approve(
+      chef.address,
+      cakeDeposit,
+      {from: bob}
+    )
+
+    await chef.enterStaking(
+      cakeDeposit,
+      hourInSeconds,
+      {from: bob}
+    )
+
+    assert.equal((await cake.balanceOf(bob)).toString(), 0)
+    assert.equal((await cake.balanceOf(chef.address)).toString(), cakeDeposit)
+
+    const bobUserInfo = await chef.getUserInfo.call(0, bob)
+    assert.equal(bobUserInfo.tokenData[0].amount, cakeDeposit)
+    assert.equal(bobUserInfo.tokenData[0].rewardDebt, 0)
+    assert.equal(
+      bobUserInfo.positions[0].timeEnd - bobUserInfo.positions[0].timeStart,
+      hourInSeconds
+    )
+    assert.equal(bobUserInfo.positions[0].amounts[0], cakeDeposit)
+  
+  })
+  /*
   it("can deposit (auto) cake", async() => {
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     let cakeDeposit = web3.utils.toWei('1', 'ether')
@@ -284,7 +317,6 @@ contract('MasterChefNew => Penalty Curve', () => {
     assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), cakeDeposit)
     assert.equal((await syrup.balanceOf(chef.address)).toString(), 0)
   })
-
   it("harvest function restakes cake", async () => {
     let cakeDeposit = web3.utils.toWei('1', 'ether')
     let aliceBalance2 =  (await cake.balanceOf(alice)).toString()
