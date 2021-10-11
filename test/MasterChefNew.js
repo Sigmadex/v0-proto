@@ -8,7 +8,7 @@ const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVaultNew');
 contract('MasterChefNew => Penalty Curve', () => {
   let accounts;
-  let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, minter = '';
+  let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, penaltyAddress, minter = '';
   let cake;
   let syrup;
   let erc20A;
@@ -24,10 +24,11 @@ contract('MasterChefNew => Penalty Curve', () => {
     alice = accounts[4]
     bob = accounts[5]
     carol = accounts[6]
+    penaltyAddress = accounts[7]
     cake = await CakeToken.new({from: minter})
     syrup = await SyrupBar.new(cake.address, {from: minter})
     let cakePerBlock = web3.utils.toWei('1', 'ether')
-    chef = await MasterChef.new(cake.address, syrup.address,  dev, cakePerBlock, { from: minter });
+    chef = await MasterChef.new(cake.address, syrup.address, dev, penaltyAddress, cakePerBlock, { from: minter });
     cakeVault = await CakeVault.new(
       cake.address,
       syrup.address,
@@ -130,6 +131,7 @@ contract('MasterChefNew => Penalty Curve', () => {
     await chef.deposit(
       poolId,
       [stakeAmount, stakeAmount],
+      3600,
       { from: alice }
     )
     let poolInfo = await chef.getPoolInfo.call(poolId)
@@ -166,6 +168,7 @@ contract('MasterChefNew => Penalty Curve', () => {
     await advanceBlocks(blocksForward)
     await chef.withdraw(
       poolId,
+      0,
       { from: alice }
     )
     userInfo = await chef.getUserInfo.call(
