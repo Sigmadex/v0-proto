@@ -36,16 +36,25 @@ contract MasterChefNew is Ownable {
 
   uint256 unity = 1e27;
 
+  struct UserPosition {
+    uint256 timeStart;
+    uint256 timeEnd;
+    uint256[] amounts;
+  }
+
   struct UserTokenData {
     uint256 amount;
     uint256 rewardDebt;
   }
   struct UserInfo {
     UserTokenData[] tokenData;
+    UserPosition[] positions;
     uint256 lastRewardBlock;
   }
+  // userInfo[poolId][userAddress]
   mapping (uint256 => mapping (address => UserInfo)) internal userInfo;
-
+  // userInfoPositionIndices[poolId][userAddress][index]
+  mapping (uint256 => mapping (address => mapping( uint256 => uint256 ))) public userInfoPositionIndices;
   struct PoolTokenData {
     IBEP20 token;
     uint256 supply;
@@ -65,6 +74,8 @@ contract MasterChefNew is Ownable {
   SyrupBar public syrup;
   // Dev address.
   address public devaddr;
+  // Penalty pool Address
+  address public penaltyaddr;
   // CAKE tokens created per block.
   uint256 public cakePerBlock;
   // Bonus muliplier for early cake makers.
@@ -85,11 +96,13 @@ contract MasterChefNew is Ownable {
     CakeToken _cake,
     SyrupBar _syrup,
     address _devaddr,
+    address _penaltyaddr,
     uint256 _cakePerBlock
   ) public {
     cake = _cake; 
     syrup = _syrup;
     devaddr = _devaddr;
+    penaltyaddr = _penaltyaddr;
     cakePerBlock = _cakePerBlock;
     startBlock = block.number;
 
@@ -261,13 +274,21 @@ function migrate(uint256 _pid) public {
 
   function deposit(
     uint256 _pid,
-    uint256[] memory _amounts
+    uint256[] memory _amounts,
+    uint256 stakeTime
   ) public {
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
     require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
     updatePool(_pid);
     //reward debt question
+    
+    UserPosition memory newPosition  = UserPosition({
+      timeStart: block.timestamp,
+      timeEnd: block.timestamp + stakeTime,
+      amounts: _amounts
+    });
+
     for (uint j=0; j < pool.tokenData.length; j++) {
       if (user.tokenData.length <= j) {
         //first deposit
@@ -295,45 +316,76 @@ function migrate(uint256 _pid) public {
       user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
       pool.tokenData[j].supply += _amounts[j];
     }
+    user.positions.push(newPosition);
+    userInfoPositionIndices[_pid][msg.sender][user.positions.length - 1] = user.positions.length - 1;
     emit Deposit(msg.sender, _pid, _amounts);
   }
   // Deposit LP tokens to MasterChef for CAKE allocation.
 
   function withdraw(
-    uint256 _pid
+    uint256 _pid,
+    uint256 _positionid
   ) public {
     PoolInfo storage pool = poolInfo[_pid];
     UserInfo storage user = userInfo[_pid][msg.sender];
     updatePool(_pid);
+    uint256 index = userInfoPositionIndices[_pid][msg.sender][_positionid];
+    UserPosition memory currentPosition = user.positions[index];
+    
     uint256 totalAmountShares = 0;
     uint256 totalRewardDebt = 0;
     for (uint j=0; j < user.tokenData.length; j++) {
-      uint256 amount = user.tokenData[j].amount;
+      uint256 amount = currentPosition.amounts[j];
       uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
       uint256 rewardDebt = user.tokenData[j].rewardDebt;
       totalAmountShares += amount * accCakePerShare;
       totalRewardDebt += rewardDebt;
-      uint256 pending = amount * accCakePerShare / unity - rewardDebt;
-      
-      if (pending > 0) {
-        safeCakeTransfer(msg.sender, pending);
+      if (currentPosition.timeEnd < block.timestamp) {
+        pool.tokenData[j].token.safeTransfer(
+          address(msg.sender),
+          amount
+        );
+      } else {
+        (uint256 refund, uint256 penalty) = calcRefund(
+           user.positions[index].timeStart,
+           user.positions[index].timeEnd,
+           amount
+          );
+        pool.tokenData[j].token.safeTransfer(
+          address(msg.sender),
+          refund
+        );
+        pool.tokenData[j].token.safeTransfer(
+          penaltyaddr,
+          penalty
+        );
       }
-     
-      pool.tokenData[j].token.safeTransfer(
-        address(msg.sender),
-        amount
-      );
-      user.tokenData[j].amount = 0;
-      pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
+      user.tokenData[j].amount -= currentPosition.amounts[j];
       user.tokenData[j].rewardDebt = amount * accCakePerShare / unity;
+      pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
     }
+    user.positions[index] = user.positions[user.positions.length - 1];
     uint256 pending = totalAmountShares / unity - totalRewardDebt;
     if (pending > 0) {
-      safeCakeTransfer(msg.sender, pending);
+      if (currentPosition.timeEnd < block.timestamp) {
+        safeCakeTransfer(address(msg.sender), pending);
+      } else {
+        safeCakeTransfer(penaltyaddr, pending);
+      }
     }
     emit Withdraw(msg.sender, _pid);
   }
 
+  function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
+    uint256 timeElapsed = block.timestamp - timeStart;
+    uint256 timeTotal = timeEnd - timeStart;
+    uint256 proportion = (timeElapsed * unity) / timeTotal;
+    uint256 refund = amount * proportion / unity;
+    uint256 penalty = amount - refund;
+    require(amount == penalty + refund, 'calc fund is leaking rounding errors');
+    return (refund, penalty);
+    
+  }
   // Stake CAKE tokens to MasterChef
 
   function enterStaking(uint256 _amount) public {

@@ -8,7 +8,7 @@ const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVaultNew');
 contract('MasterChefNew => Penalty Curve', () => {
   let accounts;
-  let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, minter = '';
+  let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, penaltyAddress, minter = '';
   let cake;
   let syrup;
   let erc20A;
@@ -24,10 +24,11 @@ contract('MasterChefNew => Penalty Curve', () => {
     alice = accounts[4]
     bob = accounts[5]
     carol = accounts[6]
+    penaltyAddress = accounts[7]
     cake = await CakeToken.new({from: minter})
     syrup = await SyrupBar.new(cake.address, {from: minter})
     let cakePerBlock = web3.utils.toWei('1', 'ether')
-    chef = await MasterChef.new(cake.address, syrup.address,  dev, cakePerBlock, { from: minter });
+    chef = await MasterChef.new(cake.address, syrup.address, dev, penaltyAddress, cakePerBlock, { from: minter });
     cakeVault = await CakeVault.new(
       cake.address,
       syrup.address,
@@ -65,7 +66,6 @@ contract('MasterChefNew => Penalty Curve', () => {
     let poolLength = (await chef.poolLength()).toString()
     assert.equal(poolLength, "1");
     //let balanceMinter1 = await lp1.balanceOf(minter, { from: minter})
-    //console.log(web3.utils.fromWei(balanceMinter1))
     let initialAlloc = await chef.totalAllocPoint();
     let allocPoints = '2000'
     await chef.add(
@@ -127,9 +127,11 @@ contract('MasterChefNew => Penalty Curve', () => {
 
     let aliceErc20ABalance1 = await erc20a.balanceOf(alice)
     let aliceErc20BBalance1 = await erc20b.balanceOf(alice)
+    const hourInSeconds = 3600
     await chef.deposit(
       poolId,
       [stakeAmount, stakeAmount],
+      hourInSeconds,
       { from: alice }
     )
     let poolInfo = await chef.getPoolInfo.call(poolId)
@@ -152,6 +154,15 @@ contract('MasterChefNew => Penalty Curve', () => {
       stakeAmount
     )
 
+    assert.equal(
+      await erc20a.balanceOf(chef.address),
+      stakeAmount
+    )
+    assert.equal(
+      await erc20b.balanceOf(chef.address),
+      stakeAmount
+    )
+
     let userInfo = await chef.getUserInfo.call(poolId, alice)
     assert.equal((await cake.balanceOf(alice)).toString(), '0');
     assert.equal(
@@ -162,11 +173,35 @@ contract('MasterChefNew => Penalty Curve', () => {
       userInfo.tokenData[1].amount,
       stakeAmount
     )
+  })
+
+  it("allows a user to withdraw prematurely, but is penalized", async () => {
+    let poolId = (await chef.poolLength()).toString() - 1
+    let aliceErc20ABalance1 = await erc20a.balanceOf(alice)
+    let aliceErc20BBalance1 = await erc20b.balanceOf(alice)
+
+    assert.equal((await chef.getPoolInfo.call(poolId)).tokenData[0].token, erc20a.address)
+    assert.equal((await chef.getPoolInfo.call(poolId)).tokenData[1].token, erc20b.address)
+    
+    let stakeAmount = web3.utils.toWei('20', 'ether')
+    const hourInSeconds = 3600
     const blocksForward = 1
+
     await advanceBlocks(blocksForward)
+
+
     await chef.withdraw(
       poolId,
+      0,
       { from: alice }
+    )
+    assert.equal(
+      (await erc20a.balanceOf(chef.address)).toString(),
+      0
+    )
+    assert.equal(
+      (await erc20b.balanceOf(chef.address)).toString(),
+      0
     )
     userInfo = await chef.getUserInfo.call(
       poolId,
@@ -180,7 +215,16 @@ contract('MasterChefNew => Penalty Curve', () => {
     const numerator = new web3.utils.BN(fromExponential(numer))
     const denominator = new web3.utils.BN(totalAllocPoints)
     const cakeReward = numerator.div(denominator)
-    assert.equal((await cake.balanceOf(alice)).toString(), cakeReward.toString());
+
+    // penalty depends on internal clock between deposit and withdrawl time, may
+    // be slightly different as per computer
+    //
+    const unity = new web3.utils.BN(fromExponential(1e27))
+    const proportion2 = unity.mul(new web3.utils.BN(2)).div(new web3.utils.BN(hourInSeconds))
+    const proportion1 =  new web3.utils.BN(fromExponential(2 * unity / hourInSeconds))
+    const refundERC20A = (new web3.utils.BN(stakeAmount)).mul(proportion2).div(unity)
+    const penaltyERC20A = (new web3.utils.BN(stakeAmount)).sub(refundERC20A)
+    assert.equal((await cake.balanceOf(alice)).toString(), 0);
     assert.equal(
       userInfo.tokenData[0].amount,
       0
@@ -189,7 +233,6 @@ contract('MasterChefNew => Penalty Curve', () => {
       userInfo.tokenData[1].amount,
       0
     )
-    const unity = new web3.utils.BN(fromExponential(1e27))
     const stakeBN = new web3.utils.BN(stakeAmount)
     const accCakePerShare = cakeReward.mul(unity).div(stakeBN)
     poolInfo = await chef.getPoolInfo.call(poolId)
@@ -201,8 +244,13 @@ contract('MasterChefNew => Penalty Curve', () => {
     assert.equal(poolInfo.tokenData[1].accCakePerShare, accCakePerShare.toString() / 2)
     assert.equal(poolInfo.allocPoint, '2000')
     assert.equal(poolInfo.lastRewardBlock, await web3.eth.getBlockNumber())
-  })
 
+    assert.equal((await cake.balanceOf(penaltyAddress)).toString(), cakeReward.toString());
+    assert.equal((await erc20a.balanceOf(penaltyAddress)).toString(), penaltyERC20A.toString() )
+    assert.equal((await erc20a.balanceOf(alice)).sub(aliceErc20ABalance1), refundERC20A.toString())
+
+  })
+    /*
   it("can deposit (auto) cake", async() => {
     let aliceBalance1 = (await cake.balanceOf(alice)).toString()
     let cakeDeposit = web3.utils.toWei('1', 'ether')
@@ -363,8 +411,8 @@ contract('MasterChefNew => Penalty Curve', () => {
     aliceUserInfoVault = await cakeVault.userInfo(alice)
     assert.equal(aliceUserInfoVault.shares.toString(), 0)
   })
+*/
 })
-
 
 /*
 contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
