@@ -10,7 +10,8 @@ module.exports = {
     hardhat: {
       accounts: {
         mnemonic: process.env.MNEMONIC
-      }
+      },
+      allowUnlimitedContractSize: true,
     }
   },
 };

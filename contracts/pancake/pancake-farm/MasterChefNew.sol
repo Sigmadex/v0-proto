@@ -75,6 +75,8 @@ contract MasterChefNew is Ownable {
 	address public devaddr;
 	// Penalty pool Address
 	address public penaltyAddress;
+  // CakeVault handles compounding auto restaking
+  address public cakeVault;
 	// CAKE tokens created per block.
 	uint256 public cakePerBlock;
 	// Bonus muliplier for early cake makers.
@@ -117,6 +119,9 @@ contract MasterChefNew is Ownable {
 		poolLength += 1;
 		totalAllocPoint = 1000;
 	}
+  function setCakeVault(address _cakeVault) public onlyOwner {
+    cakeVault = _cakeVault;
+  }
 
 	function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
 		BONUS_MULTIPLIER = multiplierNumber;
@@ -377,21 +382,51 @@ contract MasterChefNew is Ownable {
 	}
 	// Stake CAKE tokens to MasterChef
 
+  function enterStakingCakeVault(uint256 _amount) public {
+    require(msg.sender == cakeVault, "only the cakevault can call this function");
+    PoolInfo storage pool = poolInfo[0];
+    UserInfo storage user = userInfo[0][msg.sender];
+    updatePool(0);
+    if (user.tokenData.length == 0) {
+      //new staker
+      UserTokenData memory cakeTokenData = UserTokenData({
+        amount: 0,
+        rewardDebt: 0
+      });
+      user.tokenData.push(cakeTokenData);
+    }
+    if (user.tokenData[0].amount > 0) {
+      uint256 pending = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity).sub(user.tokenData[0].rewardDebt);
+      if(pending > 0) {
+        safeCakeTransfer(msg.sender, pending);
+      }
+    }
+    if(_amount > 0) {
+      pool.tokenData[0].token.safeTransferFrom(address(msg.sender), address(this), _amount);
+      user.tokenData[0].amount = user.tokenData[0].amount.add(_amount);
+    }
+    user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
+    pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
+    syrup.mint(msg.sender, _amount);
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = _amount;
+    emit Deposit(msg.sender, 0, amounts);
+  }
+
+
 	function enterStaking(
 		uint256 _amount,
 		uint256 _timeStake
 	) public {
 		PoolInfo storage pool = poolInfo[0];
 		UserInfo storage user = userInfo[0][msg.sender];
-
-		uint256[] memory amountArr = new uint256[](1);
-		amountArr[0] = _amount;
-		UserPosition memory newPosition  = UserPosition({
-			timeStart: block.timestamp,
-			timeEnd: block.timestamp + _timeStake,
-			amounts: amountArr
-		});
-
+    uint256[] memory amountArr = new uint256[](1);
+    amountArr[0] = _amount;
+    UserPosition memory newPosition  = UserPosition({
+      timeStart: block.timestamp,
+      timeEnd: block.timestamp + _timeStake,
+      amounts: amountArr
+    });
 		updatePool(0);
 		if (user.tokenData.length == 0) {
 			//new staker
@@ -406,12 +441,32 @@ contract MasterChefNew is Ownable {
 			user.tokenData[0].amount = user.tokenData[0].amount.add(_amount);
 		}
 		pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
-
-		user.positions.push(newPosition);
-
+    user.positions.push(newPosition);
 		syrup.mint(msg.sender, _amount);
 		emit Deposit(msg.sender, 0, amountArr);
 	}
+  
+  // Withdraw CAKE tokens from STAKING.
+  function leaveStakingCakeVault(uint256 _amount) public {
+    require(msg.sender == cakeVault, "only callable by cakeVault");
+    PoolInfo storage pool = poolInfo[0];
+    UserInfo storage user = userInfo[0][msg.sender];
+    require(user.tokenData[0].amount >= _amount, "withdraw: not good");
+    updatePool(0);
+    uint256 pending = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity).sub(user.tokenData[0].rewardDebt);
+    if(pending > 0) {
+      safeCakeTransfer(msg.sender, pending);
+    }
+    if(_amount > 0) {
+      user.tokenData[0].amount = user.tokenData[0].amount.sub(_amount);
+      pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+      pool.tokenData[0].supply -= _amount;
+    }
+    user.tokenData[0].rewardDebt = user.tokenData[0].amount.mul(pool.tokenData[0].accCakePerShare).div(unity);
+
+    syrup.burn(msg.sender, _amount);
+    emit Withdraw(msg.sender, 0);
+  }
 
 	// Withdraw CAKE tokens from STAKING.
 	function leaveStaking(uint256 _positionid) public {

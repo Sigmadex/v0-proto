@@ -286,9 +286,9 @@ abstract contract Pausable is Context {
 
     function withdraw(uint256 _pid, uint256 _amount) external;
 
-    function enterStaking(uint256 _amount) external;
+    function enterStakingCakeVault(uint256 _amount) external;
 
-    function leaveStaking(uint256 _amount) external;
+    function leaveStakingCakeVault(uint256 _amount) external;
 
     function pendingCake(uint256 _pid, address _user) external view returns (uint256);
 
@@ -399,7 +399,7 @@ abstract contract Pausable is Context {
     */
     function deposit(
       uint256 _amount,
-      uint256 stakeTime
+      uint256 timeStake
     ) external whenNotPaused notContract {
       require(_amount > 0, "Nothing to deposit");
       
@@ -414,7 +414,7 @@ abstract contract Pausable is Context {
       UserInfo storage user = userInfo[msg.sender];
       UserPosition memory newPosition = UserPosition({
         timeStart: block.timestamp,
-        timeEnd: block.timestamp + stakeTime,
+        timeEnd: block.timestamp + timeStake,
         amount: _amount
       });
 
@@ -427,7 +427,7 @@ abstract contract Pausable is Context {
       user.lastUserActionTime = block.timestamp;
 
       user.positions.push(newPosition);
-      userInfoPositionIndices[msg.sender][user.positions.length - 1] = user.positions.length - 1;
+
       _earn();
 
       emit Deposit(msg.sender, _amount, currentShares, block.timestamp);
@@ -445,7 +445,7 @@ abstract contract Pausable is Context {
     * @dev Only possible when contract not paused.
       */
     function harvest() external notContract whenNotPaused {
-      IMasterChefNew(masterchef).leaveStaking(0);
+      IMasterChefNew(masterchef).leaveStakingCakeVault(0);
       // definitely question these in light of penalty
       uint256 bal = available();
       uint256 currentPerformanceFee = bal.mul(performanceFee).div(10000);
@@ -611,7 +611,7 @@ abstract contract Pausable is Context {
       uint256 bal = available();
       if (bal < currentAmount) {
         uint256 balWithdraw = currentAmount.sub(bal);
-        IMasterChefNew(masterchef).leaveStaking(balWithdraw);
+        IMasterChefNew(masterchef).leaveStakingCakeVault(balWithdraw);
         uint256 balAfter = available();
         //theoretical
         uint256 diff = balAfter.sub(bal);
@@ -662,7 +662,7 @@ abstract contract Pausable is Context {
     function _earn() internal {
       uint256 bal = available();
       if (bal > 0) {
-        IMasterChefNew(masterchef).enterStaking(bal);
+        IMasterChefNew(masterchef).enterStakingCakeVault(bal);
       }
     }
 
