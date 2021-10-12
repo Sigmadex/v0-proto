@@ -6,7 +6,7 @@ const {
 } = require('./utilities.js');
 const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
-const MasterChef = artifacts.require('MasterChefNew');
+const MasterChef = artifacts.require('MasterChefRefactor');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVaultNew');
 
