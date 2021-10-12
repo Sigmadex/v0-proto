@@ -225,10 +225,14 @@ contract('MasterChefNew => Penalty Curve', () => {
       (await erc20b.balanceOf(chef.address)).toString(),
       0
     )
-    userInfo = await chef.getUserInfo.call(
+    let userInfo = await chef.getUserInfo.call(
       poolId,
       alice
     )
+    assert.equal(userInfo.positions[0].amounts[0], 0)
+    assert.equal(userInfo.positions[0].amounts[1], 0)
+    assert.equal(userInfo.tokenData[0].amount, 0)
+    assert.equal(userInfo.tokenData[1].amount, 0)
     const cakeReward = await calcCakeReward(chef, blocksForward+1, 1)
 
     // penalty depends on internal clock between deposit and withdrawl time, may
@@ -261,6 +265,8 @@ contract('MasterChefNew => Penalty Curve', () => {
     assert.equal((await cake.balanceOf(penaltyAddress)).toString(), cakeReward.toString());
     assert.equal((await erc20a.balanceOf(penaltyAddress)).toString(), penaltyERC20A.toString() )
     assert.equal((await erc20a.balanceOf(alice)).sub(aliceErc20ABalance1), refundERC20A.toString())
+
+
 
   })
   it('can manual stake cake', async () => {
@@ -314,9 +320,14 @@ contract('MasterChefNew => Penalty Curve', () => {
     assert.equal(bobCake2 - bobCake1, Number(refundERC20A))
 
     const bobUserInfo = await chef.getUserInfo.call(0, bob)
-    assert.equal(bobUserInfo.positions.length, 0)
+    assert.equal(bobUserInfo.positions[0].amounts[0], 0)
     assert.equal(bobUserInfo.tokenData[0].amount, 0)
-    
+    assert.equal(bobUserInfo.tokenData[0].amount, 0)
+
+    const poolInfo = await chef.getPoolInfo.call(0)
+    assert.equal(poolInfo.tokenData[0].supply, 0)
+    const blockNumber = await web3.eth.getBlockNumber()
+    assert.equal(poolInfo.lastRewardBlock, blockNumber)
   })
   /*
   it("can deposit (auto) cake", async() => {

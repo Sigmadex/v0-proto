@@ -53,8 +53,8 @@ contract MasterChefNew is Ownable {
 	}
 	// userInfo[poolId][userAddress]
 	mapping (uint256 => mapping (address => UserInfo)) internal userInfo;
-	// userInfoPositionIndices[poolId][userAddress][index]
-	struct PoolTokenData {
+	
+  struct PoolTokenData {
 		IBEP20 token;
 		uint256 supply;
 		uint256 accCakePerShare;
@@ -351,12 +351,8 @@ contract MasterChefNew is Ownable {
 			}
 			user.tokenData[j].amount -= currentPosition.amounts[j];
 			pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
+      user.positions[_positionid].amounts[j] = 0;
 		}
-
-		for (uint i = _positionid; i<user.positions.length-1; i++){
-			user.positions[i] = user.positions[i+1];
-		}
-		user.positions.pop(); 
 
 		uint256 pending = totalAmountShares / unity;
 		if (pending > 0) {
@@ -418,10 +414,10 @@ contract MasterChefNew is Ownable {
 	}
 
 	// Withdraw CAKE tokens from STAKING.
-	function leaveStaking(uint256 _position) public {
+	function leaveStaking(uint256 _positionid) public {
 		PoolInfo storage pool = poolInfo[0];
 		UserInfo storage user = userInfo[0][msg.sender];
-		UserPosition memory currentPosition = user.positions[_position];
+		UserPosition memory currentPosition = user.positions[_positionid];
 		uint256 _amount = currentPosition.amounts[0];
 		require(user.tokenData[0].amount >= _amount, "withdraw: not good");
 		updatePool(0);
@@ -441,8 +437,8 @@ contract MasterChefNew is Ownable {
 			user.tokenData[0].amount = user.tokenData[0].amount.sub(_amount);
 			if (block.timestamp < currentPosition.timeEnd) {
 				(uint256 refund, uint256 penalty) = calcRefund(
-					user.positions[_position].timeStart,
-					user.positions[_position].timeEnd,
+					user.positions[_positionid].timeStart,
+					user.positions[_positionid].timeEnd,
 					_amount
 				);
 				pool.tokenData[0].token.safeTransfer(
@@ -458,11 +454,7 @@ contract MasterChefNew is Ownable {
 			}
 			pool.tokenData[0].supply -= _amount;
 		}
-		for (uint i = _position; i<user.positions.length-1; i++){
-			user.positions[i] = user.positions[i+1];
-		}
-		user.positions.pop(); 
-
+    user.positions[_positionid].amounts[0] = 0;
 		syrup.burn(msg.sender, _amount);
 		emit Withdraw(msg.sender, 0);
 	}
