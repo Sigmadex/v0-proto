@@ -1,11 +1,28 @@
 const fromExponential = require('from-exponential')
 
-const { advanceBlocks, advanceTime } = require('./utilities.js');
+const {
+  advanceBlocks,
+  advanceTime
+} = require('./utilities.js');
 const CakeToken = artifacts.require('CakeToken');
 const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChefNew');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVaultNew');
+
+
+async function calcCakeReward(chef, blocksAhead, poolId) {
+  const cakePerBlock = (await chef.cakePerBlock()).toString()
+  const totalAllocPoints = (await chef.totalAllocPoint()).toString()
+  const cakeAllocPoints= (await chef.getPoolInfo.call(poolId)).allocPoint.toString()
+  // only one block ahead, advance time doesn't jump block like one would think
+  let numer = (blocksAhead)*cakePerBlock*cakeAllocPoints
+  const numerator = new web3.utils.BN(fromExponential(numer))
+  const denominator = new web3.utils.BN(totalAllocPoints)
+  const cakeReward = numerator.div(denominator)
+  return cakeReward
+}
+
 contract('MasterChefNew => Penalty Curve', () => {
   let accounts;
   let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, penaltyAddress, minter = '';
@@ -15,6 +32,9 @@ contract('MasterChefNew => Penalty Curve', () => {
   let erc20B;
   let chef;
   let cakeVault;
+  const unity = new web3.utils.BN(fromExponential(1e27))
+
+
   before(async () => {
     accounts = await web3.eth.getAccounts()
     dev = accounts[0]
@@ -209,21 +229,12 @@ contract('MasterChefNew => Penalty Curve', () => {
       poolId,
       alice
     )
-    const cakePerBlock = (await chef.cakePerBlock()).toString()
-    const totalAllocPoints = (await chef.totalAllocPoint()).toString()
-    const poolAllocPoints = (await chef.getPoolInfo.call(1)).allocPoint.toString()
-    // 1 cake per block, 100 blocks forward + current block
-    let numer = (blocksForward+1)*cakePerBlock*poolAllocPoints
-    const numerator = new web3.utils.BN(fromExponential(numer))
-    const denominator = new web3.utils.BN(totalAllocPoints)
-    const cakeReward = numerator.div(denominator)
+    const cakeReward = await calcCakeReward(chef, blocksForward+1, 1)
 
     // penalty depends on internal clock between deposit and withdrawl time, may
-    // be slightly different as per computer
+    // be slightly different as per computer, 2 seconds for me
     //
-    const unity = new web3.utils.BN(fromExponential(1e27))
     const proportion2 = unity.mul(new web3.utils.BN(2)).div(new web3.utils.BN(hourInSeconds))
-    const proportion1 =  new web3.utils.BN(fromExponential(2 * unity / hourInSeconds))
     const refundERC20A = (new web3.utils.BN(stakeAmount)).mul(proportion2).div(unity)
     const penaltyERC20A = (new web3.utils.BN(stakeAmount)).sub(refundERC20A)
     assert.equal((await cake.balanceOf(alice)).toString(), 0);
@@ -282,6 +293,30 @@ contract('MasterChefNew => Penalty Curve', () => {
     )
     assert.equal(bobUserInfo.positions[0].amounts[0], cakeDeposit)
   
+  })
+  it("can manual withdraw cake stake", async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    const penaltyCake1 = (await cake.balanceOf(penaltyAddress))
+    const bobCake1 = (await cake.balanceOf(bob))
+    const hourInSeconds = 3600
+    await chef.leaveStaking(0, { from: bob })
+    const bobCake2 = (await cake.balanceOf(bob))
+    const penaltyCake2 = (await cake.balanceOf(penaltyAddress))
+    
+    // Time elapsed on my computer is 1 second, may be different on different machines
+    const proportion1 = unity.mul(new web3.utils.BN(1)).div(new web3.utils.BN(hourInSeconds))
+    const refundERC20A = (new web3.utils.BN(cakeDeposit)).mul(proportion1).div(unity)
+    const penaltyERC20A = (new web3.utils.BN(cakeDeposit)).sub(refundERC20A)
+    
+    const cakeReward = (await calcCakeReward(chef, 1, 0))
+    
+    assert.equal(penaltyCake2 - penaltyCake1, Number(cakeReward) + Number(penaltyERC20A))
+    assert.equal(bobCake2 - bobCake1, Number(refundERC20A))
+
+    const bobUserInfo = await chef.getUserInfo.call(0, bob)
+    assert.equal(bobUserInfo.positions.length, 0)
+    assert.equal(bobUserInfo.tokenData[0].amount, 0)
+    
   })
   /*
   it("can deposit (auto) cake", async() => {
@@ -423,7 +458,6 @@ contract('MasterChefNew => Penalty Curve', () => {
 
     const aliceShares = (await cakeVault.userInfo(alice)).shares.toString()
     await cakeVault.withdraw(aliceShares, {from: alice})
-
     const cakePerBlock = (await chef.cakePerBlock()).toString()
     const totalAllocPoints = (await chef.totalAllocPoint()).toString()
     const cakeAllocPoints= (await chef.getPoolInfo.call(0)).allocPoint.toString()
