@@ -9,6 +9,7 @@ const SyrupBar = artifacts.require('SyrupBar');
 const MasterChef = artifacts.require('MasterChefRefactor');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVaultNew');
+const CookBook = artifacts.require('CookBook');
 
 
 async function calcCakeReward(chef, blocksAhead, poolId) {
@@ -32,6 +33,7 @@ contract('MasterChefNew => Penalty Curve', () => {
   let erc20B;
   let chef;
   let cakeVault;
+  let cookBook;
   const unity = new web3.utils.BN(fromExponential(1e27))
 
 
@@ -49,6 +51,7 @@ contract('MasterChefNew => Penalty Curve', () => {
     syrup = await SyrupBar.new(cake.address, {from: minter})
     let cakePerBlock = web3.utils.toWei('1', 'ether')
     chef = await MasterChef.new(cake.address, syrup.address, dev, penaltyAddress, cakePerBlock, { from: minter });
+    cookBook = await CookBook.new(chef.address, {from: minter});
     cakeVault = await CakeVault.new(
       cake.address,
       syrup.address,

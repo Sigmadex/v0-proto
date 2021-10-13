@@ -1,16 +1,31 @@
 pragma solidity 0.8.7;
 
-import './MasterPantry.sol';
+import './CookBook.sol';
+import './interfaces/IMasterPantry.sol';
+import 'contracts/pancake/pancake-lib/access/Ownable.sol';
+import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 
-contract Kitchen is MasterPantry {
-  
+import '../CakeToken.sol';
+contract Kitchen is Ownable {
+	using SafeBEP20 for IBEP20;
+
+	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
+
+  IMasterPantry public  masterPantry;
+	CakeToken public cake;
+
+  constructor(address _masterPantry) {
+   masterPantry = IMasterPantry(_masterPantry);
+   cake = masterPantry.cake();
+   
+  }
 	function updateStakingPool() internal {
 		uint256 points = 0;
 		// pid = 1 -> pid = 1 (rm cake pool)
-		for (uint256 pid = 0; pid < poolLength; ++pid) {
-			points = points + poolInfo[pid].allocPoint;
+		for (uint256 pid = 0; pid < masterPantry.poolLength(); ++pid) {
+			points = points + masterPantry.getPoolInfo(pid).allocPoint;
 		}
-		totalAllocPoint = points;
+		masterPantry.setTotalAllocPoint(points);
 		/* The div(3) mystery and the cake pool
 		if (points != 0) {
 			points = points.div(3);
@@ -22,17 +37,17 @@ contract Kitchen is MasterPantry {
 
 	// Return reward multiplier over the given _from to _to block.
 	function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-		return _to - _from * BONUS_MULTIPLIER;
+		return _to - _from * masterPantry.BONUS_MULTIPLIER();
 	}
 	// Update reward variables for all pools. Be careful of gas spending!
 	function massUpdatePools() public {
-		for (uint256 pid = 0; pid < poolLength; ++pid) {
+		for (uint256 pid = 0; pid < masterPantry.poolLength(); ++pid) {
 			updatePool(pid);
 		}
 	}
 
 	function updatePool(uint256 _pid) public {
-		PoolInfo storage pool = poolInfo[_pid];
+		IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
 		if (block.number <= pool.lastRewardBlock) {
 			return;
 		}
@@ -44,17 +59,19 @@ contract Kitchen is MasterPantry {
 		}
 		if (supplySum == 0) {
 			pool.lastRewardBlock = block.number;
+      masterPantry.setPoolInfo(_pid, pool);
 			return;
 		}
 		uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-		uint256 cakeReward = multiplier *(cakePerBlock) *(pool.allocPoint) / (totalAllocPoint);
+		uint256 cakeReward = multiplier *(masterPantry.cakePerBlock()) *(pool.allocPoint) / (masterPantry.totalAllocPoint());
 		// Lol - are they really taking 10% of cake mint to personal addr?
 		//cake.mint(devaddr, cakeReward.div(10));
 		cake.mint(address(this), cakeReward);
 		for (uint j=0; j < pool.tokenData.length; j++) {
-			pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (cakeReward)* unity / (pool.tokenData.length*supplies[j]); 
+			pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (masterPantry.cakePerBlock())* masterPantry.unity() / (pool.tokenData.length*supplies[j]); 
 		}
 		pool.lastRewardBlock = block.number;
+    masterPantry.setPoolInfo(_pid, pool);
 	}
 
 	// Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.
@@ -70,11 +87,61 @@ contract Kitchen is MasterPantry {
 	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
 		uint256 timeElapsed = block.timestamp - timeStart;
 		uint256 timeTotal = timeEnd - timeStart;
-		uint256 proportion = (timeElapsed * unity) / timeTotal;
-		uint256 refund = amount * proportion / unity;
+		uint256 proportion = (timeElapsed * masterPantry.unity()) / timeTotal;
+		uint256 refund = amount * proportion / masterPantry.unity();
 		uint256 penalty = amount - refund;
 		require(amount == penalty + refund, 'calc fund is leaking rounding errors');
 		return (refund, penalty);
 
 	}
+
+	// Update the given pool's CAKE allocation point. Can only be called by the owner.
+	function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+		if (_withUpdate) {
+			massUpdatePools();
+		}
+    IMasterPantry.PoolInfo memory poolInfo =  masterPantry.getPoolInfo(_pid);
+    uint256 previousAllocPoint = poolInfo.allocPoint;
+    poolInfo.allocPoint = _allocPoint;
+		if (previousAllocPoint != _allocPoint) {
+			uint256 totalAllocPoint = masterPantry.totalAllocPoint() - (previousAllocPoint) + (_allocPoint);
+      masterPantry.setTotalAllocPoint(totalAllocPoint);
+			updateStakingPool();
+		}
+	}
+
+	// Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
+	function migrate(uint256 _pid) public {
+		require(address(masterPantry.migrator()) != address(0), "migrate: no migrator");
+		IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
+		for (uint j=0; j < pool.tokenData.length; j++) {
+			IBEP20 token = pool.tokenData[j].token;
+			uint256 bal = token.balanceOf(address(this));
+			token.safeApprove(address(masterPantry.migrator()), bal);
+			IBEP20 newToken = masterPantry.migrator().migrate(token);
+			require(bal == newToken.balanceOf(address(this)), "migrate: bad");
+			pool.tokenData[j].token = newToken;
+      masterPantry.setPoolInfo(_pid, pool);
+		}
+	}
+
+	function emergencyWithdraw(uint256 _pid) public {
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
+		uint256[] memory  amounts = new uint256[](pool.tokenData.length);
+		for (uint j=0; j < pool.tokenData.length; j++) {
+			pool.tokenData[j].token.safeTransfer(
+				address(msg.sender),
+				user.tokenData[j].amount
+			);
+			amounts[j] = user.tokenData[j].amount;
+			user.tokenData[j].amount = 0;
+			user.tokenData[j].rewardDebt = 0;
+		}
+    masterPantry.setUserInfo(_pid, msg.sender, user);
+    masterPantry.setPoolInfo(_pid, pool);
+		emit EmergencyWithdraw(msg.sender, _pid, amounts);
+	}
+
+
 }

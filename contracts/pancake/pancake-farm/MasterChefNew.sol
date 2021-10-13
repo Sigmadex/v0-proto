@@ -30,6 +30,7 @@ interface IMigratorChef {
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
+/* Commented out as exceeded max size
 contract MasterChefNew is Ownable {
 	using SafeMath for uint256;
 	using SafeBEP20 for IBEP20;
@@ -190,6 +191,7 @@ contract MasterChefNew is Ownable {
 			poolInfo[0].allocPoint = points;
 			}
 		 */
+    /*
 	}
 	// Set the migrator contract. Can only be called by the owner.
 	function setMigrator(IMigratorChef _migrator) public onlyOwner {
@@ -545,3 +547,4 @@ contract MasterChefNew is Ownable {
 		devaddr = _devaddr;
 	}
 }
+*/
