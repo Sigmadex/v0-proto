@@ -11,7 +11,7 @@ contract CookBook {
     masterPantry = IMasterPantry(_masterPantry);
   }
 
-	function pendingCake(uint256 _pid, address _user) external view returns (uint256) {
+	function pendingCake(uint256 _pid, address _user) public view returns (uint256) {
 		uint256 returnResult = 0;
 		IMasterPantry.PoolInfo memory  pool = masterPantry.getPoolInfo(_pid);
 		IMasterPantry.UserInfo memory  user = masterPantry.getUserInfo(_pid, _user);
@@ -42,6 +42,16 @@ contract CookBook {
 		return _to - (_from) * masterPantry.BONUS_MULTIPLIER();
 	}
 
+	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
+		uint256 timeElapsed = block.timestamp - timeStart;
+		uint256 timeTotal = timeEnd - timeStart;
+		uint256 proportion = (timeElapsed * masterPantry.unity()) / timeTotal;
+		uint256 refund = amount * proportion / masterPantry.unity();
+		uint256 penalty = amount - refund;
+		require(amount == penalty + refund, 'calc fund is leaking rounding errors');
+		return (refund, penalty);
+
+	}
 
 
 }

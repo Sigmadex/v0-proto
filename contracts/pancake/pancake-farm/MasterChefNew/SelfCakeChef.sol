@@ -3,6 +3,7 @@ pragma solidity 0.8.7;
 
 import './interfaces/IMasterPantry.sol';
 import './interfaces/IKitchen.sol';
+import './interfaces/ICookBook.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
@@ -16,13 +17,16 @@ contract SelfCakeChef is Ownable {
 
   IKitchen kitchen;
   IMasterPantry masterPantry;
+  ICookBook cookBook;
   SyrupBar syrup;
   constructor(
+    address _masterPantry,
     address _kitchen,
-    address _masterPantry
+    address _cookBook
   ) {
     masterPantry = IMasterPantry(_masterPantry);
     kitchen = IKitchen(_kitchen);
+    cookBook = ICookBook(_cookBook);
     syrup = masterPantry.syrup();
   }
 
@@ -84,7 +88,7 @@ contract SelfCakeChef is Ownable {
 		if(_amount > 0) {
 			user.tokenData[0].amount = user.tokenData[0].amount - (_amount);
 			if (block.timestamp < currentPosition.timeEnd) {
-				(uint256 refund, uint256 penalty) = kitchen.calcRefund(
+				(uint256 refund, uint256 penalty) = cookBook.calcRefund(
 					user.positions[_positionid].timeStart,
 					user.positions[_positionid].timeEnd,
 					_amount

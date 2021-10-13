@@ -19,8 +19,8 @@ contract AutoCakeChef is Ownable {
   IMasterPantry public masterPantry;
   SyrupBar syrup;
   constructor(
-    address _kitchen,
-    address _masterPantry
+    address _masterPantry,
+    address _kitchen
   ) {
     kitchen = IKitchen(_kitchen);
     masterPantry = IMasterPantry(_masterPantry);

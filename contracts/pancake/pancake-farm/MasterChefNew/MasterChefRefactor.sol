@@ -11,7 +11,7 @@ import "../SyrupBar.sol";
 import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IKitchen.sol";
 import "./interfaces/IMasterPantry.sol";
-
+import "./interfaces/ICookBook.sol";
 import "hardhat/console.sol";
 
 
@@ -31,13 +31,16 @@ contract MasterChefRefactor is Ownable {
 
   IKitchen public immutable kitchen;
   IMasterPantry public immutable masterPantry;
+  ICookBook public immutable cookBook;
 
 	constructor(
+    address _masterPantry,
     address _kitchen,
-    address _masterPantry
+    address _cookBook
 	) public {
     masterPantry = IMasterPantry(_masterPantry);
     kitchen = IKitchen(_kitchen);
+    cookBook = ICookBook(_cookBook);
 	}
 
 	// Add a new lp to the pool. Can only be called by the owner.
@@ -141,7 +144,7 @@ contract MasterChefRefactor is Ownable {
 					amount
 				);
 			} else {
-				(uint256 refund, uint256 penalty) = kitchen.calcRefund(
+				(uint256 refund, uint256 penalty) = cookBook.calcRefund(
 					user.positions[_positionid].timeStart,
 					user.positions[_positionid].timeEnd,
 					amount

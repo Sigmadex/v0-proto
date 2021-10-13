@@ -84,16 +84,6 @@ contract Kitchen is Ownable {
 		}
 	}
 
-	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
-		uint256 timeElapsed = block.timestamp - timeStart;
-		uint256 timeTotal = timeEnd - timeStart;
-		uint256 proportion = (timeElapsed * masterPantry.unity()) / timeTotal;
-		uint256 refund = amount * proportion / masterPantry.unity();
-		uint256 penalty = amount - refund;
-		require(amount == penalty + refund, 'calc fund is leaking rounding errors');
-		return (refund, penalty);
-
-	}
 
 	// Update the given pool's CAKE allocation point. Can only be called by the owner.
 	function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
