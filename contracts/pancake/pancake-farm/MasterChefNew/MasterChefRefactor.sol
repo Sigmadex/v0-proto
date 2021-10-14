@@ -29,9 +29,9 @@ contract MasterChefRefactor is Ownable {
 	event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
 	event Withdraw(address indexed user, uint256 indexed pid);
 
-  IKitchen public immutable kitchen;
-  IMasterPantry public immutable masterPantry;
-  ICookBook public immutable cookBook;
+  IKitchen immutable kitchen;
+  IMasterPantry immutable masterPantry;
+  ICookBook immutable cookBook;
 
 	constructor(
     address _masterPantry,
@@ -57,7 +57,7 @@ contract MasterChefRefactor is Ownable {
 		uint256 lastRewardBlock = block.number > masterPantry.startBlock() ? block.number : masterPantry.startBlock();
 		uint256 totalAllocPoint = masterPantry.totalAllocPoint().add(_allocPoint);
     IMasterPantry.PoolInfo memory newPool = IMasterPantry.PoolInfo({
-      tokenData: new IMasterPantry.PoolTokenData[](0),
+      tokenData: new IMasterPantry.PoolTokenData[](_tokens.length),
       allocPoint: _allocPoint,
       lastRewardBlock: lastRewardBlock
     });

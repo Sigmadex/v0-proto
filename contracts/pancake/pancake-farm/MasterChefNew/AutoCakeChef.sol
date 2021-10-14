@@ -15,15 +15,15 @@ contract AutoCakeChef is Ownable {
 	event Withdraw(address indexed user, uint256 indexed pid);
 	event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
 
-  IKitchen public kitchen;
-  IMasterPantry public masterPantry;
+  IKitchen kitchen;
+  IMasterPantry  masterPantry;
   SyrupBar syrup;
   constructor(
     address _masterPantry,
     address _kitchen
   ) {
-    kitchen = IKitchen(_kitchen);
     masterPantry = IMasterPantry(_masterPantry);
+    kitchen = IKitchen(_kitchen);
     syrup = masterPantry.syrup();
 
   }

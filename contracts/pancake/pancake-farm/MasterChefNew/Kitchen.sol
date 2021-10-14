@@ -2,6 +2,7 @@ pragma solidity 0.8.7;
 
 import './CookBook.sol';
 import './interfaces/IMasterPantry.sol';
+import './interfaces/IACL.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 
@@ -13,13 +14,22 @@ contract Kitchen is Ownable {
 
   IMasterPantry public  masterPantry;
 	CakeToken public cake;
+  IACL public acl;
 
-  constructor(address _masterPantry) {
+  constructor(
+    address _masterPantry,
+    address _acl
+  ) {
    masterPantry = IMasterPantry(_masterPantry);
+   acl = IACL(_acl);
    cake = masterPantry.cake();
    
   }
-	function updateStakingPool() internal {
+  modifier onlyACL() {
+    acl.onlyACL();
+    _;
+  }
+	function updateStakingPool() public  {
 		uint256 points = 0;
 		// pid = 1 -> pid = 1 (rm cake pool)
 		for (uint256 pid = 0; pid < masterPantry.poolLength(); ++pid) {
@@ -86,7 +96,7 @@ contract Kitchen is Ownable {
 
 
 	// Update the given pool's CAKE allocation point. Can only be called by the owner.
-	function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+	function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyACL {
 		if (_withUpdate) {
 			massUpdatePools();
 		}

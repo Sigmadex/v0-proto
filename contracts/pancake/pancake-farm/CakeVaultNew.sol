@@ -44,11 +44,11 @@ contract CakeVaultNew is Ownable, Pausable {
 
   // userInfoPositionIndices[userAddress][index]
   mapping (address => mapping( uint256 => uint256 )) public userInfoPositionIndices;
-  IERC20 public immutable token; // Cake token
+  IERC20 public  token; // Cake token
   IERC20 public immutable receiptToken; // Syrup token
 
+  IMasterPantry public  masterPantry;
   IAutoCakeChef public immutable autoCakeChef;
-  IMasterPantry public immutable masterPantry;
   IKitchen public immutable kitchen;
   ICookBook public immutable cookBook;
 
@@ -76,18 +76,18 @@ contract CakeVaultNew is Ownable, Pausable {
   event Unpause();
 
   constructor(
-    IERC20 _token,
-    IERC20 _receiptToken,
-    IMasterPantry _masterPantry,
-    IAutoCakeChef _autoCakeChef,
-    IKitchen _kitchen,
-    ICookBook _cookBook,
+    //IERC20 _token,
+    //IERC20 _receiptToken,
+    address _masterPantry,
+    address _kitchen,
+    address _cookBook,
+    address _autoCakeChef,
     address _admin,
     address _treasury
   ) public {
-    token = _token;
-    receiptToken = _receiptToken;
     masterPantry = IMasterPantry(_masterPantry);
+    token = IERC20(address(masterPantry.cake()));
+    receiptToken = IERC20(address(masterPantry.syrup()));
     autoCakeChef = IAutoCakeChef(_autoCakeChef);
     kitchen = IKitchen(_kitchen);
     cookBook = ICookBook(_cookBook);
@@ -95,7 +95,7 @@ contract CakeVaultNew is Ownable, Pausable {
     treasury = _treasury;
 
     // Infinite approve
-    IERC20(_token).safeApprove(address(_autoCakeChef), type(uint256).max);
+    IERC20(token).safeApprove(address(_autoCakeChef), type(uint256).max);
   }
 
   /**
