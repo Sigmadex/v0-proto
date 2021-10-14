@@ -1,33 +1,15 @@
 pragma solidity 0.8.7;
 
 import "contracts/pancake/pancake-lib/token/BEP20/BEP20.sol";
-import './MasterChef/interfaces/IACL.sol';
-import 'hardhat/console.sol';
+
 // CakeToken with Governance.
-contract CakeToken is BEP20('PancakeSwap Token', 'Cake') {
-    /// @notice Creates `_amount` token to `_to`. Must only be called by the ACL enabled contracts
-    function mint(address _to, uint256 _amount) public onlyACL {
-        _mint(_to, _amount);
-        _moveDelegates(address(0), _delegates[_to], _amount);
-    }
-    /* This is intended to be temporary for testing purposes,
-    unless, of course, we want executive mint
-    */
-    function mintExecutive(address _to, uint256 _amount) public onlyOwner {
+contract CakeTokenV1 is BEP20('PancakeSwap Token', 'Cake') {
+    /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
+    function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    IACL acl;
-    constructor(
-      address _acl
-    ) {
-      acl = IACL(_acl);
-    }
-    modifier onlyACL() {
-      acl.onlyACL(msg.sender);
-      _;
-    }
     // Copied and modified from YAM code:
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol

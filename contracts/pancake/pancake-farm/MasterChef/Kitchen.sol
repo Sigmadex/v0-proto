@@ -6,14 +6,14 @@ import './interfaces/IACL.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 
-import '../CakeTokenNew.sol';
+import '../CakeToken.sol';
 contract Kitchen is Ownable {
 	using SafeBEP20 for IBEP20;
 
 	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
   IMasterPantry public  masterPantry;
-	CakeTokenNew public cake;
+	CakeToken public cake;
   IACL public acl;
 
   constructor(

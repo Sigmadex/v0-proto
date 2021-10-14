@@ -1,33 +1,42 @@
 pragma solidity 0.8.7;
 
 import "contracts/pancake/pancake-lib/token/BEP20/BEP20.sol";
-import './MasterChefNew/interfaces/IACL.sol';
-import 'hardhat/console.sol';
-// CakeToken with Governance.
-contract CakeTokenNew is BEP20('PancakeSwap Token', 'Cake') {
-    /// @notice Creates `_amount` token to `_to`. Must only be called by the ACL enabled contracts
-    function mint(address _to, uint256 _amount) public onlyACL {
-        _mint(_to, _amount);
-        _moveDelegates(address(0), _delegates[_to], _amount);
-    }
-    /* This is intended to be temporary for testing purposes,
-    unless, of course, we want executive mint
-    */
-    function mintExecutive(address _to, uint256 _amount) public onlyOwner {
+
+import "./CakeTokenV1.sol";
+
+// SyrupBar with Governance.
+contract SyrupBarV1 is BEP20('SyrupBar Token', 'SYRUP') {
+    /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
+    function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    IACL acl;
+    function burn(address _from ,uint256 _amount) public onlyOwner {
+        _burn(_from, _amount);
+        _moveDelegates(_delegates[_from], address(0), _amount);
+    }
+
+    // The CAKE TOKEN!
+    CakeTokenV1 public cake;
+
+
     constructor(
-      address _acl
-    ) {
-      acl = IACL(_acl);
+        CakeTokenV1 _cake
+    ) public {
+        cake = _cake;
     }
-    modifier onlyACL() {
-      acl.onlyACL(msg.sender);
-      _;
+
+    // Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.
+    function safeCakeTransfer(address _to, uint256 _amount) public onlyOwner {
+        uint256 cakeBal = cake.balanceOf(address(this));
+        if (_amount > cakeBal) {
+            cake.transfer(_to, cakeBal);
+        } else {
+            cake.transfer(_to, _amount);
+        }
     }
+
     // Copied and modified from YAM code:
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol

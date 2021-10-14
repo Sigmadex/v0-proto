@@ -4,8 +4,8 @@ pragma solidity 0.8.7;
 import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IMasterPantry.sol";
 import "./interfaces/IACL.sol";
-import "../CakeTokenNew.sol";
-import "../SyrupBarNew.sol";
+import "../CakeToken.sol";
+import "../SyrupBar.sol";
 
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
@@ -53,9 +53,9 @@ contract MasterPantry is Ownable {
     poolInfo[_pid] = _poolInfo;
   }
   // The CAKE TOKEN!
-  CakeTokenNew public cake;
+  CakeToken public cake;
   // The SYRUP TOKEN!
-  SyrupBarNew public syrup;
+  SyrupBar public syrup;
   // Dev address.
   IACL public acl;
   address public devAddress;
@@ -86,8 +86,8 @@ contract MasterPantry is Ownable {
   uint256 public startBlock;
 
   constructor(
-    CakeTokenNew _cake,
-    SyrupBarNew _syrup,
+    CakeToken _cake,
+    SyrupBar _syrup,
     address _acl,
     address _penaltyAddress,
     address _devAddress,

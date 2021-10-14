@@ -6,7 +6,7 @@ import './interfaces/IKitchen.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import '../SyrupBarNew.sol';
+import '../SyrupBar.sol';
 
 
 contract AutoCakeChef is Ownable {
@@ -17,7 +17,7 @@ contract AutoCakeChef is Ownable {
 
   IKitchen kitchen;
   IMasterPantry  masterPantry;
-  SyrupBarNew syrup;
+  SyrupBar syrup;
   constructor(
     address _masterPantry,
     address _kitchen

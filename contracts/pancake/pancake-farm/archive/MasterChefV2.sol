@@ -5,8 +5,8 @@ import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import "./CakeToken.sol";
-import "./SyrupBar.sol";
+import "./CakeTokenV1.sol";
+import "./SyrupBarV1.sol";
 
 import "hardhat/console.sol";
 
@@ -30,7 +30,7 @@ interface IMigratorChef {
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
-contract MasterChef is Ownable {
+contract MasterChefV2 is Ownable {
   using SafeMath for uint256;
   using SafeBEP20 for IBEP20;
 
@@ -60,9 +60,9 @@ contract MasterChef is Ownable {
   mapping(uint256 => PoolInfo) internal poolInfo;
 
   // The CAKE TOKEN!
-  CakeToken public cake;
+  CakeTokenV1 public cake;
   // The SYRUP TOKEN!
-  SyrupBar public syrup;
+  SyrupBarV1 public syrup;
   // Dev address.
   address public devaddr;
   // CAKE tokens created per block.
@@ -82,8 +82,8 @@ contract MasterChef is Ownable {
   event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
   constructor(
-    CakeToken _cake,
-    SyrupBar _syrup,
+    CakeTokenV1 _cake,
+    SyrupBarV1 _syrup,
     address _devaddr,
     uint256 _cakePerBlock
   ) public {

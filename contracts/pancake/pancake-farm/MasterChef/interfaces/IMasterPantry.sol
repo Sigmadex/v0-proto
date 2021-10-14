@@ -2,8 +2,8 @@ pragma solidity 0.8.7;
 
 import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 
-import "../../CakeTokenNew.sol";
-import "../../SyrupBarNew.sol";
+import "../../CakeToken.sol";
+import "../../SyrupBar.sol";
 
 import "./IMigratorChef.sol";
 
@@ -52,8 +52,8 @@ interface IMasterPantry {
   function setTotalAllocPoint(uint256 _totalAllocPoint) external;
   function unity() external view returns (uint256);
   function penaltyAddress() external view returns (address);
-  function cake() external view returns (CakeTokenNew);
-  function syrup() external view returns (SyrupBarNew);
+  function cake() external view returns (CakeToken);
+  function syrup() external view returns (SyrupBar);
   function startBlock() external view returns (uint256);
   function migrator() external view returns(IMigratorChef);
 }

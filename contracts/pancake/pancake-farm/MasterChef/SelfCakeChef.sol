@@ -7,7 +7,7 @@ import './interfaces/ICookBook.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import '../SyrupBarNew.sol';
+import '../SyrupBar.sol';
 
 contract SelfCakeChef is Ownable {
 	using SafeBEP20 for IBEP20;
@@ -18,7 +18,7 @@ contract SelfCakeChef is Ownable {
   IKitchen kitchen;
   IMasterPantry masterPantry;
   ICookBook cookBook;
-  SyrupBarNew syrup;
+  SyrupBar syrup;
   constructor(
     address _masterPantry,
     address _kitchen,

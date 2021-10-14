@@ -5,8 +5,6 @@ import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import "../SyrupBarNew.sol";
-
 import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IKitchen.sol";
 import "./interfaces/IMasterPantry.sol";
@@ -21,7 +19,7 @@ import "hardhat/console.sol";
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
-contract MasterChefRefactor is Ownable {
+contract MasterChef is Ownable {
 	using SafeMath for uint256;
 	using SafeBEP20 for IBEP20;
 

@@ -1,11 +1,11 @@
 const fromExponential = require('from-exponential')
 
 const { advanceBlocks, advanceTime } = require('./utilities.js');
-const CakeToken = artifacts.require('CakeToken');
-const SyrupBar = artifacts.require('SyrupBar');
-const MasterChef = artifacts.require('MasterChef');
+const CakeToken = artifacts.require('CakeTokenV1');
+const SyrupBar = artifacts.require('SyrupBarV1');
+const MasterChef = artifacts.require('MasterChefV2');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
-const CakeVault = artifacts.require('CakeVault');
+const CakeVault = artifacts.require('CakeVaultV2');
 contract('MasterChef => multitoken system', () => {
   let accounts;
   let alice, bob, carol, dev, cakeVaultreasury, cakeVaultAdmin, minter = '';
