@@ -6,7 +6,7 @@ const {
 } = require('./utilities.js');
 
 const CakeToken = artifacts.require('CakeTokenNew');
-const SyrupBar = artifacts.require('SyrupBar');
+const SyrupBar = artifacts.require('SyrupBarNew');
 const MasterChef = artifacts.require('MasterChefRefactor');
 const MockBEP20 = artifacts.require('pancake/pancake-farm/libs/MockBEP20');
 const CakeVault = artifacts.require('CakeVaultNew');
@@ -58,7 +58,11 @@ contract('MasterChefRefactor', () => {
       acl.address,
       {from: minter}
     )
-    syrup = await SyrupBar.new(cake.address, {from: minter})
+    syrup = await SyrupBar.new(
+      cake.address,
+      acl.address,
+      {from: minter}
+    )
 
     let cakePerBlock = web3.utils.toWei('1', 'ether')
     pantry = await MasterPantry.new(
@@ -328,8 +332,207 @@ contract('MasterChefRefactor', () => {
     assert.equal((await cake.balanceOf(penaltyAddress)).toString(), cakeReward.toString());
     assert.equal((await erc20a.balanceOf(penaltyAddress)).toString(), penaltyERC20A.toString() )
     assert.equal((await erc20a.balanceOf(alice)).sub(aliceErc20ABalance1), refundERC20A.toString())
+  })
+
+  it('can manual stake cake', async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    const hourInSeconds = 3600
+    let bobCake = (await cake.balanceOf(bob)).toString()
+    let kitchenCake = (await cake.balanceOf(kitchen.address)).toString()
+
+    await cake.approve(
+      selfCakeChef.address,
+      cakeDeposit,
+      {from: bob}
+    )
+
+    await selfCakeChef.enterStaking(
+      cakeDeposit,
+      hourInSeconds,
+      {from: bob}
+    )
+
+    assert.equal((await cake.balanceOf(bob)).toString(), 0)
+    assert.equal((await cake.balanceOf(selfCakeChef.address)).toString(), cakeDeposit)
+
+    const bobUserInfo = await pantry.getUserInfo.call(0, bob)
+    assert.equal(bobUserInfo.tokenData[0].amount, cakeDeposit)
+    assert.equal(bobUserInfo.tokenData[0].rewardDebt, 0)
+    assert.equal(
+      bobUserInfo.positions[0].timeEnd - bobUserInfo.positions[0].timeStart,
+      hourInSeconds
+    )
+    assert.equal(bobUserInfo.positions[0].amounts[0], cakeDeposit)
+  })
+
+  it("can manual withdraw cake stake", async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    const penaltyCake1 = (await cake.balanceOf(penaltyAddress))
+    const bobCake1 = (await cake.balanceOf(bob))
+    const hourInSeconds = 3600
+    await selfCakeChef.leaveStaking(0, { from: bob })
+    const bobCake2 = (await cake.balanceOf(bob))
+    const penaltyCake2 = (await cake.balanceOf(penaltyAddress))
+    
+    // Time elapsed on my computer is 1 second, may be different on different machines
+    const proportion1 = unity.mul(new web3.utils.BN(1)).div(new web3.utils.BN(hourInSeconds))
+    const refundERC20A = (new web3.utils.BN(cakeDeposit)).mul(proportion1).div(unity)
+    const penaltyERC20A = (new web3.utils.BN(cakeDeposit)).sub(refundERC20A)
+    
+    const cakeReward = (await calcCakeReward(pantry, 1, 0))
+    
+    assert.equal(penaltyCake2 - penaltyCake1, Number(cakeReward) + Number(penaltyERC20A))
+    assert.equal(bobCake2 - bobCake1, Number(refundERC20A))
+
+    const bobUserInfo = await pantry.getUserInfo.call(0, bob)
+    assert.equal(bobUserInfo.positions[0].amounts[0], 0)
+    assert.equal(bobUserInfo.tokenData[0].amount, 0)
+    assert.equal(bobUserInfo.tokenData[0].amount, 0)
+
+    const poolInfo = await pantry.getPoolInfo.call(0)
+    assert.equal(poolInfo.tokenData[0].supply, 0)
+    const blockNumber = await web3.eth.getBlockNumber()
+    assert.equal(poolInfo.lastRewardBlock, blockNumber)
+  })
+  
+  it("can deposit (auto) cake", async() => {
+    let carolBalance1 = (await cake.balanceOf(carol)).toString()
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    await cake.approve(
+      cakeVault.address,
+      cakeDeposit,
+      {from: carol}
+    )
+    const hourInSeconds = 3600
+    await cakeVault.deposit(cakeDeposit, hourInSeconds, {from: carol})
+
+    //cake vault state
+    // Alice get shares in Cake Vault
+    assert.equal(cakeDeposit,(await cakeVault.userInfo(carol)).shares.toString())
+    assert.equal((await cakeVault.userInfo(chef.address)).shares.toString(), 0)
+    assert.equal((await cakeVault.userInfo(cakeVault.address)).shares.toString(), 0)
+
+    //cake token state
+    let carolBalance2 =  (await cake.balanceOf(carol)).toString()
+    assert.equal(carolBalance1 - carolBalance2, cakeDeposit)
+    assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), 0)
+    assert.equal((await cake.balanceOf(dev)).toString(), 0)
+    assert.equal((await cake.balanceOf(autoCakeChef.address)).toString(), cakeDeposit)
+    assert.equal((await cake.balanceOf(cakeVault.address)).toString(), 0)
+
+    //master chef state
+    assert.equal((await pantry.getUserInfo(0, carol)).tokenData.length, 0)
+    assert.equal((await pantry.getUserInfo(0, cakeVault.address)).tokenData[0].amount.toString(), cakeDeposit)
+
+    //syrup state
+    assert.equal((await syrup.balanceOf(carol)).toString(), 0)
+    assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), cakeDeposit)
+    assert.equal((await syrup.balanceOf(autoCakeChef.address)).toString(), 0)
+  })
+
+  it("harvest function restakes cake", async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    let carolBalance2 =  (await cake.balanceOf(carol)).toString()
+    
+    const cakeReward = await calcCakeReward(pantry, 1, 0)
+    const performanceFee = (await cakeVault.performanceFee())
+    const callFee = (await cakeVault.callFee())
+    
+    const currentPerformanceFee = cakeReward * performanceFee / 10000
+    const currentCallFee = Math.floor(cakeReward * callFee / 10000)
+    const cakeIter =Number(cakeDeposit) +Number(cakeReward) - currentPerformanceFee - currentCallFee
+    await cakeVault.harvest()
+    assert.equal((await cake.balanceOf(cakeVaultTreasury)).toString(), currentPerformanceFee)
+    assert.equal((await cake.balanceOf(dev)).toString(), currentCallFee)
+
+    // 1 cake per block, 100 blocks forward + current block
 
 
+    let carolBalance3 =  (await cake.balanceOf(carol)).toString()
+    //cake vault state
+    // Alice get shares in Cake Vault
+    assert.equal(cakeDeposit,(await cakeVault.userInfo(carol)).shares.toString())
+    assert.equal((await cakeVault.userInfo(chef.address)).shares.toString(), 0)
+    assert.equal((await cakeVault.userInfo(cakeVault.address)).shares.toString(), 0)
 
+    //cake token state
+    //Alice pays
+    //assert.equal(aliceBalance1 - aliceBalance2, cakeDeposit)
+    // masterchef holds the cake
+
+    assert.equal((await cake.balanceOf(autoCakeChef.address)).toString(), cakeIter)
+    assert.equal((await cake.balanceOf(cakeVault.address)).toString(), 0)
+
+    //master chef state
+    assert.equal((await pantry.getUserInfo(0, alice)).tokenData.length, 0)
+    // masterchef tracks cakevaults amount of cake
+    assert.equal((await pantry.getUserInfo(0, cakeVault.address)).tokenData[0].amount.toString(), cakeIter)
+
+    //syrup state
+    assert.equal((await syrup.balanceOf(alice)).toString(), 0)
+    // cakevault has syrup (recipt token)
+    assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), cakeIter)
+    assert.equal((await syrup.balanceOf(autoCakeChef.address)).toString(), 0)
+  })
+
+  it("can withdrawal cake", async() => {
+    const currentAmount = await cakeVault.balanceOf()
+    const cakeTreasury1 = await cake.balanceOf(cakeVaultTreasury)
+    let carolBalance1 = (await cake.balanceOf(carol)).toString()
+    const carolShares = (await cakeVault.userInfo(carol)).shares.toString()
+    // the harvest paradigm
+    await cakeVault.withdraw(carolShares, {from: carol})
+    let cakeInVault = await cake.balanceOf(cakeVault.address)
+    const withdrawFee = (await cakeVault.withdrawFee()).toString() / 10000
+    let carolBalance2 =  (await cake.balanceOf(carol)).toString()
+    
+    const cakeReward = await calcCakeReward(pantry, 1, 0)
+    const performanceFee = (await cakeVault.performanceFee())
+    const callFee = (await cakeVault.callFee())
+    const currentPerformanceFee= cakeReward * performanceFee
+ 
+    assert.equal(carolBalance2 - carolBalance1, currentAmount - (currentAmount*withdrawFee))
+    assert.equal((await syrup.balanceOf(cakeVault.address)).toString(), 0)
+    const treasuryDiff = (await cake.balanceOf(cakeVaultTreasury)) - cakeTreasury1
+    assert.equal(treasuryDiff, Math.floor(currentAmount*withdrawFee))
+  })
+
+  it("can withdraw cake after more elapsed time", async () => {
+    let cakeInVault = await cake.balanceOf(cakeVault.address)
+    let carolUserInfoVault = await cakeVault.userInfo(carol)
+    let carolUserInfo = await pantry.getUserInfo(0, carol);
+    let chefUserInfo = await pantry.getUserInfo(0, chef.address);
+    let vaultUserInfo = await pantry.getUserInfo(0, cakeVault.address)
+    assert.equal(carolUserInfo.tokenData.length, 0)
+    assert.equal(carolUserInfo.lastRewardBlock, 0)
+    assert.equal(carolUserInfoVault.shares.toString(), 0)
+    let carolBalance1 = (await cake.balanceOf(carol))
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+    let hourInSeconds = 3600
+    await cake.approve(
+      cakeVault.address,
+      cakeDeposit,
+      {from: carol}
+    )
+    await cakeVault.deposit(cakeDeposit, hourInSeconds, {from: carol})
+    vaultUserInfo = await pantry.getUserInfo(0, cakeVault.address)
+
+    
+    const withdrawFeePeriod = (await cakeVault.withdrawFeePeriod()).toString()
+    await advanceTime(withdrawFeePeriod)
+
+    const carolShares = (await cakeVault.userInfo(carol)).shares.toString()
+    await cakeVault.withdraw(carolShares, {from: carol})
+    const cakeReward = await calcCakeReward(pantry, 1, 0)
+    let carolBalance2 =  (await cake.balanceOf(carol))
+    assert.equal((carolBalance1.add(cakeReward)).toString(), carolBalance2.toString())
+
+    carolUserInfo = await pantry.getUserInfo(0, carol);
+    chefUserInfo = await pantry.getUserInfo(0, chef.address);
+    vaultUserInfo = await pantry.getUserInfo(0, cakeVault.address)
+    const poolInfo = await pantry.getPoolInfo.call(0)
+    assert.equal(poolInfo.tokenData[0].supply, 0)
+    carolUserInfoVault = await cakeVault.userInfo(carol)
+    assert.equal(carolUserInfoVault.shares.toString(), 0)
   })
 })

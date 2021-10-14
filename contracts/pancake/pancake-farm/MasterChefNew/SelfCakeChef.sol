@@ -7,7 +7,7 @@ import './interfaces/ICookBook.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import '../SyrupBar.sol';
+import '../SyrupBarNew.sol';
 
 contract SelfCakeChef is Ownable {
 	using SafeBEP20 for IBEP20;
@@ -18,7 +18,7 @@ contract SelfCakeChef is Ownable {
   IKitchen kitchen;
   IMasterPantry masterPantry;
   ICookBook cookBook;
-  SyrupBar syrup;
+  SyrupBarNew syrup;
   constructor(
     address _masterPantry,
     address _kitchen,
@@ -35,6 +35,7 @@ contract SelfCakeChef is Ownable {
 		uint256 _amount,
 		uint256 _timeStake
 	) public {
+		kitchen.updatePool(0);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
     uint256[] memory amountArr = new uint256[](1);
@@ -44,21 +45,25 @@ contract SelfCakeChef is Ownable {
       timeEnd: block.timestamp + _timeStake,
       amounts: amountArr
     });
-		kitchen.updatePool(0);
 		if (user.tokenData.length == 0) {
 			//new staker
+      user.tokenData = new IMasterPantry.UserTokenData[](1);
 			IMasterPantry.UserTokenData memory cakeTokenData = IMasterPantry.UserTokenData({
 				amount: 0,
 				rewardDebt: 0
 			});
 			user.tokenData[0] = cakeTokenData;
-		}
+      
+      user.positions = new IMasterPantry.UserPosition[](1);
+      user.positions[0] = newPosition;
+    } else {
+      user.positions[user.positions.length] = newPosition;
+    }
 		if(_amount > 0) {
 			pool.tokenData[0].token.safeTransferFrom(address(msg.sender), address(this), _amount);
 			user.tokenData[0].amount = user.tokenData[0].amount + (_amount);
 		}
 		pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
-    user.positions[user.positions.length] = newPosition;
     masterPantry.setUserInfo(0, msg.sender, user);
     masterPantry.setPoolInfo(0, pool);
 		syrup.mint(msg.sender, _amount);
@@ -67,12 +72,12 @@ contract SelfCakeChef is Ownable {
 	}
 
 	function leaveStaking(uint256 _positionid) public {
+    kitchen.updatePool(0);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
 		IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
 		uint256 _amount = currentPosition.amounts[0];
 		require(user.tokenData[0].amount >= _amount, "withdraw: not good");
-    kitchen.updatePool(0);
 		// further questions about the pending story 
 		// especially 'rewardDebt'
 		// storing amount in penalty, vs amount out penalty may be a good idea

@@ -6,7 +6,7 @@ import './interfaces/IKitchen.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import '../SyrupBar.sol';
+import '../SyrupBarNew.sol';
 
 
 contract AutoCakeChef is Ownable {
@@ -17,7 +17,7 @@ contract AutoCakeChef is Ownable {
 
   IKitchen kitchen;
   IMasterPantry  masterPantry;
-  SyrupBar syrup;
+  SyrupBarNew syrup;
   constructor(
     address _masterPantry,
     address _kitchen
@@ -28,36 +28,14 @@ contract AutoCakeChef is Ownable {
 
   }
 
-  function leaveStakingCakeVault(uint256 _amount) public {
-    //require(msg.sender == cakeVault, "only callable by cakeVault");
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
-    require(user.tokenData[0].amount >= _amount, "withdraw: not good");
-    kitchen.updatePool(0);
-    uint256 pending = user.tokenData[0].amount * (pool.tokenData[0].accCakePerShare) / (masterPantry.unity()) - (user.tokenData[0].rewardDebt);
-    if(pending > 0) {
-      kitchen.safeCakeTransfer(msg.sender, pending);
-    }
-    if(_amount > 0) {
-      user.tokenData[0].amount = user.tokenData[0].amount - (_amount);
-      pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
-      pool.tokenData[0].supply -= _amount;
-    }
-    user.tokenData[0].rewardDebt = user.tokenData[0].amount * (pool.tokenData[0].accCakePerShare) / (masterPantry.unity());
-
-    syrup.burn(msg.sender, _amount);
-    masterPantry.setUserInfo(0, msg.sender, user);
-    masterPantry.setPoolInfo(0, pool);
-    emit Withdraw(msg.sender, 0);
-  }
-
   function enterStakingCakeVault(uint256 _amount) public {
     //require(msg.sender == cakeVault, "only the cakevault can call this function");
+    kitchen.updatePool(0);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
-    kitchen.updatePool(0);
     if (user.tokenData.length == 0) {
       //new staker
+      user.tokenData = new IMasterPantry.UserTokenData[](1);
       IMasterPantry.UserTokenData memory cakeTokenData = IMasterPantry.UserTokenData({
         amount: 0,
         rewardDebt: 0
@@ -83,4 +61,28 @@ contract AutoCakeChef is Ownable {
     masterPantry.setPoolInfo(0, pool);
     emit Deposit(msg.sender, 0, amounts);
   }
+
+  function leaveStakingCakeVault(uint256 _amount) public {
+    //require(msg.sender == cakeVault, "only callable by cakeVault");
+    kitchen.updatePool(0);
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
+    require(user.tokenData[0].amount >= _amount, "withdraw: not good");
+    uint256 pending = user.tokenData[0].amount * (pool.tokenData[0].accCakePerShare) / (masterPantry.unity()) - (user.tokenData[0].rewardDebt);
+    if(pending > 0) {
+      kitchen.safeCakeTransfer(msg.sender, pending);
+    }
+    if(_amount > 0) {
+      user.tokenData[0].amount = user.tokenData[0].amount - (_amount);
+      pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+      pool.tokenData[0].supply -= _amount;
+    }
+    user.tokenData[0].rewardDebt = user.tokenData[0].amount * (pool.tokenData[0].accCakePerShare) / (masterPantry.unity());
+
+    syrup.burn(msg.sender, _amount);
+    masterPantry.setUserInfo(0, msg.sender, user);
+    masterPantry.setPoolInfo(0, pool);
+    emit Withdraw(msg.sender, 0);
+  }
+
 }

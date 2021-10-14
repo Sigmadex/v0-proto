@@ -17,13 +17,13 @@ contract CakeTokenNew is BEP20('PancakeSwap Token', 'Cake') {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
+
+    IACL acl;
     constructor(
       address _acl
     ) {
       acl = IACL(_acl);
     }
-
-    IACL acl;
     modifier onlyACL() {
       acl.onlyACL(msg.sender);
       _;

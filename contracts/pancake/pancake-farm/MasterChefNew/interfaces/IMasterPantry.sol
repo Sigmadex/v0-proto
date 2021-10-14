@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 
 import "../../CakeTokenNew.sol";
-import "../../SyrupBar.sol";
+import "../../SyrupBarNew.sol";
 
 import "./IMigratorChef.sol";
 
@@ -53,7 +53,7 @@ interface IMasterPantry {
   function unity() external view returns (uint256);
   function penaltyAddress() external view returns (address);
   function cake() external view returns (CakeTokenNew);
-  function syrup() external view returns (SyrupBar);
+  function syrup() external view returns (SyrupBarNew);
   function startBlock() external view returns (uint256);
   function migrator() external view returns(IMigratorChef);
 }

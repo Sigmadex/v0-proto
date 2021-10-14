@@ -5,7 +5,7 @@ import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IMasterPantry.sol";
 import "./interfaces/IACL.sol";
 import "../CakeTokenNew.sol";
-import "../SyrupBar.sol";
+import "../SyrupBarNew.sol";
 
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
@@ -55,7 +55,7 @@ contract MasterPantry is Ownable {
   // The CAKE TOKEN!
   CakeTokenNew public cake;
   // The SYRUP TOKEN!
-  SyrupBar public syrup;
+  SyrupBarNew public syrup;
   // Dev address.
   IACL public acl;
   address public devAddress;
@@ -87,7 +87,7 @@ contract MasterPantry is Ownable {
 
   constructor(
     CakeTokenNew _cake,
-    SyrupBar _syrup,
+    SyrupBarNew _syrup,
     address _acl,
     address _penaltyAddress,
     address _devAddress,
