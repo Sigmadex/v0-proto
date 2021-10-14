@@ -5,8 +5,8 @@ import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import "./CakeToken.sol";
-import "./SyrupBar.sol";
+import "./CakeTokenV1.sol";
+import "./SyrupBarV1.sol";
 
 import "hardhat/console.sol";
 
@@ -30,7 +30,8 @@ interface IMigratorChef {
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
-contract MasterChefNew is Ownable {
+/* Commented out as exceeded max size
+contract MasterChefV3 is Ownable {
 	using SafeMath for uint256;
 	using SafeBEP20 for IBEP20;
 
@@ -68,9 +69,9 @@ contract MasterChefNew is Ownable {
 	mapping(uint256 => PoolInfo) internal poolInfo;
 
 	// The CAKE TOKEN!
-	CakeToken public cake;
+	CakeTokenV1 public cake;
 	// The SYRUP TOKEN!
-	SyrupBar public syrup;
+	SyrupBarV1 public syrup;
 	// Dev address.
 	address public devaddr;
 	// Penalty pool Address
@@ -94,8 +95,8 @@ contract MasterChefNew is Ownable {
 	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
 	constructor(
-		CakeToken _cake,
-		SyrupBar _syrup,
+		CakeTokenV1 _cake,
+		SyrupBarV1 _syrup,
 		address _devaddr,
 		address _penaltyAddress,
 		uint256 _cakePerBlock
@@ -190,6 +191,7 @@ contract MasterChefNew is Ownable {
 			poolInfo[0].allocPoint = points;
 			}
 		 */
+    /*
 	}
 	// Set the migrator contract. Can only be called by the owner.
 	function setMigrator(IMigratorChef _migrator) public onlyOwner {
@@ -545,3 +547,4 @@ contract MasterChefNew is Ownable {
 		devaddr = _devaddr;
 	}
 }
+*/

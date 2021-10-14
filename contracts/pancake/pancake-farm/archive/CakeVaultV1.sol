@@ -298,7 +298,7 @@ abstract contract Pausable is Context {
   // File: contracts/CakeVault.sol
 
 
-  contract CakeVaultOld is Ownable, Pausable {
+  contract CakeVaultV1 is Ownable, Pausable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 

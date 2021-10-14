@@ -272,7 +272,6 @@ abstract contract Pausable is Context {
 
 
   interface IMasterChefNew {
-
     struct UserTokenData {
       uint256 amount;
       uint256 rewardDebt;
@@ -281,14 +280,13 @@ abstract contract Pausable is Context {
       UserTokenData[] tokenData;
       uint256 lastRewardBlock;
     }
-
     function deposit(uint256 _pid, uint256 _amount) external;
 
     function withdraw(uint256 _pid, uint256 _amount) external;
 
-    function enterStakingCakeVault(uint256 _amount) external;
+    function enterStaking(uint256 _amount) external;
 
-    function leaveStakingCakeVault(uint256 _amount) external;
+    function leaveStaking(uint256 _amount) external;
 
     function pendingCake(uint256 _pid, address _user) external view returns (uint256);
 
@@ -300,28 +298,17 @@ abstract contract Pausable is Context {
   // File: contracts/CakeVault.sol
 
 
-  contract CakeVaultNew is Ownable, Pausable {
+  contract CakeVaultV2 is Ownable, Pausable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
-
-    uint256 unity = 1e27;
-
-    struct UserPosition {
-      uint256 timeStart;
-      uint256 timeEnd;
-      uint256 amount;
-    }
 
     struct UserInfo {
       uint256 shares; // number of shares for a user
       uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
       uint256 cakeAtLastUserAction; // keeps track of cake deposited at the last user action
       uint256 lastUserActionTime; // keeps track of the last user action time
-      UserPosition[] positions; // tracks users staked for a time period
     }
 
-  // userInfoPositionIndices[userAddress][index]
-  mapping (address => mapping( uint256 => uint256 )) public userInfoPositionIndices;
     IERC20 public immutable token; // Cake token
     IERC20 public immutable receiptToken; // Syrup token
 
@@ -397,12 +384,9 @@ abstract contract Pausable is Context {
     * @dev Only possible when contract not paused.
       * @param _amount: number of tokens to deposit (in CAKE)
     */
-    function deposit(
-      uint256 _amount,
-      uint256 timeStake
-    ) external whenNotPaused notContract {
+    function deposit(uint256 _amount) external whenNotPaused notContract {
       require(_amount > 0, "Nothing to deposit");
-      
+
       uint256 pool = balanceOf();
       token.safeTransferFrom(msg.sender, address(this), _amount);
       uint256 currentShares = 0;
@@ -412,11 +396,6 @@ abstract contract Pausable is Context {
         currentShares = _amount;
       }
       UserInfo storage user = userInfo[msg.sender];
-      UserPosition memory newPosition = UserPosition({
-        timeStart: block.timestamp,
-        timeEnd: block.timestamp + timeStake,
-        amount: _amount
-      });
 
       user.shares = user.shares.add(currentShares);
       user.lastDepositedTime = block.timestamp;
@@ -425,8 +404,6 @@ abstract contract Pausable is Context {
 
       user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
       user.lastUserActionTime = block.timestamp;
-
-      user.positions.push(newPosition);
 
       _earn();
 
@@ -445,8 +422,8 @@ abstract contract Pausable is Context {
     * @dev Only possible when contract not paused.
       */
     function harvest() external notContract whenNotPaused {
-      IMasterChefNew(masterchef).leaveStakingCakeVault(0);
-      // definitely question these in light of penalty
+      IMasterChefNew(masterchef).leaveStaking(0);
+
       uint256 bal = available();
       uint256 currentPerformanceFee = bal.mul(performanceFee).div(10000);
       token.safeTransfer(treasury, currentPerformanceFee);
@@ -585,24 +562,12 @@ abstract contract Pausable is Context {
       return totalShares == 0 ? 1e18 : balanceOf().mul(1e18).div(totalShares);
     }
 
-    function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
-      uint256 timeElapsed = block.timestamp - timeStart;
-      uint256 timeTotal = timeEnd - timeStart;
-      uint256 proportion = (timeElapsed * unity) / timeTotal;
-      uint256 refund = amount * proportion / unity;
-      uint256 penalty = amount - refund;
-      require(amount == penalty + refund, 'calc fund is leaking rounding errors');
-      return (refund, penalty);
-    }
-
     /**
     * @notice Withdraws from funds from the Cake Vault
     * @param _shares: Number of shares to withdraw
     */
     function withdraw(uint256 _shares) public notContract {
       UserInfo storage user = userInfo[msg.sender];
-      //uint256 index = userInfoPositionIndices[msg.sender][_position];
-      //uint256 _shares = userInfo[msg.sender][index].amount;
       require(_shares > 0, "Nothing to withdraw");
       require(_shares <= user.shares, "Withdraw amount exceeds balance");
       uint256 currentAmount = (balanceOf().mul(_shares)).div(totalShares);
@@ -611,7 +576,7 @@ abstract contract Pausable is Context {
       uint256 bal = available();
       if (bal < currentAmount) {
         uint256 balWithdraw = currentAmount.sub(bal);
-        IMasterChefNew(masterchef).leaveStakingCakeVault(balWithdraw);
+        IMasterChefNew(masterchef).leaveStaking(balWithdraw);
         uint256 balAfter = available();
         //theoretical
         uint256 diff = balAfter.sub(bal);
@@ -662,7 +627,7 @@ abstract contract Pausable is Context {
     function _earn() internal {
       uint256 bal = available();
       if (bal > 0) {
-        IMasterChefNew(masterchef).enterStakingCakeVault(bal);
+        IMasterChefNew(masterchef).enterStaking(bal);
       }
     }
 
