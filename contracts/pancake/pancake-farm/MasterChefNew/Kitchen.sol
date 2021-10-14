@@ -6,14 +6,14 @@ import './interfaces/IACL.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 
-import '../CakeToken.sol';
+import '../CakeTokenNew.sol';
 contract Kitchen is Ownable {
 	using SafeBEP20 for IBEP20;
 
 	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
   IMasterPantry public  masterPantry;
-	CakeToken public cake;
+	CakeTokenNew public cake;
   IACL public acl;
 
   constructor(
@@ -26,7 +26,7 @@ contract Kitchen is Ownable {
    
   }
   modifier onlyACL() {
-    acl.onlyACL();
+    acl.onlyACL(msg.sender);
     _;
   }
 	function updateStakingPool() public  {
@@ -76,16 +76,17 @@ contract Kitchen is Ownable {
 		uint256 cakeReward = multiplier *(masterPantry.cakePerBlock()) *(pool.allocPoint) / (masterPantry.totalAllocPoint());
 		// Lol - are they really taking 10% of cake mint to personal addr?
 		//cake.mint(devaddr, cakeReward.div(10));
+    // cake is made in the kitchen, kept in the kitchen and provided from the kitchen 
 		cake.mint(address(this), cakeReward);
 		for (uint j=0; j < pool.tokenData.length; j++) {
-			pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (masterPantry.cakePerBlock())* masterPantry.unity() / (pool.tokenData.length*supplies[j]); 
+			pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + cakeReward* masterPantry.unity() / (pool.tokenData.length*supplies[j]);
 		}
 		pool.lastRewardBlock = block.number;
     masterPantry.setPoolInfo(_pid, pool);
 	}
 
 	// Safe cake transfer function, just in case if rounding error causes pool to not have enough CAKEs.
-	function safeCakeTransfer(address _to, uint256 _amount) internal {
+	function safeCakeTransfer(address _to, uint256 _amount) public {
 		uint256 cakeBal = cake.balanceOf(address(this));
 		if (_amount > cakeBal) {
 			cake.transfer(_to, cakeBal);

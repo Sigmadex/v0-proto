@@ -2,7 +2,7 @@ pragma solidity 0.8.7;
 
 
 interface IACL {
-  function onlyACL() external;
+  function onlyACL(address sender) external;
   function pantry() external returns (address);
   function kitchen() external returns (address);
   function masterChef() external returns (address);

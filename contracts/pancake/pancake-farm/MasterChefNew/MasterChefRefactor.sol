@@ -5,7 +5,6 @@ import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
-import "../CakeToken.sol";
 import "../SyrupBar.sol";
 
 import "./interfaces/IMigratorChef.sol";
@@ -84,21 +83,24 @@ contract MasterChefRefactor is Ownable {
 		uint256 timeStake
 	) public {
 		require(_pid != 0, 'cake farm detected, please use enterstaking, or the cakeVault.deposit');
+		kitchen.updatePool(_pid);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
 		require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
-		kitchen.updatePool(_pid);
 		//reward debt question
-
 		IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
 			timeStart: block.timestamp,
 			timeEnd: block.timestamp + timeStake,
 			amounts: _amounts
 		});
-
+    if (user.tokenData.length == 0) {
+      //first deposit
+      user.tokenData = new IMasterPantry.UserTokenData[](pool.tokenData.length);
+    }
 		for (uint j=0; j < pool.tokenData.length; j++) {
 			if (user.tokenData.length <= j) {
 				//first deposit
+        
 				user.tokenData[j] = (IMasterPantry.UserTokenData({
 					amount: 0,
 					rewardDebt: 0
@@ -107,7 +109,6 @@ contract MasterChefRefactor is Ownable {
 			uint256 amount = user.tokenData[j].amount;
 			uint256 rewardDebt = user.tokenData[j].rewardDebt;
 			uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
-
 			pool.tokenData[j].token.safeTransferFrom(
 				address(msg.sender),
 				address(this),
@@ -116,7 +117,13 @@ contract MasterChefRefactor is Ownable {
 			user.tokenData[j].amount = amount + _amounts[j];
 			pool.tokenData[j].supply += _amounts[j];
 		}
-		user.positions[user.positions.length+1] = newPosition;
+    if (user.positions.length == 0) {
+      // first position
+      user.positions = new IMasterPantry.UserPosition[](1);
+      user.positions[0] = newPosition;
+    } else {
+      user.positions[user.positions.length+1] = newPosition;
+    }
     masterPantry.setUserInfo(_pid, msg.sender, user);
     masterPantry.setPoolInfo(_pid, pool);
 		emit Deposit(msg.sender, _pid, _amounts);
@@ -127,9 +134,9 @@ contract MasterChefRefactor is Ownable {
 		uint256 _pid,
 		uint256 _positionid
 	) public {
+		kitchen.updatePool(_pid);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
-		kitchen.updatePool(_pid);
 		IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
 
 		uint256 totalAmountShares = 0;

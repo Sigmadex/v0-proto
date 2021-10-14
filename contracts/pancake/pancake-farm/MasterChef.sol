@@ -254,7 +254,12 @@ function migrate(uint256 _pid) public {
     //cake.mint(devaddr, cakeReward.div(10));
     cake.mint(address(this), cakeReward);
     for (uint j=0; j < pool.tokenData.length; j++) {
-      pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (cakeReward)* unity / (pool.tokenData.length*supplies[j]); 
+      console.log('init update acc', pool.tokenData[j].accCakePerShare);
+      console.log('supplies[j]', supplies[j]);
+      console.log('unity', unity);
+      console.log('cake reward', cakeReward);
+      pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + (cakeReward)* unity / (pool.tokenData.length*supplies[j]);
+      console.log('update acc', pool.tokenData[j].accCakePerShare);
     }
     pool.lastRewardBlock = block.number;
   }

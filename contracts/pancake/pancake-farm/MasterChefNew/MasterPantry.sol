@@ -4,7 +4,7 @@ pragma solidity 0.8.7;
 import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IMasterPantry.sol";
 import "./interfaces/IACL.sol";
-import "../CakeToken.sol";
+import "../CakeTokenNew.sol";
 import "../SyrupBar.sol";
 
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
@@ -53,7 +53,7 @@ contract MasterPantry is Ownable {
     poolInfo[_pid] = _poolInfo;
   }
   // The CAKE TOKEN!
-  CakeToken public cake;
+  CakeTokenNew public cake;
   // The SYRUP TOKEN!
   SyrupBar public syrup;
   // Dev address.
@@ -86,7 +86,7 @@ contract MasterPantry is Ownable {
   uint256 public startBlock;
 
   constructor(
-    CakeToken _cake,
+    CakeTokenNew _cake,
     SyrupBar _syrup,
     address _acl,
     address _penaltyAddress,
@@ -116,15 +116,15 @@ contract MasterPantry is Ownable {
   }
 
   modifier onlyACL() {
-    acl.onlyACL();
+    acl.onlyACL(msg.sender);
     _;
   }
 
-  function setCakeVault(address _cakeVault) public onlyACL {
+  function setCakeVault(address _cakeVault) public onlyOwner {
     cakeVault = _cakeVault;
   }
 
-  function updateMultiplier(uint256 multiplierNumber) public onlyACL {
+  function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
     BONUS_MULTIPLIER = multiplierNumber;
   }
 }

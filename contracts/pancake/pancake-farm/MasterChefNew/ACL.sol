@@ -1,5 +1,6 @@
 pragma solidity 0.8.7;
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
+import 'hardhat/console.sol';
 contract ACL is Ownable {
   address public pantry;
   address public kitchen;
@@ -27,10 +28,10 @@ contract ACL is Ownable {
     cakeVault = _cakeVault;
   }
 
-  function onlyACL() public view {
+  function onlyACL(address sender) public view {
     address[6] memory allowedAddresses = [pantry, kitchen, masterChef, selfCakeChef, autoCakeChef, cakeVault];
     for (uint i=0; i<allowedAddresses.length;i++) {
-      if (allowedAddresses[i] == msg.sender) {
+      if (allowedAddresses[i] == sender) {
         return;
       }
     }
