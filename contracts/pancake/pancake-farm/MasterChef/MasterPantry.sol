@@ -13,12 +13,18 @@ contract MasterPantry is Ownable {
   uint256 public unity = 1e27;
   
   // Time Token Globals
-  mapping (address => uint256) public timeAmountGlobal;
+  mapping (address => IMasterPantry.TokenRewardData) public tokenRewardData;
   function addTimeAmountGlobal(address _token, uint256 _timeAmount) public onlyACL {
-    timeAmountGlobal[_token] += _timeAmount; 
+    tokenRewardData[_token].timeAmountGlobal += _timeAmount; 
   }
   function subTimeAmountGlobal(address _token, uint256 _timeAmount) public onlyACL {
-    timeAmountGlobal[_token] -= _timeAmount; 
+    tokenRewardData[_token].timeAmountGlobal -= _timeAmount; 
+  }
+  function addRewarded(address _token, uint256 _rewardAmount) public onlyACL {
+    tokenRewardData[_token].rewarded += _rewardAmount; 
+  }
+  function subRewarded(address _token, uint256 _rewardAmount) public onlyACL {
+    tokenRewardData[_token].rewarded -= _rewardAmount; 
   }
 
   // Users

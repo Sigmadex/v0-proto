@@ -277,11 +277,11 @@ contract('MasterChef Single User Tests', () => {
     )
 
     assert.equal(
-      (await pantry.timeAmountGlobal(erc20a.address)).toString(),
+      (await pantry.tokenRewardData(erc20a.address)).timeAmountGlobal.toString(),
       stakeAmount * hourInSeconds
     )
     assert.equal(
-      (await pantry.timeAmountGlobal(erc20b.address)).toString(),
+      (await pantry.tokenRewardData(erc20b.address)).timeAmountGlobal.toString(),
       stakeAmount * hourInSeconds
     )
   })
@@ -350,11 +350,11 @@ contract('MasterChef Single User Tests', () => {
     assert.equal((await erc20a.balanceOf(alice)).sub(aliceErc20ABalance1), refundERC20A.toString())
 
     assert.equal(
-      (await pantry.timeAmountGlobal(erc20a.address)).toString(),
+      (await pantry.tokenRewardData(erc20a.address)).timeAmountGlobal.toString(),
       0
     )
     assert.equal(
-      (await pantry.timeAmountGlobal(erc20b.address)).toString(),
+      (await pantry.tokenRewardData(erc20b.address)).timeAmountGlobal.toString(),
       0
     )
   })
@@ -363,8 +363,6 @@ contract('MasterChef Single User Tests', () => {
     let stakeAmount = web3.utils.toWei('20', 'ether')
     let poolId = (await pantry.poolLength()).toString() - 1
     const hourInSeconds = 3600
-    const localTimeAmount =  hourInSeconds * stakeAmount
-    console.log('test localtimeamount', localTimeAmount)
     await erc20a.approve(
       chef.address,
       stakeAmount,
@@ -386,9 +384,12 @@ contract('MasterChef Single User Tests', () => {
     await advanceChain(360, 10) // 360 blocks, 10 seconds per block 
 
     const penaltyPoolErc20a = await erc20a.balanceOf(cashier.address)
-    const globalTimeAmountErc20a = await pantry.timeAmountGlobal(erc20a.address)
+    const globalTimeAmountErc20a = await pantry.tokenRewardData(erc20a.address)
+    const localTimeAmount =  fromExponential(new web3.utils.BN(hourInSeconds) * stakeAmount)
+    console.log('test localtimeamount', localTimeAmount.toString())
     const proportion = localTimeAmount / globalTimeAmountErc20a
     console.log('test proportion', proportion)
+    const rewardAmountErc20a = proportion * penaltyPoolErc20a
   
 
     await chef.withdraw(
@@ -431,7 +432,7 @@ contract('MasterChef Single User Tests', () => {
     assert.equal(bobUserInfo.positions[0].amounts[0], cakeDeposit)
 
     assert.equal(
-      (await pantry.timeAmountGlobal(cake.address)).toString(),
+      (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       cakeDeposit * hourInSeconds
     )
   })
@@ -466,7 +467,7 @@ contract('MasterChef Single User Tests', () => {
     assert.equal(poolInfo.lastRewardBlock, blockNumber)
 
     assert.equal(
-      (await pantry.timeAmountGlobal(cake.address)).toString(),
+      (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       0
     )
   })
@@ -506,7 +507,7 @@ contract('MasterChef Single User Tests', () => {
     assert.equal((await pantry.getUserInfo(0, cakeVault.address)).tokenData[0].amount.toString(), cakeDeposit)
 
     assert.equal(
-      (await pantry.timeAmountGlobal(cake.address)).toString(),
+      (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       cakeDeposit * hourInSeconds
     )
 
@@ -594,7 +595,7 @@ contract('MasterChef Single User Tests', () => {
 
 
     assert.equal(
-      (await pantry.timeAmountGlobal(cake.address)).toString(),
+      (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       0
     )
   })
@@ -619,7 +620,7 @@ contract('MasterChef Single User Tests', () => {
     await cakeVault.deposit(cakeDeposit, hourInSeconds, {from: carol})
     
     assert.equal(
-      (await pantry.timeAmountGlobal(cake.address)).toString(),
+      (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       cakeDeposit * hourInSeconds
     )
     vaultUserInfo = await pantry.getUserInfo(0, cakeVault.address)
@@ -649,7 +650,7 @@ contract('MasterChef Single User Tests', () => {
     assert.equal(carolUserInfoVault.shares.toString(), 0)
 
     assert.equal(
-      (await pantry.timeAmountGlobal(cake.address)).toString(),
+      (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       0
     )
   })

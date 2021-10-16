@@ -24,13 +24,12 @@ contract Cashier is Ownable {
     _;
   }
 
-  function requestReward(address token, uint256 timeAmount) public onlyACL {
-    console.log('timeAmount', timeAmount);
-    uint256 kitchenBalance = IBEP20(token).balanceOf(address(this));
+  function requestReward(address _token, uint256 _timeAmount) public onlyACL {
+    IMasterPantry.TokenRewardData memory tokenRewardData = masterPantry.tokenRewardData(_token);
+    console.log('timeAmount', _timeAmount);
+    uint256 kitchenBalance = IBEP20(_token).balanceOf(address(this));
     console.log('kitchenbalance', kitchenBalance);
-    uint256 globalTimeAmount = masterPantry.timeAmountGlobal(token);
-    console.log('globalTimeAmount', globalTimeAmount);
-    uint256 proportio = timeAmount * masterPantry.unity() / globalTimeAmount;
+    uint256 proportio = _timeAmount * masterPantry.unity() / tokenRewardData.timeAmountGlobal;
     console.log('proportio', proportio);
     uint rewardAmount = proportio * kitchenBalance / masterPantry.unity();
     console.log('rewardAmount', rewardAmount);

@@ -13,6 +13,12 @@ interface IMasterPantry {
 	event Withdraw(address indexed user, uint256 indexed pid);
 	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
+  struct TokenRewardData {
+    uint256 timeAmountGlobal;
+    uint256 rewarded;
+  }
+
+
   struct PoolTokenData {
 		IBEP20 token;
 		uint256 supply;
@@ -57,7 +63,7 @@ interface IMasterPantry {
   function syrup() external view returns (SyrupBar);
   function startBlock() external view returns (uint256);
   function migrator() external view returns(IMigratorChef);
-  function timeAmountGlobal(address _token) external view returns (uint256);
+  function tokenRewardData(address _token) external view returns (TokenRewardData memory);
   function addTimeAmountGlobal(address _token, uint256 _timeAmount) external;
   function subTimeAmountGlobal(address _token, uint256 _timeAmount) external;
 }
