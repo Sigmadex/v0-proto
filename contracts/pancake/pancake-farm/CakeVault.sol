@@ -32,6 +32,7 @@ contract CakeVault is Ownable, Pausable {
     uint256 timeStart;
     uint256 timeEnd;
     uint256 amount;
+    uint256 startBlock;
   }
 
   struct UserInfo {
@@ -140,7 +141,8 @@ contract CakeVault is Ownable, Pausable {
     UserPosition memory newPosition = UserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + _timeStake,
-      amount: _amount
+      amount: _amount,
+      startBlock: block.number
     });
 
     user.shares = user.shares.add(currentShares);

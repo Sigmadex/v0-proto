@@ -27,6 +27,11 @@ contract MasterPantry is Ownable {
     tokenRewardData[_token].rewarded -= _rewardAmount; 
   }
 
+  uint256 public cakeRewarded;
+  function addCakeRewarded(uint256 _amount) public onlyACL {
+    cakeRewarded += _amount;
+  }
+
   // Users
   // userInfo[poolId][userAddress]
   mapping (uint256 => mapping (address => IMasterPantry.UserInfo)) public userInfo; 

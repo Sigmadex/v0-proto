@@ -51,7 +51,8 @@ contract SelfCakeChef is Ownable {
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + _timeStake,
-      amounts: amountArr
+      amounts: amountArr,
+      startBlock: block.number
     });
 		if (user.tokenData.length == 0) {
 			//new staker

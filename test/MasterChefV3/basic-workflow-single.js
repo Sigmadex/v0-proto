@@ -75,11 +75,6 @@ contract('MasterChef Single User Tests', () => {
       cakePerBlock,
       { from: minter }
     );
-    cashier = await Cashier.new(
-      pantry.address,
-      acl.address,
-      { from: minter }
-    )
     cookBook = await CookBook.new(
       pantry.address,
       {from: minter}
@@ -87,6 +82,12 @@ contract('MasterChef Single User Tests', () => {
     kitchen = await Kitchen.new(
       pantry.address,
       acl.address,
+      { from: minter }
+    )
+    cashier = await Cashier.new(
+      pantry.address,
+      acl.address,
+      kitchen.address,
       { from: minter }
     )
     autoCakeChef = await AutoCakeChef.new(
@@ -125,6 +126,7 @@ contract('MasterChef Single User Tests', () => {
     await acl.setSelfCakeChef(selfCakeChef.address, { from: minter })
     await acl.setAutoCakeChef(autoCakeChef.address, { from: minter })
     await acl.setCakeVault(cakeVault.address, { from: minter })
+    await acl.setCashier(cashier.address, { from: minter })
 
     await pantry.setCakeVault(cakeVault.address, { from: minter })
 

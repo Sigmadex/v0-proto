@@ -9,9 +9,9 @@ import "./IMigratorChef.sol";
 
 
 interface IMasterPantry {
-	event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
-	event Withdraw(address indexed user, uint256 indexed pid);
-	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
+  event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
+  event Withdraw(address indexed user, uint256 indexed pid);
+  event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
   struct TokenRewardData {
     uint256 timeAmountGlobal;
@@ -20,31 +20,32 @@ interface IMasterPantry {
 
 
   struct PoolTokenData {
-		IBEP20 token;
-		uint256 supply;
-		uint256 accCakePerShare;
-	}
-	struct PoolInfo {
-		PoolTokenData[] tokenData;
-		uint256 allocPoint;
-		uint256 lastRewardBlock;
-	}
+    IBEP20 token;
+    uint256 supply;
+    uint256 accCakePerShare;
+  }
+  struct PoolInfo {
+    PoolTokenData[] tokenData;
+    uint256 allocPoint;
+    uint256 lastRewardBlock;
+  }
 
-	struct UserInfo {
-		UserTokenData[] tokenData;
-		UserPosition[] positions;
-		uint256 lastRewardBlock;
-	}
+  struct UserInfo {
+    UserTokenData[] tokenData;
+    UserPosition[] positions;
+    uint256 lastRewardBlock;
+  }
 
-	struct UserTokenData {
-		uint256 amount;
-		uint256 rewardDebt;
-	}
-	struct UserPosition {
-		uint256 timeStart;
-		uint256 timeEnd;
-		uint256[] amounts;
-	}
+  struct UserTokenData {
+    uint256 amount;
+    uint256 rewardDebt;
+  }
+  struct UserPosition {
+    uint256 timeStart;
+    uint256 timeEnd;
+    uint256 startBlock;
+    uint256[] amounts;
+  }
   function poolLength() external view returns (uint256);
   function setPoolLength() external;
   function getPoolInfo(uint256 _pid) external view returns (PoolInfo memory);
@@ -66,4 +67,6 @@ interface IMasterPantry {
   function tokenRewardData(address _token) external view returns (TokenRewardData memory);
   function addTimeAmountGlobal(address _token, uint256 _timeAmount) external;
   function subTimeAmountGlobal(address _token, uint256 _timeAmount) external;
+  function cakeRewarded() external view returns (uint256);
+  function addCakeRewarded(uint256 _amount) external;
 }
