@@ -46,6 +46,7 @@ interface IMasterPantry {
   function addPool(PoolInfo calldata _poolInfo) external;
   function getUserInfo(uint256 _pid, address _user) external view returns (UserInfo memory);
   function setUserInfo(uint256 _pid, address _user, UserInfo calldata _userInfo) external;
+  function addPosition(uint256 _pid, address _user, UserPosition memory position) external;
   function BONUS_MULTIPLIER() external view returns (uint256);
   function cakePerBlock() external view returns (uint256);
   function totalAllocPoint() external view returns (uint256);
@@ -56,4 +57,7 @@ interface IMasterPantry {
   function syrup() external view returns (SyrupBar);
   function startBlock() external view returns (uint256);
   function migrator() external view returns(IMigratorChef);
+  function timeAmountGlobal(address _token) external view returns (uint256);
+  function addTimeAmountGlobal(address _token, uint256 _timeAmount) external;
+  function subTimeAmountGlobal(address _token, uint256 _timeAmount) external;
 }

@@ -9,6 +9,8 @@ import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IKitchen.sol";
 import "./interfaces/IMasterPantry.sol";
 import "./interfaces/ICookBook.sol";
+import "./interfaces/ICashier.sol";
+
 import "hardhat/console.sol";
 
 
@@ -29,15 +31,18 @@ contract MasterChef is Ownable {
   IKitchen immutable kitchen;
   IMasterPantry immutable masterPantry;
   ICookBook immutable cookBook;
+  ICashier immutable cashier;
 
 	constructor(
     address _masterPantry,
     address _kitchen,
-    address _cookBook
+    address _cookBook,
+    address _cashier
 	) public {
     masterPantry = IMasterPantry(_masterPantry);
     kitchen = IKitchen(_kitchen);
     cookBook = ICookBook(_cookBook);
+    cashier = ICashier(_cashier);
 	}
 
 	// Add a new lp to the pool. Can only be called by the owner.
@@ -78,7 +83,7 @@ contract MasterChef is Ownable {
 	function deposit(
 		uint256 _pid,
 		uint256[] memory _amounts,
-		uint256 timeStake
+		uint256 _timeStake
 	) public {
 		require(_pid != 0, 'cake farm detected, please use enterstaking, or the cakeVault.deposit');
 		kitchen.updatePool(_pid);
@@ -88,7 +93,7 @@ contract MasterChef is Ownable {
 		//reward debt question
 		IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
 			timeStart: block.timestamp,
-			timeEnd: block.timestamp + timeStake,
+			timeEnd: block.timestamp + _timeStake,
 			amounts: _amounts
 		});
     if (user.tokenData.length == 0) {
@@ -114,15 +119,12 @@ contract MasterChef is Ownable {
 			);
 			user.tokenData[j].amount = amount + _amounts[j];
 			pool.tokenData[j].supply += _amounts[j];
+
+      masterPantry.addTimeAmountGlobal(address(pool.tokenData[j].token), (_amounts[j]*_timeStake));
 		}
-    if (user.positions.length == 0) {
-      // first position
-      user.positions = new IMasterPantry.UserPosition[](1);
-      user.positions[0] = newPosition;
-    } else {
-      user.positions[user.positions.length+1] = newPosition;
-    }
+    // userInfo than add position, probably worth cleaning this later
     masterPantry.setUserInfo(_pid, msg.sender, user);
+    masterPantry.addPosition(_pid, msg.sender, newPosition);
     masterPantry.setPoolInfo(_pid, pool);
 		emit Deposit(msg.sender, _pid, _amounts);
 	}
@@ -148,6 +150,8 @@ contract MasterChef is Ownable {
 					address(msg.sender),
 					amount
 				);
+        uint256 stakeTime = user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart;
+        cashier.requestReward(address(pool.tokenData[j].token), stakeTime * amount);
 			} else {
 				(uint256 refund, uint256 penalty) = cookBook.calcRefund(
 					user.positions[_positionid].timeStart,
@@ -159,13 +163,19 @@ contract MasterChef is Ownable {
 					refund
 				);
 				pool.tokenData[j].token.safeTransfer(
-					masterPantry.penaltyAddress(),
+					address(cashier),
 					penalty
 				);
 			}
 			user.tokenData[j].amount -= currentPosition.amounts[j];
 			pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
+      
+      masterPantry.subTimeAmountGlobal(
+        address(pool.tokenData[j].token),
+        (currentPosition.amounts[j]*(currentPosition.timeEnd - currentPosition.timeStart))
+      );
       user.positions[_positionid].amounts[j] = 0;
+
 		}
 
 		uint256 pending = totalAmountShares / masterPantry.unity();
@@ -173,7 +183,7 @@ contract MasterChef is Ownable {
 			if (currentPosition.timeEnd < block.timestamp) {
 				kitchen.safeCakeTransfer(address(msg.sender), pending);
 			} else {
-				kitchen.safeCakeTransfer(masterPantry.penaltyAddress(), pending);
+				kitchen.safeCakeTransfer(address(cashier), pending);
 			}
 		}
     masterPantry.setUserInfo(_pid, msg.sender, user);

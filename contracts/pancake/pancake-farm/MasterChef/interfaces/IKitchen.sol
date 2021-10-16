@@ -6,5 +6,4 @@ interface IKitchen {
   function massUpdatePools() external;
   function safeCakeTransfer(address _to, uint256 _amount) external;
   function emergencyWithdraw(uint256 _pid) external;
-
 }

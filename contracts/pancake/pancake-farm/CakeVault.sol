@@ -42,8 +42,6 @@ contract CakeVault is Ownable, Pausable {
     UserPosition[] positions; // tracks users staked for a time period
   }
 
-  // userInfoPositionIndices[userAddress][index]
-  mapping (address => mapping( uint256 => uint256 )) public userInfoPositionIndices;
   IERC20 public  token; // Cake token
   IERC20 public immutable receiptToken; // Syrup token
 
@@ -106,6 +104,10 @@ contract CakeVault is Ownable, Pausable {
     _;
   }
 
+  function getUserInfo(address _user) public view returns (UserInfo memory) {
+    return userInfo[_user];
+  }
+
   /**
   * @notice Checks if the msg.sender is a contract or a proxy
   */
@@ -122,7 +124,7 @@ contract CakeVault is Ownable, Pausable {
   */
   function deposit(
     uint256 _amount,
-    uint256 timeStake
+    uint256 _timeStake
   ) external whenNotPaused notContract {
     require(_amount > 0, "Nothing to deposit");
     
@@ -137,7 +139,7 @@ contract CakeVault is Ownable, Pausable {
     UserInfo storage user = userInfo[msg.sender];
     UserPosition memory newPosition = UserPosition({
       timeStart: block.timestamp,
-      timeEnd: block.timestamp + timeStake,
+      timeEnd: block.timestamp + _timeStake,
       amount: _amount
     });
 
@@ -151,6 +153,7 @@ contract CakeVault is Ownable, Pausable {
 
     user.positions.push(newPosition);
 
+    masterPantry.addTimeAmountGlobal(address(token), (_amount*_timeStake));
     _earn();
 
     emit Deposit(msg.sender, _amount, currentShares, block.timestamp);
@@ -310,20 +313,20 @@ contract CakeVault is Ownable, Pausable {
 
   /**
   * @notice Withdraws from funds from the Cake Vault
-  * @param _shares: Number of shares to withdraw
+  * @param _positionid: Position index
   */
-  function withdraw(uint256 _shares) public notContract {
+  function withdraw(uint256 _positionid) public notContract {
     UserInfo storage user = userInfo[msg.sender];
-    //uint256 index = userInfoPositionIndices[msg.sender][_position];
-    //uint256 _shares = userInfo[msg.sender][index].amount;
-    require(_shares > 0, "Nothing to withdraw");
-    require(_shares <= user.shares, "Withdraw amount exceeds balance");
-    uint256 currentAmount = (balanceOf().mul(_shares)).div(totalShares);
-    user.shares = user.shares.sub(_shares);
-    totalShares = totalShares.sub(_shares);
+    uint256 shares = user.positions[_positionid].amount;
+    require(shares > 0, "Nothing to withdraw");
+    require(shares <= user.shares, "Withdraw amount exceeds balance");
+    uint256 currentAmount = (balanceOf() * shares) / totalShares;
+    user.shares -= shares;
+    totalShares -= shares;
+    
     uint256 bal = available();
     if (bal < currentAmount) {
-      uint256 balWithdraw = currentAmount.sub(bal);
+      uint256 balWithdraw = currentAmount - (bal);
       autoCakeChef.leaveStakingCakeVault(balWithdraw);
       uint256 balAfter = available();
       //theoretical
@@ -344,9 +347,14 @@ contract CakeVault is Ownable, Pausable {
     }
 
     user.lastUserActionTime = block.timestamp;
+    masterPantry.subTimeAmountGlobal(
+      address(token),
+      (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart))
+    );
+    user.positions[_positionid].amount = 0;
     token.safeTransfer(msg.sender, currentAmount);
 
-    emit Withdraw(msg.sender, currentAmount, _shares);
+    emit Withdraw(msg.sender, currentAmount, shares);
   }
 
   /**

@@ -25,7 +25,7 @@ module.exports = {
       accounts: {
         mnemonic: process.env.MNEMONIC
       },
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
     }
   },
 };
