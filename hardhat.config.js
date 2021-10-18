@@ -13,7 +13,7 @@ module.exports = {
       strict: true,
   },
   solidity: {
-    version: "0.8.7",
+    version: "0.8.9",
     optimizer: {
       enabled: true,
       runs: 200
@@ -25,7 +25,7 @@ module.exports = {
       accounts: {
         mnemonic: process.env.MNEMONIC
       },
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
     }
   },
 };

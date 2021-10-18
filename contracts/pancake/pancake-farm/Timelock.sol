@@ -9,7 +9,7 @@
 // Ctrl+f for XXX to see all the modifications.
 
 // XXX: pragma solidity ^0.5.16;
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 
 // XXX: import "./SafeMath.sol";
 import "contracts/pancake/pancake-lib/math/SafeMath.sol";

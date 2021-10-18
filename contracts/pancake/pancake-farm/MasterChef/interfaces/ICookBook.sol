@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 
 interface ICookBook {
   function pendingCake(uint256 _pid, address _user) external returns (uint256);

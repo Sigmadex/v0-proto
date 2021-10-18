@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 import 'hardhat/console.sol';
 contract ACL is Ownable {
@@ -8,6 +8,7 @@ contract ACL is Ownable {
   address public selfCakeChef;
   address public autoCakeChef;
   address public cakeVault;
+  address public cashier;
 
   function setPantry(address _pantry) public onlyOwner {
     pantry = _pantry;
@@ -27,9 +28,12 @@ contract ACL is Ownable {
   function setCakeVault(address _cakeVault) public onlyOwner {
     cakeVault = _cakeVault;
   }
+  function setCashier(address _cashier) public onlyOwner {
+    cashier = _cashier;
+  }
 
   function onlyACL(address sender) public view {
-    address[6] memory allowedAddresses = [pantry, kitchen, masterChef, selfCakeChef, autoCakeChef, cakeVault];
+    address[7] memory allowedAddresses = [pantry, kitchen, masterChef, selfCakeChef, autoCakeChef, cakeVault, cashier];
     for (uint i=0; i<allowedAddresses.length;i++) {
       if (allowedAddresses[i] == sender) {
         return;

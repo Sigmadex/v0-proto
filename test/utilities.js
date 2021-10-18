@@ -44,8 +44,16 @@ async function advanceBlocks(blocksAhead) {
   return await web3.eth.getBlockNumber()
 }
 
+async function advanceChain(blocks, blockPerSecond) {
+  const currentBlock = await web3.eth.getBlockNumber()
+  for (let i=currentBlock; i < currentBlock+blocks; i++) {
+    await iterateBlock()
+    await advanceTime(blockPerSecond)
+  }
+}
 
 module.exports = {
   advanceBlocks,
-  advanceTime
+  advanceTime,
+  advanceChain
 }

@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 
 import './CookBook.sol';
 import './interfaces/IMasterPantry.sol';
@@ -12,9 +12,9 @@ contract Kitchen is Ownable {
 
 	event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256[] amounts);
 
-  IMasterPantry public  masterPantry;
-	CakeToken public cake;
-  IACL public acl;
+  IMasterPantry masterPantry;
+	CakeToken cake;
+  IACL acl;
 
   constructor(
     address _masterPantry,
