@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 /**
  * @dev Contract module which allows children to implement an emergency stop
  * mechanism that can be triggered by an authorized account.

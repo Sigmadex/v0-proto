@@ -1,9 +1,24 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 
-import '@openzeppelin/contracts/token/ERC1155/ERC1155.sol';
+import './Rewards/interfaces/ISDEXReward.sol';
+contract NFTRewards {
+  
+  constructor(
+  ) {
+  }
 
-contract NFTRewards is ERC1155 {
-
-  constructor() ERC1155("https://nft.sigmadex.org/api/rewards/{id}.json") {
+  function batchMintRewards(
+    address _to,
+    address[] calldata _tokens,
+    uint256[] calldata _rewardamounts
+  ) public {
+   /* 
+     mintBatch(_to
+      address to,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      bytes memory data
+      )
+ */
   }
 }

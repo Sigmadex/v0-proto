@@ -4,7 +4,7 @@
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-pragma solidity 0.8.7;
+pragma solidity 0.8.9;
 
 import 'contracts/pancake/pancake-lib/GSN/Context.sol';
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
