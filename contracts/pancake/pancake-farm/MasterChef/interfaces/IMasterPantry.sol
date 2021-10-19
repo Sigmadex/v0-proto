@@ -45,6 +45,8 @@ interface IMasterPantry {
     uint256 timeEnd;
     uint256 startBlock;
     uint256[] amounts;
+    address nftReward;
+    uint256 nftid;
   }
   function poolLength() external view returns (uint256);
   function setPoolLength() external;

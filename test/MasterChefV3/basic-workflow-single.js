@@ -3,7 +3,8 @@ const fromExponential = require('from-exponential')
 const {
   advanceBlocks,
   advanceTime,
-  advanceChain
+  advanceChain,
+  ADDRESSZERO
 } = require('../utilities.js');
 
 const CakeToken = artifacts.require('CakeToken');
@@ -236,6 +237,8 @@ contract('MasterChef Single User Tests', () => {
       poolId,
       [stakeAmount, stakeAmount],
       hourInSeconds,
+      ADDRESSZERO,
+      0,
       { from: alice }
     )
     let poolInfo = await pantry.getPoolInfo.call(poolId)
@@ -380,6 +383,8 @@ contract('MasterChef Single User Tests', () => {
       poolId,
       [stakeAmount, stakeAmount],
       hourInSeconds,
+      ADDRESSZERO,
+      0,
       { from: alice }
     )
 
@@ -418,6 +423,8 @@ contract('MasterChef Single User Tests', () => {
     await selfCakeChef.enterStaking(
       cakeDeposit,
       hourInSeconds,
+      ADDRESSZERO,
+      0,
       {from: bob}
     )
 
@@ -483,7 +490,13 @@ contract('MasterChef Single User Tests', () => {
       {from: carol}
     )
     const hourInSeconds = 3600
-    await cakeVault.deposit(cakeDeposit, hourInSeconds, {from: carol})
+    await cakeVault.deposit(
+      cakeDeposit,
+      hourInSeconds,
+      ADDRESSZERO,
+      0,
+      {from: carol}
+    )
 
     //cake vault state
     // Alice get shares in Cake Vault
@@ -619,7 +632,13 @@ contract('MasterChef Single User Tests', () => {
       cakeDeposit,
       {from: carol}
     )
-    await cakeVault.deposit(cakeDeposit, hourInSeconds, {from: carol})
+    await cakeVault.deposit(
+      cakeDeposit,
+      hourInSeconds,
+      ADDRESSZERO,
+      0,
+      {from: carol}
+    )
     
     assert.equal(
       (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),

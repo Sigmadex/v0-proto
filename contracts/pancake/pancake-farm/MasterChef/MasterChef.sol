@@ -11,6 +11,8 @@ import "./interfaces/IMasterPantry.sol";
 import "./interfaces/ICookBook.sol";
 import "./interfaces/ICashier.sol";
 
+import "contracts/NFT/Rewards/interfaces/ISDEXReward.sol";
+
 import "hardhat/console.sol";
 
 
@@ -75,28 +77,38 @@ contract MasterChef is Ownable {
     kitchen.updateStakingPool();
   }
 
-
-  // View function to see pending CAKEs on frontend.
-  /*
-  */
-
   function deposit(
     uint256 _pid,
     uint256[] memory _amounts,
-    uint256 _timeStake
+    uint256 _timeStake,
+    address _nftReward,
+    uint256 _nftid
   ) public {
-    require(_pid != 0, 'cake farm detected, please use enterstaking, or the cakeVault.deposit');
     kitchen.updatePool(_pid);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
-    require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
-    //reward debt question
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + _timeStake,
       amounts: _amounts,
-      startBlock: block.number
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
     });
+    if (_nftReward != address(0)) {
+      require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = _nftReward;
+      newPosition.nftid = _nftid;
+      ISDEXReward(_nftReward)._beforeDeposit(
+        msg.sender,
+        _pid,
+        _amounts,
+        _timeStake,
+        _nftid
+      );
+    }
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
+    require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
+    //reward debt question
     if (user.tokenData.length == 0) {
       //first deposit
       user.tokenData = new IMasterPantry.UserTokenData[](pool.tokenData.length);
@@ -122,11 +134,20 @@ contract MasterChef is Ownable {
       pool.tokenData[j].supply += _amounts[j];
 
       masterPantry.addTimeAmountGlobal(address(pool.tokenData[j].token), (_amounts[j]*_timeStake));
-    }
     // userInfo than add position, probably worth cleaning this later
     masterPantry.setUserInfo(_pid, msg.sender, user);
     masterPantry.addPosition(_pid, msg.sender, newPosition);
     masterPantry.setPoolInfo(_pid, pool);
+    if (_nftReward != address(0)) {
+      ISDEXReward(_nftReward)._afterDeposit(
+        msg.sender,
+        _pid,
+        _amounts,
+        _timeStake,
+        _nftid
+      );
+    }
+  }
     emit Deposit(msg.sender, _pid, _amounts);
   }
   // Deposit LP tokens to MasterChef for CAKE allocation.
@@ -136,9 +157,20 @@ contract MasterChef is Ownable {
     uint256 _positionid
   ) public {
     kitchen.updatePool(_pid);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
     IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
+    if (currentPosition.nftReward != address(0)) {
+      ISDEXReward(currentPosition.nftReward)._beforeWithdraw(
+        msg.sender,
+        _pid,
+        _positionid,
+        currentPosition.nftid
+      );
+    }
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
+    // recall in case state change
+    user = masterPantry.getUserInfo(_pid, msg.sender);
+    currentPosition = user.positions[_positionid];
 
     uint256 totalAmountShares = 0;
     for (uint j=0; j < user.tokenData.length; j++) {
@@ -191,6 +223,14 @@ contract MasterChef is Ownable {
     }
     masterPantry.setUserInfo(_pid, msg.sender, user);
     masterPantry.setPoolInfo(_pid, pool);
+    if (currentPosition.nftReward != address(0)) {
+      ISDEXReward(currentPosition.nftReward)._afterWithdraw(
+        msg.sender,
+        _pid,
+        _positionid,
+        currentPosition.nftid
+      );
+    }
     emit Withdraw(msg.sender, _pid);
   }
 

@@ -52,8 +52,11 @@ async function advanceChain(blocks, blockPerSecond) {
   }
 }
 
+const ADDRESSZERO = '0x0000000000000000000000000000000000000000'
+
 module.exports = {
   advanceBlocks,
   advanceTime,
-  advanceChain
+  advanceChain,
+  ADDRESSZERO
 }

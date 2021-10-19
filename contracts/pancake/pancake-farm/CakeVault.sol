@@ -1,6 +1,6 @@
 /**
-*Submitted for verification at BscScan.com on 2021-04-29
-*/
+ *Submitted for verification at BscScan.com on 2021-04-29
+ */
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
@@ -22,6 +22,8 @@ import './MasterChef/interfaces/IAutoCakeChef.sol';
 import './MasterChef/interfaces/IKitchen.sol';
 import './MasterChef/interfaces/ICookBook.sol';
 
+import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
+
 contract CakeVault is Ownable, Pausable {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
@@ -33,6 +35,8 @@ contract CakeVault is Ownable, Pausable {
     uint256 timeEnd;
     uint256 amount;
     uint256 startBlock;
+    address nftReward;
+    uint256 nftid;
   }
 
   struct UserInfo {
@@ -121,14 +125,37 @@ contract CakeVault is Ownable, Pausable {
   /**
   * @notice Deposits funds into the Cake Vault
   * @dev Only possible when contract not paused.
-    * @param _amount: number of tokens to deposit (in CAKE)
-  */
+  * @param _amount: number of tokens to deposit (in CAKE)
+   */
   function deposit(
     uint256 _amount,
-    uint256 _timeStake
+    uint256 _timeStake,
+    address _nftReward,
+    uint256 _nftid
   ) external whenNotPaused notContract {
     require(_amount > 0, "Nothing to deposit");
-    
+    UserPosition memory newPosition = UserPosition({
+      timeStart: block.timestamp,
+      timeEnd: block.timestamp + _timeStake,
+      amount: _amount,
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
+    });
+    if (_nftReward != address(0)) {
+      require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = _nftReward;
+      newPosition.nftid = _nftid;
+      uint256[] memory amounts = new uint256[](1);
+      amounts[0] = _amount;
+      ISDEXReward(_nftReward)._beforeDeposit(
+        msg.sender,
+        0,
+        amounts,
+        _timeStake,
+        _nftid
+      );
+    }
     uint256 pool = balanceOf();
     token.safeTransferFrom(msg.sender, address(this), _amount);
     uint256 currentShares = 0;
@@ -138,12 +165,6 @@ contract CakeVault is Ownable, Pausable {
       currentShares = _amount;
     }
     UserInfo storage user = userInfo[msg.sender];
-    UserPosition memory newPosition = UserPosition({
-      timeStart: block.timestamp,
-      timeEnd: block.timestamp + _timeStake,
-      amount: _amount,
-      startBlock: block.number
-    });
 
     user.shares = user.shares.add(currentShares);
     user.lastDepositedTime = block.timestamp;
@@ -156,7 +177,20 @@ contract CakeVault is Ownable, Pausable {
     user.positions.push(newPosition);
 
     masterPantry.addTimeAmountGlobal(address(token), (_amount*_timeStake));
+    
     _earn();
+
+    if (_nftReward != address(0)) {
+      uint256[] memory amounts = new uint256[](1);
+      amounts[0] = _amount;
+      ISDEXReward(_nftReward)._afterDeposit(
+        msg.sender,
+        0,
+        amounts,
+        _timeStake,
+        _nftid
+      );
+    }
 
     emit Deposit(msg.sender, _amount, currentShares, block.timestamp);
   }
@@ -319,13 +353,24 @@ contract CakeVault is Ownable, Pausable {
   */
   function withdraw(uint256 _positionid) public notContract {
     UserInfo storage user = userInfo[msg.sender];
+    if (user.positions[_positionid].nftReward != address(0)) {
+      uint256[] memory amounts = new uint256[](1);
+      amounts[0] = user.positions[_positionid].amount;
+      ISDEXReward(user.positions[_positionid].nftReward)._beforeWithdraw(
+        msg.sender,
+        0,
+        _positionid,
+        user.positions[_positionid].nftid
+      );
+    }
+    user = userInfo[msg.sender];
     uint256 shares = user.positions[_positionid].amount;
     require(shares > 0, "Nothing to withdraw");
     require(shares <= user.shares, "Withdraw amount exceeds balance");
     uint256 currentAmount = (balanceOf() * shares) / totalShares;
     user.shares -= shares;
     totalShares -= shares;
-    
+
     uint256 bal = available();
     if (bal < currentAmount) {
       uint256 balWithdraw = currentAmount - (bal);
@@ -355,6 +400,16 @@ contract CakeVault is Ownable, Pausable {
     );
     user.positions[_positionid].amount = 0;
     token.safeTransfer(msg.sender, currentAmount);
+    if (user.positions[_positionid].nftReward != address(0)) {
+      uint256[] memory amounts = new uint256[](1);
+      amounts[0] = user.positions[_positionid].amount;
+      ISDEXReward(user.positions[_positionid].nftReward)._afterWithdraw(
+        msg.sender,
+        0,
+        _positionid,
+        user.positions[_positionid].nftid
+      );
+    }
 
     emit Withdraw(msg.sender, currentAmount, shares);
   }
@@ -362,7 +417,7 @@ contract CakeVault is Ownable, Pausable {
   /**
   * @notice Custom logic for how much the vault allows to be borrowed
   * @dev The contract puts 100% of the tokens to work.
-   */
+    */
   function available() public view returns (uint256) {
     return token.balanceOf(address(this));
   }
@@ -380,8 +435,8 @@ contract CakeVault is Ownable, Pausable {
     }
   }
   /**
-   * @notice Deposits tokens into MasterChef to earn staking rewards
-   */
+  * @notice Deposits tokens into MasterChef to earn staking rewards
+  */
   function _earn() internal {
     uint256 bal = available();
     if (bal > 0) {

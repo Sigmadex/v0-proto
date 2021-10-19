@@ -11,16 +11,33 @@ contract ReducedPenaltyNFT is ERC1155PresetMinterPauser, ISDEXReward {
   function mint() external {
     
   }
-  function _beforeDeposit() external {
+  function _beforeDeposit(
+    address sender,
+    uint256 _pid,
+    uint256[] memory _amounts,
+    uint256 _timeStake,
+    uint256 _nftid
+  ) external {
   }
-  function _afterDeposit() external {
+  function _afterDeposit(
+    address sender,
+    uint256 _pid,
+    uint256[] memory _amounts,
+    uint256 _timeStake,
+    uint256 _nftid
+  ) external {
   }
+  /*
   function _beforeUpdate() external {
   }
   function _afterUpdate() external {
   }
-  function _beforeWithdraw() external {
-  }
-  function _afterWithdraw() external {
+ */
+  function _beforeWithdraw(address sender, uint256 _pid, uint256 _positionid, uint256 _nftid) external {}
+  function _afterWithdraw(address sender, uint256 _pid, uint256 _positionid, uint256 _nftid) external {}
+
+
+  function getBalanceOf(address _account, uint256 _nftid) external view returns (uint256) {
+    return balanceOf(_account, _nftid);
   }
 }

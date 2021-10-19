@@ -11,6 +11,8 @@ import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
 import '../SyrupBar.sol';
 
+import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
+
 contract SelfCakeChef is Ownable {
 	using SafeBEP20 for IBEP20;
   
@@ -41,19 +43,35 @@ contract SelfCakeChef is Ownable {
 
 	function enterStaking(
 		uint256 _amount,
-		uint256 _timeStake
+		uint256 _timeStake,
+    address _nftReward,
+    uint256 _nftid
 	) public {
 		kitchen.updatePool(0);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
     uint256[] memory amountArr = new uint256[](1);
     amountArr[0] = _amount;
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + _timeStake,
       amounts: amountArr,
-      startBlock: block.number
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
     });
+    if (_nftReward != address(0)) {
+      require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = _nftReward;
+      newPosition.nftid = _nftid;
+      ISDEXReward(_nftReward)._beforeDeposit(
+        msg.sender,
+        0,
+        amountArr,
+        _timeStake,
+        _nftid
+      );
+    }
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
 		if (user.tokenData.length == 0) {
 			//new staker
       user.tokenData = new IMasterPantry.UserTokenData[](1);
@@ -74,15 +92,33 @@ contract SelfCakeChef is Ownable {
     masterPantry.addPosition(0, msg.sender, newPosition);
     masterPantry.addTimeAmountGlobal(address(pool.tokenData[0].token), (_amount*_timeStake));
 		syrup.mint(msg.sender, _amount);
-
+    if (_nftReward != address(0)) {
+      ISDEXReward(_nftReward)._afterDeposit(
+        msg.sender,
+        0,
+        amountArr,
+        _timeStake,
+        _nftid
+      );
+    }
 		emit Deposit(msg.sender, 0, amountArr);
 	}
 
 	function leaveStaking(uint256 _positionid) public {
     kitchen.updatePool(0);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
-		IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
+    IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
+    if (currentPosition.nftReward != address(0)) {
+      ISDEXReward(currentPosition.nftReward)._beforeWithdraw(
+        msg.sender,
+        0,
+        _positionid,
+        currentPosition.nftid
+      );
+    }
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
+    user = masterPantry.getUserInfo(0, msg.sender);
+		currentPosition = user.positions[_positionid];
 		uint256 _amount = currentPosition.amounts[0];
 		require(user.tokenData[0].amount >= _amount, "withdraw: not good");
 		// further questions about the pending story 
@@ -127,6 +163,14 @@ contract SelfCakeChef is Ownable {
     masterPantry.setUserInfo(0, msg.sender, user);
     masterPantry.setPoolInfo(0, pool);
 		syrup.burn(msg.sender, _amount);
+    if (currentPosition.nftReward != address(0)) {
+      ISDEXReward(currentPosition.nftReward)._afterWithdraw(
+        msg.sender,
+        0,
+        _positionid,
+        currentPosition.nftid
+      );
+    }
 		emit Withdraw(msg.sender, 0);
 	}
 }
