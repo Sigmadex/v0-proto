@@ -9,6 +9,7 @@ contract ACL is Ownable {
   address public autoCakeChef;
   address public cakeVault;
   address public cashier;
+  address public nftRewards;
 
   function setPantry(address _pantry) public onlyOwner {
     pantry = _pantry;
@@ -31,9 +32,12 @@ contract ACL is Ownable {
   function setCashier(address _cashier) public onlyOwner {
     cashier = _cashier;
   }
+  function setNFTRewards(address _nftRewards) public onlyOwner {
+    nftRewards = _nftRewards;
+  }
 
   function onlyACL(address sender) public view {
-    address[7] memory allowedAddresses = [pantry, kitchen, masterChef, selfCakeChef, autoCakeChef, cakeVault, cashier];
+    address[8] memory allowedAddresses = [pantry, kitchen, masterChef, selfCakeChef, autoCakeChef, cakeVault, cashier, nftRewards];
     for (uint i=0; i<allowedAddresses.length;i++) {
       if (allowedAddresses[i] == sender) {
         return;

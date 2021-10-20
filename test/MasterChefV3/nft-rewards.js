@@ -1,12 +1,13 @@
 
 const ACL = artifacts.require('ACL');
 const nft = artifacts.require('NFTRewards')
+const reducedPenalty = artifacts.require('ReducedPenaltyNFT')
 contract("NFT rewards", () => {
   let accounts;
   let dev, minter, owner = null;
   let alice, bob = null;
-  let acl = null;
   let nft = null;
+  let reducedPenalty;
   let erc20a, erc20b = null;
   let cake = null;
   
@@ -18,9 +19,9 @@ contract("NFT rewards", () => {
     alice = accounts[3]
     bob = accounts[4]
 
-    acl = await ACL.new({ from: minter })
-    nft = await NFTRewards.new(acl.address, { from: minter })
-
-    
+    nft = await NFTRewards.new({ from: minter })
+    reducedPenalty = await ReducedPenalty.new({ from: minter })
   })
+
+
 })

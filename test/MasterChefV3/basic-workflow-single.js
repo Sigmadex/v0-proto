@@ -20,6 +20,10 @@ const MasterPantry = artifacts.require('MasterPantry');
 const Cashier = artifacts.require("Cashier");
 const ACL = artifacts.require('ACL');
 
+
+const NFTRewards = artifacts.require('NFTRewards')
+const ReducedPenaltyNFT = artifacts.require('ReducedPenaltyNFT')
+
 async function calcCakeReward(pantry, blocksAhead, poolId) {
   const cakePerBlock = (await pantry.cakePerBlock()).toString()
   const totalAllocPoints = (await pantry.totalAllocPoint()).toString()
@@ -40,6 +44,7 @@ contract('MasterChef Single User Tests', () => {
   let chef, selfCakeChef, autoCakeChef = null;
   let pantry, kitchen, cookBook = null;
   let cashier = null;
+  let reductedPenalty, nftRewards = null;
   let cakeVault;
   let acl;
   const unity = new web3.utils.BN(fromExponential(1e27))
@@ -57,6 +62,14 @@ contract('MasterChef Single User Tests', () => {
 
     let acl = await ACL.new({ from: minter })
 
+    nftRewards = await NFTRewards.new(acl.address, { from: minter })
+    console.log('minter', minter)
+    reducedPenalty = await ReducedPenaltyNFT.new({ from: minter })
+    await reducedPenalty.grantRole(
+      web3.utils.keccak256("MINTER_ROLE"),
+      nftRewards.address,
+      {from:minter}
+    )
     cake = await CakeToken.new(
       acl.address,
       {from: minter}
@@ -89,6 +102,7 @@ contract('MasterChef Single User Tests', () => {
       pantry.address,
       acl.address,
       kitchen.address,
+      nftRewards.address,
       { from: minter }
     )
     autoCakeChef = await AutoCakeChef.new(
@@ -120,6 +134,8 @@ contract('MasterChef Single User Tests', () => {
       {from: minter}
     )
 
+
+
     //fill ACL
     await acl.setPantry(pantry.address, { from: minter })
     await acl.setKitchen(kitchen.address, { from: minter })
@@ -128,6 +144,7 @@ contract('MasterChef Single User Tests', () => {
     await acl.setAutoCakeChef(autoCakeChef.address, { from: minter })
     await acl.setCakeVault(cakeVault.address, { from: minter })
     await acl.setCashier(cashier.address, { from: minter })
+    await acl.setNFTRewards(nftRewards.address, { from: minter })
 
     await pantry.setCakeVault(cakeVault.address, { from: minter })
 
@@ -166,7 +183,10 @@ contract('MasterChef Single User Tests', () => {
       web3.utils.toWei('2000', 'ether'),
       { from: minter });
   })
-
+  it("adds an NFT reward to the NFT Reward Factory", async () => {
+    await nftRewards.addNFTReward(erc20a.address, reducedPenalty.address, {from:minter})
+    await nftRewards.addNFTReward(erc20b.address, reducedPenalty.address, {from:minter})
+  })
   it("adds a yield farm", async () => {
     let poolLength = (await pantry.poolLength()).toString()
     assert.equal(poolLength, "1")
@@ -289,6 +309,11 @@ contract('MasterChef Single User Tests', () => {
       (await pantry.tokenRewardData(erc20b.address)).timeAmountGlobal.toString(),
       stakeAmount * hourInSeconds
     )
+    assert.equal(userInfo.positions[0].timeEnd - userInfo.positions[0].timeStart, hourInSeconds)
+    assert.equal(userInfo.positions[0].amounts[0], stakeAmount)
+    assert.equal(userInfo.positions[0].amounts[1], stakeAmount)
+    assert.equal(userInfo.positions[0].nftReward, ADDRESSZERO)
+    assert.equal(userInfo.positions[0].nftid, 0)
   })
 
   it("allows a user to withdraw prematurely, but is penalized", async () => {
@@ -397,13 +422,34 @@ contract('MasterChef Single User Tests', () => {
     const proportion = localTimeAmount / globalTimeAmountErc20a
     console.log('test proportion', proportion)
     const rewardAmountErc20a = proportion * penaltyPoolErc20a
-  
 
+    const aliceUserInfoInitial = await pantry.getUserInfo(poolId, alice)
+    assert.equal(aliceUserInfoInitial.tokenData[0].amount, stakeAmount)
+    assert.equal(aliceUserInfoInitial.tokenData[1].amount, stakeAmount)
+    assert.equal(aliceUserInfoInitial.positions[1].timeEnd - aliceUserInfoInitial.positions[1].timeStart, hourInSeconds)
+    assert.equal(aliceUserInfoInitial.positions[1].amounts[0], stakeAmount)
+    assert.equal(aliceUserInfoInitial.positions[1].amounts[1], stakeAmount)
+    assert.equal(aliceUserInfoInitial.positions[1].nftReward, ADDRESSZERO)
+    assert.equal(aliceUserInfoInitial.positions[1].nftid, 0)
     await chef.withdraw(
       poolId,
       1,
       { from: alice }
     )
+
+    // alice
+    const aliceUserInfoFinal = await pantry.getUserInfo(poolId, alice)
+    assert.equal(aliceUserInfoFinal.tokenData[0].amount, 0)
+    assert.equal(aliceUserInfoFinal.tokenData[1].amount, 0)
+    assert.equal(aliceUserInfoFinal.positions[1].timeEnd - aliceUserInfoFinal.positions[1].timeStart, hourInSeconds)
+    assert.equal(aliceUserInfoFinal.positions[1].amounts[0], 0)
+    assert.equal(aliceUserInfoFinal.positions[1].amounts[1], 0)
+    assert.equal(aliceUserInfoFinal.positions[1].nftReward, ADDRESSZERO)
+    assert.equal(aliceUserInfoFinal.positions[1].nftid, 0)
+
+    assert.equal((await reducedPenalty.balanceOf(alice, 1)).toString(), 1)
+    assert.equal((await reducedPenalty.balanceOf(alice, 2)).toString(), 1)
+
 
     
   })

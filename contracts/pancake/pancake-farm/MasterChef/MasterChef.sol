@@ -184,7 +184,7 @@ contract MasterChef is Ownable {
           amount
         );
         uint256 stakeTime = user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart;
-        cashier.requestReward(address(pool.tokenData[j].token), stakeTime * amount);
+        cashier.requestReward(msg.sender, address(pool.tokenData[j].token), stakeTime * amount);
       } else {
         (uint256 refund, uint256 penalty) = cookBook.calcRefund(
           user.positions[_positionid].timeStart,

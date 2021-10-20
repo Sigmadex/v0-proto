@@ -7,20 +7,26 @@ import './interfaces/IMasterPantry.sol';
 import './interfaces/IKitchen.sol';
 import 'hardhat/console.sol';
 
+import 'contracts/NFT/INFTRewards.sol';
+
 contract Cashier is Ownable {
 
   IMasterPantry masterPantry;
   IACL acl;
   IKitchen kitchen;
+  INFTRewards nftRewards;
+  
   
   constructor(
     address _masterPantry,
     address _acl,
-    address _kitchen
+    address _kitchen,
+    address _nftRewards
   ) {
     masterPantry = IMasterPantry(_masterPantry);
     acl = IACL(_acl);
     kitchen = IKitchen(_kitchen);
+    nftRewards = INFTRewards(_nftRewards);
   }
 
   modifier onlyACL() {
@@ -28,7 +34,7 @@ contract Cashier is Ownable {
     _;
   }
 
-  function requestReward(address _token, uint256 _timeAmount) public onlyACL {
+  function requestReward(address _to, address _token, uint256 _timeAmount) public onlyACL {
     IMasterPantry.TokenRewardData memory tokenRewardData = masterPantry.tokenRewardData(_token);
     //console.log('timeAmount', _timeAmount);
     uint256 kitchenBalance = IBEP20(_token).balanceOf(address(this));
@@ -37,6 +43,8 @@ contract Cashier is Ownable {
     //console.log('proportio', proportio);
     uint rewardAmount = proportio * kitchenBalance / masterPantry.unity();
     console.log('erc20 rewardAmount', rewardAmount);
+    nftRewards.mintReward(_to, _token, rewardAmount);
+
   }
 
   function requestCakeReward(

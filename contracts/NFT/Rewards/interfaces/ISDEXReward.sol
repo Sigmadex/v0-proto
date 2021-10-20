@@ -1,7 +1,7 @@
 pragma solidity 0.8.9;
 
 interface ISDEXReward {
-  function mint() external;
+  function rewardNFT(address _to, address _token, uint256 _amount) external;
   function _beforeDeposit(address sender, uint256 _pid, uint256[] memory _amounts, uint256 _timeStake, uint256 _nftid) external; 
   function _afterDeposit(address sender, uint256 _pid, uint256[] memory _amounts, uint256 _timeStake, uint256 _nftid) external;
   //function _beforeUpdate() external; 
