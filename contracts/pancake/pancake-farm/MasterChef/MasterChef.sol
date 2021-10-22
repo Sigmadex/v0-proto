@@ -84,6 +84,7 @@ contract MasterChef is Ownable {
     address _nftReward,
     uint256 _nftid
   ) public {
+    require(_pid != 0, "Please use the Self Chef or Cake vault for this token please");
     kitchen.updatePool(_pid);
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
       timeStart: block.timestamp,
@@ -212,11 +213,15 @@ contract MasterChef is Ownable {
     }
 
     uint256 pending = totalAmountShares / masterPantry.unity();
-    console.log('cake pending', pending);
     if (pending > 0) {
       if (currentPosition.timeEnd < block.timestamp) {
         kitchen.safeCakeTransfer(address(msg.sender), pending);
-        cashier.requestCakeReward(currentPosition.startBlock, pool.allocPoint, totalAmountShares);
+        cashier.requestCakeReward(
+          msg.sender,
+          currentPosition.startBlock,
+          pool.allocPoint,
+          totalAmountShares
+        );
       } else {
         kitchen.safeCakeTransfer(address(cashier), pending);
       }

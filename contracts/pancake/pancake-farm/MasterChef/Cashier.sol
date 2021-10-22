@@ -42,12 +42,12 @@ contract Cashier is Ownable {
     uint256 proportio = _timeAmount * masterPantry.unity() / tokenRewardData.timeAmountGlobal;
     //console.log('proportio', proportio);
     uint rewardAmount = proportio * kitchenBalance / masterPantry.unity();
-    console.log('erc20 rewardAmount', rewardAmount);
     nftRewards.mintReward(_to, _token, rewardAmount);
 
   }
 
   function requestCakeReward(
+    address _to,
     uint256 _positionStartBlock,
     uint256 _poolAllocPoint,
     uint256 _totalAmountShares
@@ -56,13 +56,13 @@ contract Cashier is Ownable {
     // totalCakeEmission
     uint256 elapsedBlocks = block.number - _positionStartBlock;
     // cake emission
-    uint256 multiplier = kitchen.getMultiplier(_positionStartBlock, block.number);
-    uint256 unClaimedCakeReward = (multiplier * masterPantry.cakePerBlock()) - masterPantry.cakeRewarded();
-		uint256 cakeReward = unClaimedCakeReward *(_poolAllocPoint) / (masterPantry.totalAllocPoint());
-    uint256 proportio = _totalAmountShares / (cakeReward * masterPantry.unity());
-    uint256 reward = proportio * cashierBalance / masterPantry.unity();
-    console.log('cake reward amount', reward);
-    masterPantry.addCakeRewarded(_totalAmountShares);
+    uint256 multiplier = kitchen.getMultiplier(_positionStartBlock, block.number + 2);
+    uint256 totalCakeEmission = (multiplier * masterPantry.cakePerBlock()) - masterPantry.cakeRewarded();
+		uint256 cakeEmittedForPool = totalCakeEmission *(_poolAllocPoint) / (masterPantry.totalAllocPoint());
+    uint256 proportion = _totalAmountShares / cakeEmittedForPool;
+    uint256 reward = proportion * cashierBalance / masterPantry.unity();
+    nftRewards.mintReward(_to, address(masterPantry.cake()), reward);
+    masterPantry.addCakeRewarded(reward);
 
   }
 

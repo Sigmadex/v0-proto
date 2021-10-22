@@ -20,7 +20,6 @@ const MasterPantry = artifacts.require('MasterPantry');
 const Cashier = artifacts.require("Cashier");
 const ACL = artifacts.require('ACL');
 
-
 const NFTRewards = artifacts.require('NFTRewards')
 const ReducedPenaltyNFT = artifacts.require('ReducedPenaltyNFT')
 
@@ -63,7 +62,6 @@ contract('MasterChef Single User Tests', () => {
     let acl = await ACL.new({ from: minter })
 
     nftRewards = await NFTRewards.new(acl.address, { from: minter })
-    console.log('minter', minter)
     reducedPenalty = await ReducedPenaltyNFT.new({ from: minter })
     await reducedPenalty.grantRole(
       web3.utils.keccak256("MINTER_ROLE"),
@@ -184,6 +182,7 @@ contract('MasterChef Single User Tests', () => {
       { from: minter });
   })
   it("adds an NFT reward to the NFT Reward Factory", async () => {
+    await nftRewards.addNFTReward(cake.address, reducedPenalty.address, {from:minter})
     await nftRewards.addNFTReward(erc20a.address, reducedPenalty.address, {from:minter})
     await nftRewards.addNFTReward(erc20b.address, reducedPenalty.address, {from:minter})
   })
@@ -328,9 +327,10 @@ contract('MasterChef Single User Tests', () => {
     const hourInSeconds = 3600
     const blocksForward = 1
 
-    await advanceBlocks(blocksForward)
+      await advanceBlocks(blocksForward)
 
 
+    assert.equal((await cake.balanceOf(cashier.address)).toString(), 0)
     await chef.withdraw(
       poolId,
       0,
@@ -415,28 +415,62 @@ contract('MasterChef Single User Tests', () => {
 
     await advanceChain(360, 10) // 360 blocks, 10 seconds per block 
 
+    const userInfo1 = await pantry.getUserInfo(poolId, alice)
+    
     const penaltyPoolErc20a = await erc20a.balanceOf(cashier.address)
+    const penaltyPoolErc20b = await erc20b.balanceOf(cashier.address)
     const globalTimeAmountErc20a = await pantry.tokenRewardData(erc20a.address)
+    const globalTimeAmountErc20b = await pantry.tokenRewardData(erc20b.address)
     const localTimeAmount =  fromExponential(new web3.utils.BN(hourInSeconds) * stakeAmount)
-    console.log('test localtimeamount', localTimeAmount.toString())
-    const proportion = localTimeAmount / globalTimeAmountErc20a
-    console.log('test proportion', proportion)
-    const rewardAmountErc20a = proportion * penaltyPoolErc20a
+    const rewardAmountErc20a = new web3.utils.BN(localTimeAmount).mul(penaltyPoolErc20a).div(globalTimeAmountErc20a.timeAmountGlobal)
+    const rewardAmountErc20b = new web3.utils.BN(localTimeAmount).mul(penaltyPoolErc20b).div(globalTimeAmountErc20b.timeAmountGlobal)
 
-    const aliceUserInfoInitial = await pantry.getUserInfo(poolId, alice)
-    assert.equal(aliceUserInfoInitial.tokenData[0].amount, stakeAmount)
-    assert.equal(aliceUserInfoInitial.tokenData[1].amount, stakeAmount)
-    assert.equal(aliceUserInfoInitial.positions[1].timeEnd - aliceUserInfoInitial.positions[1].timeStart, hourInSeconds)
-    assert.equal(aliceUserInfoInitial.positions[1].amounts[0], stakeAmount)
-    assert.equal(aliceUserInfoInitial.positions[1].amounts[1], stakeAmount)
-    assert.equal(aliceUserInfoInitial.positions[1].nftReward, ADDRESSZERO)
-    assert.equal(aliceUserInfoInitial.positions[1].nftid, 0)
+    let poolInfo = await pantry.getPoolInfo.call(1)
+    const erc20aPoolSupply = new web3.utils.BN(poolInfo.tokenData[0].supply)
+    const erc20bPoolSupply = new web3.utils.BN(poolInfo.tokenData[1].supply)
+    const erc20aPositionAmount = new web3.utils.BN(userInfo1.positions[1].amounts[0])
+    const erc20bPositionAmount = new web3.utils.BN(userInfo1.positions[1].amounts[1])
+
+    const penaltyPoolCake = await cake.balanceOf(cashier.address);
+
+
+    assert.equal(userInfo1.tokenData[0].amount, stakeAmount)
+    assert.equal(userInfo1.tokenData[1].amount, stakeAmount)
+    assert.equal(userInfo1.positions[1].timeEnd - userInfo1.positions[1].timeStart, hourInSeconds)
+    assert.equal(userInfo1.positions[1].amounts[0], stakeAmount)
+    assert.equal(userInfo1.positions[1].amounts[1], stakeAmount)
+    assert.equal(userInfo1.positions[1].nftReward, ADDRESSZERO)
+    assert.equal(userInfo1.positions[1].nftid, 0)
+
+    const cakeRewarded = await pantry.cakeRewarded()
+    const cakePerBlock = await pantry.cakePerBlock()
+    const amountsA = new web3.utils.BN(userInfo1.positions[1].amounts[0])
+
+    const amountsB = new web3.utils.BN(userInfo1.positions[1].amounts[1])
+    assert.equal(0, cakeRewarded.toString())
     await chef.withdraw(
       poolId,
       1,
       { from: alice }
     )
 
+    poolInfo = await pantry.getPoolInfo.call(1)
+    const poolAllocPoint =  new web3.utils.BN(poolInfo.allocPoint)
+    const totalAllocPoint = await pantry.totalAllocPoint()
+    const accCakePerShareA = new web3.utils.BN(poolInfo.tokenData[0].accCakePerShare)
+    const accCakePerShareB = new web3.utils.BN(poolInfo.tokenData[1].accCakePerShare)
+    const totalAmountA = accCakePerShareA.mul(amountsA)
+    const totalAmountB = accCakePerShareB.mul(amountsB)
+    const totalAmountShares = totalAmountA.add(totalAmountB)
+    const blockNumber = await web3.eth.getBlockNumber()
+    const startBlock = userInfo1.positions[1].startBlock
+    const elapsedBlocks = new web3.utils.BN(blockNumber + 2 - startBlock)
+    let totalCakeEmission =  elapsedBlocks.mul(cakePerBlock).sub(cakeRewarded)
+    const cakeEmittedForPool = totalCakeEmission.mul(poolAllocPoint).div(totalAllocPoint)
+    const proportion = totalAmountShares.div(cakeEmittedForPool);
+    const cashierBalance = await cake.balanceOf(cashier.address)
+    const rewardAmountCake = proportion.mul(cashierBalance).div(unity)
+    
     // alice
     const aliceUserInfoFinal = await pantry.getUserInfo(poolId, alice)
     assert.equal(aliceUserInfoFinal.tokenData[0].amount, 0)
@@ -449,8 +483,26 @@ contract('MasterChef Single User Tests', () => {
 
     assert.equal((await reducedPenalty.balanceOf(alice, 1)).toString(), 1)
     assert.equal((await reducedPenalty.balanceOf(alice, 2)).toString(), 1)
+    assert.equal((await reducedPenalty.balanceOf(alice, 3)).toString(), 1)
+    
+    const reductionAmount1 = (await reducedPenalty.reductionAmounts(1, alice));
+    const reductionAmount2 = (await reducedPenalty.reductionAmounts(2, alice));
+    const reductionAmount3 = (await reducedPenalty.reductionAmounts(3, alice));
+    assert.equal(reductionAmount1.token, erc20a.address)
+    assert.equal(reductionAmount2.token, erc20b.address)
+    assert.equal(reductionAmount3.token, cake.address)
 
+    assert.equal(reductionAmount1.amount.toString(), rewardAmountErc20a.toString())
+    assert.equal(reductionAmount2.amount.toString(), rewardAmountErc20b.toString())
+    assert.equal(reductionAmount3.amount.toString(), rewardAmountCake.toString())
+    
+    const globalTimeAmountErc20af = await pantry.tokenRewardData(erc20a.address)
+    const globalTimeAmountErc20bf = await pantry.tokenRewardData(erc20b.address)
+    const cakeRewardedFinal = await pantry.cakeRewarded()
 
+    assert.equal(globalTimeAmountErc20af.timeAmountGlobal, 0)
+    assert.equal(globalTimeAmountErc20bf.timeAmountGlobal, 0)
+    assert.equal(cakeRewardedFinal.toString(), rewardAmountCake.toString())
     
   })
 
@@ -490,6 +542,7 @@ contract('MasterChef Single User Tests', () => {
       (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       cakeDeposit * hourInSeconds
     )
+
   })
 
   it("can manual withdraw cake stake", async () => {
@@ -497,7 +550,9 @@ contract('MasterChef Single User Tests', () => {
     const penaltyCake1 = (await cake.balanceOf(cashier.address))
     const bobCake1 = (await cake.balanceOf(bob))
     const hourInSeconds = 3600
+
     await selfCakeChef.leaveStaking(0, { from: bob })
+
     const bobCake2 = (await cake.balanceOf(bob))
     const penaltyCake2 = (await cake.balanceOf(cashier.address))
     
@@ -525,6 +580,9 @@ contract('MasterChef Single User Tests', () => {
       (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       0
     )
+
+
+
   })
   
   it("can deposit (auto) cake", async() => {

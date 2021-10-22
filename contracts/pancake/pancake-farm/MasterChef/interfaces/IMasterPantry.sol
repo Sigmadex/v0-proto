@@ -18,7 +18,6 @@ interface IMasterPantry {
     uint256 rewarded;
   }
 
-
   struct PoolTokenData {
     IBEP20 token;
     uint256 supply;
