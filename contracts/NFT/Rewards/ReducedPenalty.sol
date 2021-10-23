@@ -9,7 +9,7 @@ contract ReducedPenaltyNFT is ERC1155PresetMinterPauser, ISDEXReward {
     address token;
     uint256 amount;
   }
-  mapping(uint256 => mapping(address => ReductionAmount)) public reductionAmounts;
+  mapping(uint256 => ReductionAmount) public reductionAmounts;
   // zero id is reserved;
   uint256 nextId = 1;
 
@@ -25,7 +25,7 @@ contract ReducedPenaltyNFT is ERC1155PresetMinterPauser, ISDEXReward {
       token: _token,
       amount: _amount
     });
-    reductionAmounts[nextId][_to] = reductionAmount;
+    reductionAmounts[nextId] = reductionAmount;
     bytes memory data = 'data';
     mint(_to, nextId, 1, data);
     nextId++;

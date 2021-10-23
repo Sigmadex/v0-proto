@@ -151,6 +151,12 @@ contract SelfCakeChef is Ownable {
 				);
 			} else {
 				pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+        uint256 stakeTime = currentPosition.timeEnd - currentPosition.timeStart;
+        cashier.requestReward(
+          msg.sender,
+          address(pool.tokenData[0].token),
+          stakeTime * _amount
+        );
 			}
 			pool.tokenData[0].supply -= _amount;
 		}

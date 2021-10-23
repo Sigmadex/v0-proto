@@ -21,6 +21,7 @@ import './MasterChef/interfaces/IMasterPantry.sol';
 import './MasterChef/interfaces/IAutoCakeChef.sol';
 import './MasterChef/interfaces/IKitchen.sol';
 import './MasterChef/interfaces/ICookBook.sol';
+import './MasterChef/interfaces/ICashier.sol';
 
 import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
 
@@ -50,10 +51,11 @@ contract CakeVault is Ownable, Pausable {
   IERC20 public  token; // Cake token
   IERC20 public immutable receiptToken; // Syrup token
 
-  IMasterPantry public  masterPantry;
-  IAutoCakeChef public immutable autoCakeChef;
-  IKitchen public immutable kitchen;
-  ICookBook public immutable cookBook;
+  IMasterPantry masterPantry;
+  IAutoCakeChef immutable autoCakeChef;
+  IKitchen immutable kitchen;
+  ICookBook immutable cookBook;
+  ICashier  immutable cashier;
 
   mapping(address => UserInfo) public userInfo;
 
@@ -85,6 +87,7 @@ contract CakeVault is Ownable, Pausable {
     address _kitchen,
     address _cookBook,
     address _autoCakeChef,
+    address _cashier,
     address _admin,
     address _treasury
   ) public {
@@ -94,6 +97,7 @@ contract CakeVault is Ownable, Pausable {
     autoCakeChef = IAutoCakeChef(_autoCakeChef);
     kitchen = IKitchen(_kitchen);
     cookBook = ICookBook(_cookBook);
+    cashier = ICashier(_cashier);
     admin = _admin;
     treasury = _treasury;
 
@@ -394,12 +398,34 @@ contract CakeVault is Ownable, Pausable {
     }
 
     user.lastUserActionTime = block.timestamp;
+    uint256 timeAmount = (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart));
+    if ( block.timestamp >= user.positions[_positionid].timeEnd) {
+      cashier.requestReward(
+        msg.sender,
+        address(token),
+        timeAmount
+      );
+      token.safeTransfer(msg.sender, currentAmount);
+    } else {
+				(uint256 refund, uint256 penalty) = cookBook.calcRefund(
+					user.positions[_positionid].timeStart,
+					user.positions[_positionid].timeEnd,
+					currentAmount
+				);
+				token.safeTransfer(
+					address(msg.sender),
+					refund
+				);
+			  token.safeTransfer(
+					address(cashier),
+					penalty
+				);
+    }
     masterPantry.subTimeAmountGlobal(
       address(token),
-      (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart))
+      timeAmount
     );
     user.positions[_positionid].amount = 0;
-    token.safeTransfer(msg.sender, currentAmount);
     if (user.positions[_positionid].nftReward != address(0)) {
       uint256[] memory amounts = new uint256[](1);
       amounts[0] = user.positions[_positionid].amount;
