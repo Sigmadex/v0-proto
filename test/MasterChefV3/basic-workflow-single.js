@@ -71,12 +71,6 @@ contract('MasterChef Single User Tests', () => {
     let acl = await ACL.new({ from: minter })
 
     nftRewards = await NFTRewards.new(acl.address, { from: minter })
-    reducedPenalty = await ReducedPenaltyNFT.new({ from: minter })
-    await reducedPenalty.grantRole(
-      web3.utils.keccak256("MINTER_ROLE"),
-      nftRewards.address,
-      {from:minter}
-    )
     cake = await CakeToken.new(
       acl.address,
       {from: minter}
@@ -142,6 +136,22 @@ contract('MasterChef Single User Tests', () => {
       {from: minter}
     )
 
+    reducedPenalty = await ReducedPenaltyNFT.new(
+      pantry.address,
+      cashier.address,
+      cookBook.address,
+      kitchen.address,
+      acl.address,
+      { from: minter }
+    )
+      /*
+    await reducedPenalty.grantRole(
+      web3.utils.keccak256("MINTER_ROLE"),
+      nftRewards.address,
+      {from:minter}
+    )
+    */
+
 
 
     //fill ACL
@@ -153,6 +163,7 @@ contract('MasterChef Single User Tests', () => {
     await acl.setCakeVault(cakeVault.address, { from: minter })
     await acl.setCashier(cashier.address, { from: minter })
     await acl.setNFTRewards(nftRewards.address, { from: minter })
+    await acl.setReducedPenalty(reducedPenalty.address, { from: minter })
 
     await pantry.setCakeVault(cakeVault.address, { from: minter })
 
@@ -192,6 +203,7 @@ contract('MasterChef Single User Tests', () => {
       web3.utils.toWei('2000', 'ether'),
       { from: minter });
   })
+
   it("adds an NFT reward to the NFT Reward Factory", async () => {
     await nftRewards.addNFTReward(cake.address, reducedPenalty.address, {from:minter})
     await nftRewards.addNFTReward(erc20a.address, reducedPenalty.address, {from:minter})
@@ -792,12 +804,14 @@ contract('MasterChef Single User Tests', () => {
 
     
     const withdrawFeePeriod = (await cakeVault.withdrawFeePeriod()).toString()
-    await advanceTime(withdrawFeePeriod)
+
+    await advanceChain(360, withdrawFeePeriod/360)
 
     let positions = (await cakeVault.getUserInfo(joe)).positions
     assert.equal(positions[0].timeEnd - positions[0].timeStart, hourInSeconds);
     assert.equal(positions[0].amount, cakeDeposit)
     const joeShares = (await cakeVault.userInfo(joe)).shares.toString()
+    const nftRewardAmount = (await calcNFTRewardAmount(cake, cashier, pantry, hourInSeconds, cakeDeposit)).toString()
     await cakeVault.withdraw(0, {from: joe})
     const cakeReward = await calcCakeReward(pantry, 1, 0)
     let joeBalance2 =  (await cake.balanceOf(joe))
@@ -818,7 +832,134 @@ contract('MasterChef Single User Tests', () => {
       (await pantry.tokenRewardData(cake.address)).timeAmountGlobal.toString(),
       0
     )
+    const reductionAmount = (await reducedPenalty.reductionAmounts(5)).amount.toString()
+    assert.equal(nftRewardAmount, reductionAmount)
+
+    assert.equal((await reducedPenalty.balanceOf(joe, 5)).toString(), 1)
+    assert.equal((await reducedPenalty.reductionAmounts(5)).token, cake.address)
   })
+
+  it("can use a reducedPenalty NFT in masterChef", async () => {
+    const nftId = 1
+    const poolId = (await pantry.poolLength()).toString() - 1
+    // =====USER=====
+    // Cake
+    const aliceCake1 = await cake.balanceOf(alice)
+    // Pantry
+    const aliceUserInfo = await pantry.getUserInfo(poolId, alice)
+    assert.equal(aliceUserInfo.tokenData[0].amount, 0)
+    assert.equal(aliceUserInfo.tokenData[1].amount, 0)
+    const positionId = aliceUserInfo.positions.length
+
+    const poolInfo = await pantry.getPoolInfo.call(poolId)
+    // NFT
+    const aliceNFT1 = await reducedPenalty.balanceOf(alice, nftId)
+    assert.equal(aliceNFT1, 1)
+    const nftReduction = await reducedPenalty.reductionAmounts(nftId)
+    assert.equal(nftReduction.token, erc20a.address)
+
+    let stakeAmount = web3.utils.toWei('20', 'ether')
+    await erc20a.approve(
+      chef.address,
+      stakeAmount,
+      { from: alice }
+    );
+    await erc20b.approve(
+      chef.address,
+      stakeAmount,
+      { from: alice }
+    );
+
+    let aliceErc20a = await erc20a.balanceOf(alice)
+    let aliceErc20b = await erc20b.balanceOf(alice)
+    const chefErc20a = await erc20a.balanceOf(chef.address)
+    const chefErc20b = await erc20b.balanceOf(chef.address)
+    
+    await chef.deposit(
+      poolId,
+      [stakeAmount, stakeAmount],
+      hourInSeconds,
+      reducedPenalty.address,
+      nftId,
+      { from: alice }
+    )
+    // Pantry
+    // User Info
+    const userInfo2 = await pantry.getUserInfo(poolId, alice)
+    const positionInfo = userInfo2.positions[positionId]
+    assert.equal(userInfo2.tokenData[0].amount, stakeAmount)
+    assert.equal(userInfo2.tokenData[1].amount, stakeAmount)
+    assert.equal(positionInfo.amounts[0], stakeAmount)
+    assert.equal(positionInfo.amounts[1], stakeAmount)
+    assert.equal(positionInfo.timeEnd - positionInfo.timeStart, hourInSeconds)
+    assert.equal(positionInfo.nftid, nftId)
+    assert.equal(positionInfo.nftReward, reducedPenalty.address)
+
+    //PoolInfo
+    const poolInfo2 = await pantry.getPoolInfo.call(poolId)
+    assert.equal(poolInfo2.tokenData[0].supply, stakeAmount)
+    assert.equal(poolInfo2.tokenData[1].supply, stakeAmount)
+    assert.equal(poolInfo2.tokenData[0].token, erc20a.address)
+    assert.equal(poolInfo2.tokenData[1].token, erc20b.address)
+
+    //Token Balances
+    const aliceErc20a1 = await erc20a.balanceOf(alice)
+    const aliceErc20b1 = await erc20b.balanceOf(alice)
+    const chefErc20a1 = await erc20a.balanceOf(chef.address)
+    const chefErc20b1 = await erc20b.balanceOf(chef.address)
+    const cashierErc20a1 = await erc20a.balanceOf(cashier.address)
+    const cashierErc20b1 = await erc20b.balanceOf(cashier.address)
+    assert.equal(aliceErc20a - aliceErc20a1, stakeAmount)
+    assert.equal(aliceErc20b - aliceErc20b1, stakeAmount)
+    assert.equal(chefErc20a.add(new web3.utils.BN(stakeAmount)).toString(),  chefErc20a1.toString())
+    assert.equal(chefErc20b.add(new web3.utils.BN(stakeAmount)).toString(),  chefErc20b1.toString())
+
+
+    await chef.withdraw(
+      poolId,
+      positionId,
+      { from: alice }
+    )
+
+    const userInfo3 = await pantry.getUserInfo(poolId, alice)
+    const positionInfo3 = userInfo3.positions[positionId]
+    assert.equal(userInfo3.tokenData[0].amount, 0)
+    assert.equal(userInfo3.tokenData[1].amount, 0)
+    assert.equal(positionInfo3.amounts[0], 0)
+    assert.equal(positionInfo3.amounts[1], 0)
+    assert.equal(positionInfo3.timeEnd - positionInfo.timeStart, hourInSeconds)
+    assert.equal(positionInfo3.nftid, nftId)
+    assert.equal(positionInfo3.nftReward, reducedPenalty.address)
+
+    //PoolInfo
+    const poolInfo3 = await pantry.getPoolInfo.call(poolId)
+    assert.equal(poolInfo3.tokenData[0].supply, 0)
+    assert.equal(poolInfo3.tokenData[1].supply, 0)
+    assert.equal(poolInfo3.tokenData[0].token, erc20a.address)
+    assert.equal(poolInfo3.tokenData[1].token, erc20b.address)
+
+    //Token Balances
+    //ERC20 A
+    const aliceErc20a2 = await erc20a.balanceOf(alice)
+    const aliceErc20b2 = await erc20b.balanceOf(alice)
+    const chefErc20a2 = await erc20a.balanceOf(chef.address)
+    const chefErc20b2 = await erc20b.balanceOf(chef.address)
+    const cashierErc20a2 = await erc20a.balanceOf(cashier.address)
+    const cashierErc20b2 = await erc20b.balanceOf(cashier.address)
+    
+    const proportion2 = unity.mul(new web3.utils.BN(1)).div(new web3.utils.BN(hourInSeconds))
+    const refundERC20A = (new web3.utils.BN(stakeAmount)).mul(proportion2).div(unity)
+    const penaltyERC20A = (new web3.utils.BN(stakeAmount)).sub(refundERC20A)
+    const reductionAmount2 = await reducedPenalty.reductionAmounts(1)
+
+    assert.equal(aliceErc20a1.add(refundERC20A).add(nftReduction.amount).toString(), aliceErc20a2.toString())
+    assert.equal(cashierErc20a1.add(penaltyERC20A).sub(nftReduction.amount).toString(), cashierErc20a2.toString())
+
+    assert.equal(aliceErc20b1.add(refundERC20A).toString(), aliceErc20b2.toString())
+    assert.equal(cashierErc20b1.add(penaltyERC20A).toString(), cashierErc20b2.toString())
+
+  })
+
 
   it("real case", async () => {})
   it("access control", async () => {})

@@ -6,10 +6,10 @@
 
 pragma solidity 0.8.9;
 
-import 'contracts/pancake/pancake-lib/GSN/Context.sol';
+import '@openzeppelin/contracts/utils/Context.sol';
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
-import 'contracts/pancake/pancake-lib/utils/Address.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 import 'hardhat/console.sol';
 
 
@@ -150,15 +150,6 @@ contract CakeVault is Ownable, Pausable {
       require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
       newPosition.nftReward = _nftReward;
       newPosition.nftid = _nftid;
-      uint256[] memory amounts = new uint256[](1);
-      amounts[0] = _amount;
-      ISDEXReward(_nftReward)._beforeDeposit(
-        msg.sender,
-        0,
-        amounts,
-        _timeStake,
-        _nftid
-      );
     }
     uint256 pool = balanceOf();
     token.safeTransferFrom(msg.sender, address(this), _amount);
@@ -187,7 +178,7 @@ contract CakeVault is Ownable, Pausable {
     if (_nftReward != address(0)) {
       uint256[] memory amounts = new uint256[](1);
       amounts[0] = _amount;
-      ISDEXReward(_nftReward)._afterDeposit(
+      ISDEXReward(_nftReward)._deposit(
         msg.sender,
         0,
         amounts,
@@ -360,84 +351,73 @@ contract CakeVault is Ownable, Pausable {
     if (user.positions[_positionid].nftReward != address(0)) {
       uint256[] memory amounts = new uint256[](1);
       amounts[0] = user.positions[_positionid].amount;
-      ISDEXReward(user.positions[_positionid].nftReward)._beforeWithdraw(
+      ISDEXReward(user.positions[_positionid].nftReward)._withdraw(
         msg.sender,
         0,
-        _positionid,
-        user.positions[_positionid].nftid
+        _positionid
       );
-    }
-    user = userInfo[msg.sender];
-    uint256 shares = user.positions[_positionid].amount;
-    require(shares > 0, "Nothing to withdraw");
-    require(shares <= user.shares, "Withdraw amount exceeds balance");
-    uint256 currentAmount = (balanceOf() * shares) / totalShares;
-    user.shares -= shares;
-    totalShares -= shares;
-
-    uint256 bal = available();
-    if (bal < currentAmount) {
-      uint256 balWithdraw = currentAmount - (bal);
-      autoCakeChef.leaveStakingCakeVault(balWithdraw);
-      uint256 balAfter = available();
-      //theoretical
-      uint256 diff = balAfter.sub(bal);
-      if (diff < balWithdraw) {
-        currentAmount = bal.add(diff);
-      }
-    }
-    if (block.timestamp < user.lastDepositedTime.add(withdrawFeePeriod)) {
-      uint256 currentWithdrawFee = currentAmount.mul(withdrawFee).div(10000);
-      token.safeTransfer(treasury, currentWithdrawFee);
-      currentAmount = currentAmount.sub(currentWithdrawFee);
-    }
-    if (user.shares > 0) {
-      user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
     } else {
-      user.cakeAtLastUserAction = 0;
-    }
+      user = userInfo[msg.sender];
+      uint256 shares = user.positions[_positionid].amount;
+      require(shares > 0, "Nothing to withdraw");
+      require(shares <= user.shares, "Withdraw amount exceeds balance");
+      uint256 currentAmount = (balanceOf() * shares) / totalShares;
+      user.shares -= shares;
+      totalShares -= shares;
 
-    user.lastUserActionTime = block.timestamp;
-    uint256 timeAmount = (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart));
-    if ( block.timestamp >= user.positions[_positionid].timeEnd) {
-      cashier.requestReward(
-        msg.sender,
+      uint256 bal = available();
+      if (bal < currentAmount) {
+        uint256 balWithdraw = currentAmount - (bal);
+        autoCakeChef.leaveStakingCakeVault(balWithdraw);
+        uint256 balAfter = available();
+        //theoretical
+        uint256 diff = balAfter.sub(bal);
+        if (diff < balWithdraw) {
+          currentAmount = bal.add(diff);
+        }
+      }
+      if (block.timestamp < user.lastDepositedTime.add(withdrawFeePeriod)) {
+        uint256 currentWithdrawFee = currentAmount.mul(withdrawFee).div(10000);
+        token.safeTransfer(treasury, currentWithdrawFee);
+        currentAmount = currentAmount.sub(currentWithdrawFee);
+      }
+      if (user.shares > 0) {
+        user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+      } else {
+        user.cakeAtLastUserAction = 0;
+      }
+
+      user.lastUserActionTime = block.timestamp;
+      uint256 timeAmount = (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart));
+      if ( block.timestamp >= user.positions[_positionid].timeEnd) {
+        cashier.requestReward(
+          msg.sender,
+          address(token),
+          timeAmount
+        );
+        token.safeTransfer(msg.sender, currentAmount);
+      } else {
+          (uint256 refund, uint256 penalty) = cookBook.calcRefund(
+            user.positions[_positionid].timeStart,
+            user.positions[_positionid].timeEnd,
+            currentAmount
+          );
+          token.safeTransfer(
+            address(msg.sender),
+            refund
+          );
+          token.safeTransfer(
+            address(cashier),
+            penalty
+          );
+      }
+      masterPantry.subTimeAmountGlobal(
         address(token),
         timeAmount
       );
-      token.safeTransfer(msg.sender, currentAmount);
-    } else {
-				(uint256 refund, uint256 penalty) = cookBook.calcRefund(
-					user.positions[_positionid].timeStart,
-					user.positions[_positionid].timeEnd,
-					currentAmount
-				);
-				token.safeTransfer(
-					address(msg.sender),
-					refund
-				);
-			  token.safeTransfer(
-					address(cashier),
-					penalty
-				);
+      user.positions[_positionid].amount = 0;
+      emit Withdraw(msg.sender, currentAmount, shares);
     }
-    masterPantry.subTimeAmountGlobal(
-      address(token),
-      timeAmount
-    );
-    user.positions[_positionid].amount = 0;
-    if (user.positions[_positionid].nftReward != address(0)) {
-      uint256[] memory amounts = new uint256[](1);
-      amounts[0] = user.positions[_positionid].amount;
-      ISDEXReward(user.positions[_positionid].nftReward)._afterWithdraw(
-        msg.sender,
-        0,
-        _positionid,
-        user.positions[_positionid].nftid
-      );
-    }
-
-    emit Withdraw(msg.sender, currentAmount, shares);
   }
 
   /**

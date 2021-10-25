@@ -44,6 +44,7 @@ contract CookBook {
 
 	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
 		uint256 timeElapsed = block.timestamp - timeStart;
+    //console.log('timeElapsed', timeElapsed);
 		uint256 timeTotal = timeEnd - timeStart;
 		uint256 proportion = (timeElapsed * masterPantry.unity()) / timeTotal;
 		uint256 refund = amount * proportion / masterPantry.unity();
