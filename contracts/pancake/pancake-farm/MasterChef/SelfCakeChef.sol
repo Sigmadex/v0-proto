@@ -11,6 +11,8 @@ import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
 import '../SyrupBar.sol';
 
+import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
+
 contract SelfCakeChef is Ownable {
 	using SafeBEP20 for IBEP20;
   
@@ -41,19 +43,28 @@ contract SelfCakeChef is Ownable {
 
 	function enterStaking(
 		uint256 _amount,
-		uint256 _timeStake
+		uint256 _timeStake,
+    address _nftReward,
+    uint256 _nftid
 	) public {
 		kitchen.updatePool(0);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
     uint256[] memory amountArr = new uint256[](1);
     amountArr[0] = _amount;
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + _timeStake,
       amounts: amountArr,
-      startBlock: block.number
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
     });
+    if (_nftReward != address(0)) {
+      require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = _nftReward;
+      newPosition.nftid = _nftid;
+    }
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
 		if (user.tokenData.length == 0) {
 			//new staker
       user.tokenData = new IMasterPantry.UserTokenData[](1);
@@ -74,59 +85,84 @@ contract SelfCakeChef is Ownable {
     masterPantry.addPosition(0, msg.sender, newPosition);
     masterPantry.addTimeAmountGlobal(address(pool.tokenData[0].token), (_amount*_timeStake));
 		syrup.mint(msg.sender, _amount);
-
+    if (_nftReward != address(0)) {
+      ISDEXReward(_nftReward)._deposit(
+        msg.sender,
+        0,
+        amountArr,
+        _timeStake,
+        _nftid
+      );
+    }
 		emit Deposit(msg.sender, 0, amountArr);
 	}
 
 	function leaveStaking(uint256 _positionid) public {
     kitchen.updatePool(0);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
-		IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
-		uint256 _amount = currentPosition.amounts[0];
-		require(user.tokenData[0].amount >= _amount, "withdraw: not good");
-		// further questions about the pending story 
-		// especially 'rewardDebt'
-		// storing amount in penalty, vs amount out penalty may be a good idea
-		uint256 pending = _amount * pool.tokenData[0].accCakePerShare / masterPantry.unity();
-		if (pending > 0) {
-			if (block.timestamp < currentPosition.timeEnd) {
-				kitchen.safeCakeTransfer(address(cashier), pending);
-			} else {
-				kitchen.safeCakeTransfer(msg.sender, pending);
-			}  
-		}
+    IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
+    if (currentPosition.nftReward != address(0)) {
+      ISDEXReward(currentPosition.nftReward)._withdraw(
+        msg.sender,
+        0,
+        _positionid
+      );
+    } else {
 
-		if(_amount > 0) {
-			user.tokenData[0].amount = user.tokenData[0].amount - (_amount);
-			if (block.timestamp < currentPosition.timeEnd) {
-				(uint256 refund, uint256 penalty) = cookBook.calcRefund(
-					user.positions[_positionid].timeStart,
-					user.positions[_positionid].timeEnd,
-					_amount
-				);
-				pool.tokenData[0].token.safeTransfer(
-					address(msg.sender),
-					refund
-				);
-				pool.tokenData[0].token.safeTransfer(
-					address(cashier),
-					penalty
-				);
-			} else {
-				pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
-			}
-			pool.tokenData[0].supply -= _amount;
-		}
+      IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
+      user = masterPantry.getUserInfo(0, msg.sender);
+      currentPosition = user.positions[_positionid];
+      uint256 _amount = currentPosition.amounts[0];
+      require(user.tokenData[0].amount >= _amount, "withdraw: not good");
+      // further questions about the pending story 
+      // especially 'rewardDebt'
+      // storing amount in penalty, vs amount out penalty may be a good idea
+      uint256 pending = _amount * pool.tokenData[0].accCakePerShare / masterPantry.unity();
+      if (pending > 0) {
+        if (block.timestamp < currentPosition.timeEnd) {
+          kitchen.safeCakeTransfer(address(cashier), pending);
+        } else {
+          kitchen.safeCakeTransfer(msg.sender, pending);
+        }  
+      }
 
-    masterPantry.subTimeAmountGlobal(
-      address(pool.tokenData[0].token),
-      (currentPosition.amounts[0]*(currentPosition.timeEnd - currentPosition.timeStart))
-    );
-    user.positions[_positionid].amounts[0] = 0;
-    masterPantry.setUserInfo(0, msg.sender, user);
-    masterPantry.setPoolInfo(0, pool);
-		syrup.burn(msg.sender, _amount);
+      if(_amount > 0) {
+        user.tokenData[0].amount = user.tokenData[0].amount - (_amount);
+        if (block.timestamp < currentPosition.timeEnd) {
+          (uint256 refund, uint256 penalty) = cookBook.calcRefund(
+            user.positions[_positionid].timeStart,
+            user.positions[_positionid].timeEnd,
+            _amount
+          );
+          pool.tokenData[0].token.safeTransfer(
+            address(msg.sender),
+            refund
+          );
+          pool.tokenData[0].token.safeTransfer(
+            address(cashier),
+            penalty
+          );
+        } else {
+          pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+          uint256 stakeTime = currentPosition.timeEnd - currentPosition.timeStart;
+          cashier.requestReward(
+            msg.sender,
+            address(pool.tokenData[0].token),
+            stakeTime * _amount
+          );
+        }
+        pool.tokenData[0].supply -= _amount;
+      }
+
+      masterPantry.subTimeAmountGlobal(
+        address(pool.tokenData[0].token),
+        (currentPosition.amounts[0]*(currentPosition.timeEnd - currentPosition.timeStart))
+      );
+      user.positions[_positionid].amounts[0] = 0;
+      masterPantry.setUserInfo(0, msg.sender, user);
+      masterPantry.setPoolInfo(0, pool);
+      syrup.burn(msg.sender, _amount);
+    }
 		emit Withdraw(msg.sender, 0);
 	}
 }

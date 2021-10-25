@@ -1,7 +1,7 @@
 pragma solidity 0.8.9;
 
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
-import 'contracts/pancake/pancake-lib/utils/Address.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 import './IERC20.sol';
 /**
  * @title SafeERC20

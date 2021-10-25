@@ -9,7 +9,7 @@ pragma solidity 0.8.9;
  * simply including this module, only once the modifiers are put in place.
  */
 
-import 'contracts/pancake/pancake-lib/GSN/Context.sol';
+import '@openzeppelin/contracts/utils/Context.sol';
 abstract contract Pausable is Context {
   /**
   * @dev Emitted when the pause is triggered by `account`.

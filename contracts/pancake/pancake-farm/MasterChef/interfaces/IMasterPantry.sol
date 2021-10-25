@@ -18,7 +18,6 @@ interface IMasterPantry {
     uint256 rewarded;
   }
 
-
   struct PoolTokenData {
     IBEP20 token;
     uint256 supply;
@@ -45,6 +44,8 @@ interface IMasterPantry {
     uint256 timeEnd;
     uint256 startBlock;
     uint256[] amounts;
+    address nftReward;
+    uint256 nftid;
   }
   function poolLength() external view returns (uint256);
   function setPoolLength() external;

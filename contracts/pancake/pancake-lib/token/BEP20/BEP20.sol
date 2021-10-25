@@ -3,10 +3,10 @@
 pragma solidity >=0.4.0;
 
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
-import 'contracts/pancake/pancake-lib/GSN/Context.sol';
+import '@openzeppelin/contracts/utils/Context.sol';
 import './IBEP20.sol';
 import '../../math/SafeMath.sol';
-import '../../utils/Address.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 import 'hardhat/console.sol';
 
 /**

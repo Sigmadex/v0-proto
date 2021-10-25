@@ -1,15 +1,15 @@
 /**
-*Submitted for verification at BscScan.com on 2021-04-29
-*/
+ *Submitted for verification at BscScan.com on 2021-04-29
+ */
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
 pragma solidity 0.8.9;
 
-import 'contracts/pancake/pancake-lib/GSN/Context.sol';
+import '@openzeppelin/contracts/utils/Context.sol';
 import 'contracts/pancake/pancake-lib/math/SafeMath.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
-import 'contracts/pancake/pancake-lib/utils/Address.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 import 'hardhat/console.sol';
 
 
@@ -21,6 +21,9 @@ import './MasterChef/interfaces/IMasterPantry.sol';
 import './MasterChef/interfaces/IAutoCakeChef.sol';
 import './MasterChef/interfaces/IKitchen.sol';
 import './MasterChef/interfaces/ICookBook.sol';
+import './MasterChef/interfaces/ICashier.sol';
+
+import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
 
 contract CakeVault is Ownable, Pausable {
   using SafeERC20 for IERC20;
@@ -33,6 +36,8 @@ contract CakeVault is Ownable, Pausable {
     uint256 timeEnd;
     uint256 amount;
     uint256 startBlock;
+    address nftReward;
+    uint256 nftid;
   }
 
   struct UserInfo {
@@ -46,10 +51,11 @@ contract CakeVault is Ownable, Pausable {
   IERC20 public  token; // Cake token
   IERC20 public immutable receiptToken; // Syrup token
 
-  IMasterPantry public  masterPantry;
-  IAutoCakeChef public immutable autoCakeChef;
-  IKitchen public immutable kitchen;
-  ICookBook public immutable cookBook;
+  IMasterPantry masterPantry;
+  IAutoCakeChef immutable autoCakeChef;
+  IKitchen immutable kitchen;
+  ICookBook immutable cookBook;
+  ICashier  immutable cashier;
 
   mapping(address => UserInfo) public userInfo;
 
@@ -81,6 +87,7 @@ contract CakeVault is Ownable, Pausable {
     address _kitchen,
     address _cookBook,
     address _autoCakeChef,
+    address _cashier,
     address _admin,
     address _treasury
   ) public {
@@ -90,6 +97,7 @@ contract CakeVault is Ownable, Pausable {
     autoCakeChef = IAutoCakeChef(_autoCakeChef);
     kitchen = IKitchen(_kitchen);
     cookBook = ICookBook(_cookBook);
+    cashier = ICashier(_cashier);
     admin = _admin;
     treasury = _treasury;
 
@@ -121,14 +129,28 @@ contract CakeVault is Ownable, Pausable {
   /**
   * @notice Deposits funds into the Cake Vault
   * @dev Only possible when contract not paused.
-    * @param _amount: number of tokens to deposit (in CAKE)
-  */
+  * @param _amount: number of tokens to deposit (in CAKE)
+   */
   function deposit(
     uint256 _amount,
-    uint256 _timeStake
+    uint256 _timeStake,
+    address _nftReward,
+    uint256 _nftid
   ) external whenNotPaused notContract {
     require(_amount > 0, "Nothing to deposit");
-    
+    UserPosition memory newPosition = UserPosition({
+      timeStart: block.timestamp,
+      timeEnd: block.timestamp + _timeStake,
+      amount: _amount,
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
+    });
+    if (_nftReward != address(0)) {
+      require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = _nftReward;
+      newPosition.nftid = _nftid;
+    }
     uint256 pool = balanceOf();
     token.safeTransferFrom(msg.sender, address(this), _amount);
     uint256 currentShares = 0;
@@ -138,12 +160,6 @@ contract CakeVault is Ownable, Pausable {
       currentShares = _amount;
     }
     UserInfo storage user = userInfo[msg.sender];
-    UserPosition memory newPosition = UserPosition({
-      timeStart: block.timestamp,
-      timeEnd: block.timestamp + _timeStake,
-      amount: _amount,
-      startBlock: block.number
-    });
 
     user.shares = user.shares.add(currentShares);
     user.lastDepositedTime = block.timestamp;
@@ -156,7 +172,20 @@ contract CakeVault is Ownable, Pausable {
     user.positions.push(newPosition);
 
     masterPantry.addTimeAmountGlobal(address(token), (_amount*_timeStake));
+    
     _earn();
+
+    if (_nftReward != address(0)) {
+      uint256[] memory amounts = new uint256[](1);
+      amounts[0] = _amount;
+      ISDEXReward(_nftReward)._deposit(
+        msg.sender,
+        0,
+        amounts,
+        _timeStake,
+        _nftid
+      );
+    }
 
     emit Deposit(msg.sender, _amount, currentShares, block.timestamp);
   }
@@ -319,50 +348,82 @@ contract CakeVault is Ownable, Pausable {
   */
   function withdraw(uint256 _positionid) public notContract {
     UserInfo storage user = userInfo[msg.sender];
-    uint256 shares = user.positions[_positionid].amount;
-    require(shares > 0, "Nothing to withdraw");
-    require(shares <= user.shares, "Withdraw amount exceeds balance");
-    uint256 currentAmount = (balanceOf() * shares) / totalShares;
-    user.shares -= shares;
-    totalShares -= shares;
-    
-    uint256 bal = available();
-    if (bal < currentAmount) {
-      uint256 balWithdraw = currentAmount - (bal);
-      autoCakeChef.leaveStakingCakeVault(balWithdraw);
-      uint256 balAfter = available();
-      //theoretical
-      uint256 diff = balAfter.sub(bal);
-      if (diff < balWithdraw) {
-        currentAmount = bal.add(diff);
-      }
-    }
-    if (block.timestamp < user.lastDepositedTime.add(withdrawFeePeriod)) {
-      uint256 currentWithdrawFee = currentAmount.mul(withdrawFee).div(10000);
-      token.safeTransfer(treasury, currentWithdrawFee);
-      currentAmount = currentAmount.sub(currentWithdrawFee);
-    }
-    if (user.shares > 0) {
-      user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+    if (user.positions[_positionid].nftReward != address(0)) {
+      uint256[] memory amounts = new uint256[](1);
+      amounts[0] = user.positions[_positionid].amount;
+      ISDEXReward(user.positions[_positionid].nftReward)._withdraw(
+        msg.sender,
+        0,
+        _positionid
+      );
     } else {
-      user.cakeAtLastUserAction = 0;
+      user = userInfo[msg.sender];
+      uint256 shares = user.positions[_positionid].amount;
+      require(shares > 0, "Nothing to withdraw");
+      require(shares <= user.shares, "Withdraw amount exceeds balance");
+      uint256 currentAmount = (balanceOf() * shares) / totalShares;
+      user.shares -= shares;
+      totalShares -= shares;
+
+      uint256 bal = available();
+      if (bal < currentAmount) {
+        uint256 balWithdraw = currentAmount - (bal);
+        autoCakeChef.leaveStakingCakeVault(balWithdraw);
+        uint256 balAfter = available();
+        //theoretical
+        uint256 diff = balAfter.sub(bal);
+        if (diff < balWithdraw) {
+          currentAmount = bal.add(diff);
+        }
+      }
+      if (block.timestamp < user.lastDepositedTime.add(withdrawFeePeriod)) {
+        uint256 currentWithdrawFee = currentAmount.mul(withdrawFee).div(10000);
+        token.safeTransfer(treasury, currentWithdrawFee);
+        currentAmount = currentAmount.sub(currentWithdrawFee);
+      }
+      if (user.shares > 0) {
+        user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+      } else {
+        user.cakeAtLastUserAction = 0;
+      }
+
+      user.lastUserActionTime = block.timestamp;
+      uint256 timeAmount = (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart));
+      if ( block.timestamp >= user.positions[_positionid].timeEnd) {
+        cashier.requestReward(
+          msg.sender,
+          address(token),
+          timeAmount
+        );
+        token.safeTransfer(msg.sender, currentAmount);
+      } else {
+          (uint256 refund, uint256 penalty) = cookBook.calcRefund(
+            user.positions[_positionid].timeStart,
+            user.positions[_positionid].timeEnd,
+            currentAmount
+          );
+          token.safeTransfer(
+            address(msg.sender),
+            refund
+          );
+          token.safeTransfer(
+            address(cashier),
+            penalty
+          );
+      }
+      masterPantry.subTimeAmountGlobal(
+        address(token),
+        timeAmount
+      );
+      user.positions[_positionid].amount = 0;
+      emit Withdraw(msg.sender, currentAmount, shares);
     }
-
-    user.lastUserActionTime = block.timestamp;
-    masterPantry.subTimeAmountGlobal(
-      address(token),
-      (user.positions[_positionid].amount*(user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart))
-    );
-    user.positions[_positionid].amount = 0;
-    token.safeTransfer(msg.sender, currentAmount);
-
-    emit Withdraw(msg.sender, currentAmount, shares);
   }
 
   /**
   * @notice Custom logic for how much the vault allows to be borrowed
   * @dev The contract puts 100% of the tokens to work.
-   */
+    */
   function available() public view returns (uint256) {
     return token.balanceOf(address(this));
   }
@@ -380,8 +441,8 @@ contract CakeVault is Ownable, Pausable {
     }
   }
   /**
-   * @notice Deposits tokens into MasterChef to earn staking rewards
-   */
+  * @notice Deposits tokens into MasterChef to earn staking rewards
+  */
   function _earn() internal {
     uint256 bal = available();
     if (bal > 0) {

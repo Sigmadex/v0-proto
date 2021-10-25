@@ -11,6 +11,8 @@ import "./interfaces/IMasterPantry.sol";
 import "./interfaces/ICookBook.sol";
 import "./interfaces/ICashier.sol";
 
+import "contracts/NFT/Rewards/interfaces/ISDEXReward.sol";
+
 import "hardhat/console.sol";
 
 
@@ -75,28 +77,32 @@ contract MasterChef is Ownable {
     kitchen.updateStakingPool();
   }
 
-
-  // View function to see pending CAKEs on frontend.
-  /*
-  */
-
   function deposit(
     uint256 _pid,
     uint256[] memory _amounts,
-    uint256 _timeStake
+    uint256 _timeStake,
+    address _nftReward,
+    uint256 _nftid
   ) public {
-    require(_pid != 0, 'cake farm detected, please use enterstaking, or the cakeVault.deposit');
+    require(_pid != 0, "Please use the Self Chef or Cake vault for this token please");
     kitchen.updatePool(_pid);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
-    require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
-    //reward debt question
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + _timeStake,
       amounts: _amounts,
-      startBlock: block.number
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
     });
+    if (_nftReward != address(0)) {
+      require(ISDEXReward(_nftReward).getBalanceOf(msg.sender, _nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = _nftReward;
+      newPosition.nftid = _nftid;
+    }
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
+    require(pool.tokenData.length == _amounts.length, 'please insure the amounts match the amount of cryptos in pool');
+    //reward debt question
     if (user.tokenData.length == 0) {
       //first deposit
       user.tokenData = new IMasterPantry.UserTokenData[](pool.tokenData.length);
@@ -122,11 +128,20 @@ contract MasterChef is Ownable {
       pool.tokenData[j].supply += _amounts[j];
 
       masterPantry.addTimeAmountGlobal(address(pool.tokenData[j].token), (_amounts[j]*_timeStake));
-    }
     // userInfo than add position, probably worth cleaning this later
     masterPantry.setUserInfo(_pid, msg.sender, user);
     masterPantry.addPosition(_pid, msg.sender, newPosition);
     masterPantry.setPoolInfo(_pid, pool);
+    if (_nftReward != address(0)) {
+      ISDEXReward(_nftReward)._deposit(
+        msg.sender,
+        _pid,
+        _amounts,
+        _timeStake,
+        _nftid
+      );
+    }
+  }
     emit Deposit(msg.sender, _pid, _amounts);
   }
   // Deposit LP tokens to MasterChef for CAKE allocation.
@@ -136,62 +151,81 @@ contract MasterChef is Ownable {
     uint256 _positionid
   ) public {
     kitchen.updatePool(_pid);
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, msg.sender);
     IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
-
-    uint256 totalAmountShares = 0;
-    for (uint j=0; j < user.tokenData.length; j++) {
-      uint256 amount = currentPosition.amounts[j];
-      uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
-      // pool level, verses position level pending question
-      totalAmountShares += amount * accCakePerShare;
-      if (currentPosition.timeEnd < block.timestamp) {
-        pool.tokenData[j].token.safeTransfer(
-          address(msg.sender),
-          amount
-        );
-        uint256 stakeTime = user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart;
-        cashier.requestReward(address(pool.tokenData[j].token), stakeTime * amount);
-      } else {
-        (uint256 refund, uint256 penalty) = cookBook.calcRefund(
-          user.positions[_positionid].timeStart,
-          user.positions[_positionid].timeEnd,
-          amount
-        );
-        pool.tokenData[j].token.safeTransfer(
-          address(msg.sender),
-          refund
-        );
-        pool.tokenData[j].token.safeTransfer(
-          address(cashier),
-          penalty
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
+    if (currentPosition.nftReward != address(0)) {
+      for (uint j =0; j<pool.tokenData.length; j++) {
+        pool.tokenData[j].token.approve(
+          currentPosition.nftReward,
+          currentPosition.amounts[j]
         );
       }
-      user.tokenData[j].amount -= currentPosition.amounts[j];
-      pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
-
-      masterPantry.subTimeAmountGlobal(
-        address(pool.tokenData[j].token),
-        (currentPosition.amounts[j]*(currentPosition.timeEnd - currentPosition.timeStart))
+      ISDEXReward(currentPosition.nftReward)._withdraw(
+        msg.sender,
+        _pid,
+        _positionid
       );
-      user.positions[_positionid].amounts[j] = 0;
+    } else {
+      user = masterPantry.getUserInfo(_pid, msg.sender);
+      currentPosition = user.positions[_positionid];
 
-    }
+      uint256 totalAmountShares = 0;
+      for (uint j=0; j < user.tokenData.length; j++) {
+        uint256 amount = currentPosition.amounts[j];
+        uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
+        // pool level, verses position level pending question
+        totalAmountShares += amount * accCakePerShare;
+        if (currentPosition.timeEnd < block.timestamp) {
+          pool.tokenData[j].token.safeTransfer(
+            address(msg.sender),
+            amount
+          );
+          uint256 stakeTime = user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart;
+          cashier.requestReward(msg.sender, address(pool.tokenData[j].token), stakeTime * amount);
+        } else {
+          (uint256 refund, uint256 penalty) = cookBook.calcRefund(
+            user.positions[_positionid].timeStart,
+            user.positions[_positionid].timeEnd,
+            amount
+          );
+          pool.tokenData[j].token.safeTransfer(
+            address(msg.sender),
+            refund
+          );
+          pool.tokenData[j].token.safeTransfer(
+            address(cashier),
+            penalty
+          );
+        }
+        user.tokenData[j].amount -= currentPosition.amounts[j];
+        pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
 
-    uint256 pending = totalAmountShares / masterPantry.unity();
-    console.log('cake pending', pending);
-    if (pending > 0) {
-      if (currentPosition.timeEnd < block.timestamp) {
-        kitchen.safeCakeTransfer(address(msg.sender), pending);
-        cashier.requestCakeReward(currentPosition.startBlock, pool.allocPoint, totalAmountShares);
-      } else {
-        kitchen.safeCakeTransfer(address(cashier), pending);
+        masterPantry.subTimeAmountGlobal(
+          address(pool.tokenData[j].token),
+          (currentPosition.amounts[j]*(currentPosition.timeEnd - currentPosition.timeStart))
+        );
+        user.positions[_positionid].amounts[j] = 0;
       }
+
+      uint256 pending = totalAmountShares / masterPantry.unity();
+      if (pending > 0) {
+        if (currentPosition.timeEnd < block.timestamp) {
+          kitchen.safeCakeTransfer(address(msg.sender), pending);
+          cashier.requestCakeReward(
+            msg.sender,
+            currentPosition.startBlock,
+            pool.allocPoint,
+            totalAmountShares
+          );
+        } else {
+          kitchen.safeCakeTransfer(address(cashier), pending);
+        }
+      }
+      masterPantry.setUserInfo(_pid, msg.sender, user);
+      masterPantry.setPoolInfo(_pid, pool);
+      emit Withdraw(msg.sender, _pid);
     }
-    masterPantry.setUserInfo(_pid, msg.sender, user);
-    masterPantry.setPoolInfo(_pid, pool);
-    emit Withdraw(msg.sender, _pid);
   }
 
 }
