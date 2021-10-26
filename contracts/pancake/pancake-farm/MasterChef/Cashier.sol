@@ -1,5 +1,6 @@
 pragma solidity 0.8.9;
-
+import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
+import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
 import 'contracts/pancake/pancake-lib/access/Ownable.sol';
 
 import './interfaces/IACL.sol';
@@ -10,6 +11,7 @@ import 'hardhat/console.sol';
 import 'contracts/NFT/INFTRewards.sol';
 
 contract Cashier is Ownable {
+  using SafeBEP20 for IBEP20;
 
   IMasterPantry masterPantry;
   IACL acl;
@@ -42,6 +44,10 @@ contract Cashier is Ownable {
     uint256 proportio = _timeAmount * masterPantry.unity() / tokenRewardData.timeAmountGlobal;
     //console.log('proportio', proportio);
     uint rewardAmount = proportio * kitchenBalance / masterPantry.unity();
+    IBEP20(_token).safeTransfer(
+      address(nftRewards),
+      rewardAmount
+    );
     nftRewards.mintReward(_to, _token, rewardAmount);
 
   }

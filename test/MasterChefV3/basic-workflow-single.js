@@ -142,6 +142,7 @@ contract('MasterChef Single User Tests', () => {
       cookBook.address,
       kitchen.address,
       acl.address,
+      nftRewards.address,
       { from: minter }
     )
       /*
@@ -957,8 +958,107 @@ contract('MasterChef Single User Tests', () => {
 
     assert.equal(aliceErc20b1.add(refundERC20A).toString(), aliceErc20b2.toString())
     assert.equal(cashierErc20b1.add(penaltyERC20A).toString(), cashierErc20b2.toString())
+  })
+
+  it("can use a reducedPenalty NFT in selfChef", async () => {
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+
+    //Cake
+    const bobCake1 = await cake.balanceOf(bob)
+    const selfChefCake1 = await cake.balanceOf(selfCakeChef.address)
+    const kitchenCake1 = await cake.balanceOf(kitchen.address)
+    const cashierCake1 = await cake.balanceOf(cashier.address)
+    const nftRewardCake1 = await cake.balanceOf(nftRewards.address)
+
+    //UserInfo
+    const bobUserInfo1 = await pantry.getUserInfo(0, bob)
+    const positionId = bobUserInfo1.positions.length
+
+    //PoolInfo
+    const poolInfo1 = await pantry.getPoolInfo.call(0)
+
+    //NFT
+    const nftId  =  4;
+    const reducedPenaltyNft = await reducedPenalty.balanceOf(bob, 4)
+    assert.equal(reducedPenaltyNft.toString(), 1)
+    const reduction = await reducedPenalty.reductionAmounts(4)
+    assert.equal(reduction.token, cake.address)
+
+    await cake.approve(
+      selfCakeChef.address,
+      cakeDeposit,
+      {from: bob}
+    )
+
+    await selfCakeChef.enterStaking(
+      cakeDeposit,
+      hourInSeconds,
+      reducedPenalty.address,
+      nftId,
+      {from: bob}
+    )
+    // Cake
+    const bobCake2 = await cake.balanceOf(bob)
+    const selfChefCake2 = await cake.balanceOf(selfCakeChef.address)
+    const kitchenCake2 = await cake.balanceOf(kitchen.address)
+    const cashierCake2 = await cake.balanceOf(cashier.address)
+    const nftRewardCake2 = await cake.balanceOf(nftRewards.address)
+
+    assert.equal(bobCake1.sub(bobCake2), cakeDeposit)
+    assert.equal(selfChefCake1.add(new web3.utils.BN(cakeDeposit)).toString(), selfChefCake2.toString())
+
+    //UserInfo
+    const bobUserInfo2 = await pantry.getUserInfo(0, bob)
+    assert.equal(bobUserInfo2.tokenData[0].amount, cakeDeposit)
+    const currentPosition = bobUserInfo2.positions[positionId]
+    assert.equal(currentPosition.amounts[0], cakeDeposit)
+    assert.equal(currentPosition.nftid, nftId)
+    assert.equal(currentPosition.nftReward, reducedPenalty.address)
+    assert.equal(currentPosition.timeEnd - currentPosition.timeStart, hourInSeconds)
+    assert.equal(currentPosition.startBlock, await web3.eth.getBlockNumber())
+
+    //PoolInfo
+    const poolInfo2 = await pantry.getPoolInfo.call(0)
+    assert.equal(poolInfo2.tokenData[0].supply, cakeDeposit)
+
+    
+    await selfCakeChef.leaveStaking(positionId, { from: bob })
+    
+    const userInfo3 = await pantry.getUserInfo(0, bob)
+    const positionInfo3 = userInfo3.positions[positionId]
+    assert.equal(userInfo3.tokenData[0].amount, 0)
+    assert.equal(positionInfo3.amounts[0], 0)
+    assert.equal(positionInfo3.timeEnd - currentPosition.timeStart, hourInSeconds)
+    assert.equal(positionInfo3.nftid, nftId)
+    assert.equal(positionInfo3.nftReward, reducedPenalty.address)
+
+    //PoolInfo
+    const poolInfo3 = await pantry.getPoolInfo.call(0)
+    assert.equal(poolInfo3.tokenData[0].supply, 0)
+
+    //Token Balances
+    // Cake
+    const bobCake3 = await cake.balanceOf(bob)
+    const selfChefCake3 = await cake.balanceOf(selfCakeChef.address)
+    const cashierCake3 = await cake.balanceOf(cashier.address)
+    const nftRewardCake3 = await cake.balanceOf(nftRewards.address)
+    
+    const proportion2 = unity.mul(new web3.utils.BN(1)).div(new web3.utils.BN(hourInSeconds))
+    const refundCake = (new web3.utils.BN(cakeDeposit)).mul(proportion2).div(unity)
+    const penaltyCake= (new web3.utils.BN(cakeDeposit)).sub(refundCake)
+    const reduction2 = await reducedPenalty.reductionAmounts(nftId)
+    const reductionUsed = reduction.amount.sub(reduction2.amount)
+    const pending = new web3.utils.BN(currentPosition.amounts[0]).mul(new web3.utils.BN(poolInfo3.tokenData[0].accCakePerShare)).div(unity)
+    const proportionOfPool = new web3.utils.BN(poolInfo3.allocPoint).mul(unity).div(await pantry.totalAllocPoint())
+    const cakePending = proportionOfPool.mul(await pantry.cakePerBlock()).div(unity)
+
+    assert.equal(bobCake2.add(new web3.utils.BN(cakeDeposit)).toString(), bobCake3.toString())
+
+    assert.equal(cashierCake2.add(cakePending).toString(), cashierCake3.toString())
+    assert.equal(selfChefCake2.sub(refundCake).toString(), selfChefCake3.toString())
 
   })
+
 
 
   it("real case", async () => {})

@@ -101,17 +101,20 @@ contract SelfCakeChef is Ownable {
     kitchen.updatePool(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
     IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
+    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     if (currentPosition.nftReward != address(0)) {
+      for (uint j =0; j<pool.tokenData.length; j++) {
+        pool.tokenData[j].token.approve(
+          currentPosition.nftReward,
+          currentPosition.amounts[j]
+        );
+      }
       ISDEXReward(currentPosition.nftReward)._withdraw(
         msg.sender,
         0,
         _positionid
       );
     } else {
-
-      IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
-      user = masterPantry.getUserInfo(0, msg.sender);
-      currentPosition = user.positions[_positionid];
       uint256 _amount = currentPosition.amounts[0];
       require(user.tokenData[0].amount >= _amount, "withdraw: not good");
       // further questions about the pending story 

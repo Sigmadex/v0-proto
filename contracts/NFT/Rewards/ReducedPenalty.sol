@@ -2,6 +2,7 @@ pragma solidity 0.8.9;
 
 import '@openzeppelin/contracts/token/ERC1155/ERC1155.sol';
 import './interfaces/ISDEXReward.sol';
+import '../INFTRewards.sol';
 
 import 'contracts/pancake/pancake-farm/MasterChef/interfaces/IMasterPantry.sol';
 import 'contracts/pancake/pancake-farm/MasterChef/interfaces/ICashier.sol';
@@ -32,18 +33,21 @@ contract ReducedPenaltyNFT is ERC1155, ISDEXReward {
   ICookBook cookBook;
   IKitchen kitchen;
   IACL acl;
+  INFTRewards nftRewards;
   constructor(
     address _masterPantry,
     address _cashier,
     address _cookBook,
     address _kitchen,
-    address _acl
+    address _acl,
+    address _nftRewards
   ) ERC1155("https://nft.sigmadex.org/api/rewards/reduced-penalty/{id}.json") {
     masterPantry = IMasterPantry(_masterPantry);
     cashier = ICashier(_cashier);
     cookBook = ICookBook(_cookBook);
     kitchen = IKitchen(_kitchen);
     acl = IACL(_acl);
+    nftRewards = INFTRewards(_nftRewards);
 
   }
 
@@ -98,14 +102,22 @@ contract ReducedPenaltyNFT is ERC1155, ISDEXReward {
         if (address(pool.tokenData[j].token) == reductionAmounts[nftid].token) {
           uint256 bonus = reductionAmounts[nftid].amount;
           if (bonus <= penalty) {
-            penalty -= bonus;
-            refund += bonus;
+            pool.tokenData[j].token.safeTransferFrom(
+              address(nftRewards),
+              sender,
+              bonus
+            );
+            penalty -=  bonus;
             reductionAmounts[nftid].amount = 0;
           } else {
-            uint256 residual = bonus - penalty; 
-            refund += bonus;
+            
+            pool.tokenData[j].token.safeTransferFrom(
+              address(nftRewards),
+              sender,
+              penalty
+            );
+            reductionAmounts[nftid].amount -= penalty;
             penalty = 0;
-            reductionAmounts[nftid].amount -= residual;
           }
         }
         pool.tokenData[j].token.safeTransferFrom(
