@@ -14,16 +14,16 @@ import '../SyrupBar.sol';
 import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
 
 contract SelfCakeChef is Ownable {
-	using SafeBEP20 for IBEP20;
-  
-	event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
-	event Withdraw(address indexed user, uint256 indexed pid);
+  using SafeBEP20 for IBEP20;
+
+  event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
+  event Withdraw(address indexed user, uint256 indexed pid);
 
   IKitchen kitchen;
   IMasterPantry masterPantry;
   ICookBook cookBook;
   ICashier cashier;
-  
+
   SyrupBar syrup;
 
   constructor(
@@ -41,13 +41,13 @@ contract SelfCakeChef is Ownable {
   }
 
 
-	function enterStaking(
-		uint256 _amount,
-		uint256 _timeStake,
+  function enterStaking(
+    uint256 _amount,
+    uint256 _timeStake,
     address _nftReward,
     uint256 _nftid
-	) public {
-		kitchen.updatePool(0);
+  ) public {
+    kitchen.updatePool(0);
     uint256[] memory amountArr = new uint256[](1);
     amountArr[0] = _amount;
     IMasterPantry.UserPosition memory newPosition  = IMasterPantry.UserPosition({
@@ -65,53 +65,44 @@ contract SelfCakeChef is Ownable {
     }
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
-		if (user.tokenData.length == 0) {
-			//new staker
+    if (user.tokenData.length == 0) {
+      //new staker
       user.tokenData = new IMasterPantry.UserTokenData[](1);
-			IMasterPantry.UserTokenData memory cakeTokenData = IMasterPantry.UserTokenData({
-				amount: 0,
-				rewardDebt: 0
-			});
-			user.tokenData[0] = cakeTokenData;
+      IMasterPantry.UserTokenData memory cakeTokenData = IMasterPantry.UserTokenData({
+        amount: 0,
+        rewardDebt: 0
+      });
+      user.tokenData[0] = cakeTokenData;
     }
-    
-		if(_amount > 0) {
-			pool.tokenData[0].token.safeTransferFrom(address(msg.sender), address(this), _amount);
-			user.tokenData[0].amount = user.tokenData[0].amount + (_amount);
-		}
-		pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
+
+    if(_amount > 0) {
+      pool.tokenData[0].token.safeTransferFrom(address(msg.sender), address(this), _amount);
+      user.tokenData[0].amount = user.tokenData[0].amount + (_amount);
+    }
+    pool.tokenData[0].supply = pool.tokenData[0].supply + _amount;
     masterPantry.setUserInfo(0, msg.sender, user);
     masterPantry.setPoolInfo(0, pool);
     masterPantry.addPosition(0, msg.sender, newPosition);
     masterPantry.addTimeAmountGlobal(address(pool.tokenData[0].token), (_amount*_timeStake));
-		syrup.mint(msg.sender, _amount);
-    if (_nftReward != address(0)) {
-      ISDEXReward(_nftReward)._deposit(
-        msg.sender,
-        0,
-        amountArr,
-        _timeStake,
-        _nftid
-      );
-    }
-		emit Deposit(msg.sender, 0, amountArr);
-	}
+    syrup.mint(msg.sender, _amount);
+    emit Deposit(msg.sender, 0, amountArr);
+  }
 
-	function leaveStaking(uint256 _positionid) public {
+  function leaveStaking(uint256 _positionid) public {
     kitchen.updatePool(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
     IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     if (currentPosition.nftReward != address(0)) {
-      for (uint j =0; j<pool.tokenData.length; j++) {
-        pool.tokenData[j].token.approve(
-          currentPosition.nftReward,
-          currentPosition.amounts[j]
-        );
-      }
+      pool.tokenData[0].token.approve(
+        currentPosition.nftReward,
+        currentPosition.amounts[0]
+      );
       ISDEXReward(currentPosition.nftReward)._withdraw(
         msg.sender,
         0,
+        pool,
+        user,  
         _positionid
       );
     } else {
@@ -166,6 +157,6 @@ contract SelfCakeChef is Ownable {
       masterPantry.setPoolInfo(0, pool);
       syrup.burn(msg.sender, _amount);
     }
-		emit Withdraw(msg.sender, 0);
-	}
+    emit Withdraw(msg.sender, 0);
+  }
 }

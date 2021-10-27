@@ -25,28 +25,13 @@ import './MasterChef/interfaces/ICashier.sol';
 
 import 'contracts/NFT/Rewards/interfaces/ISDEXReward.sol';
 
-contract CakeVault is Ownable, Pausable {
+import './ICakeVault.sol';
+
+contract CakeVault is ICakeVault, Ownable, Pausable {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
   uint256 unity = 1e27;
-
-  struct UserPosition {
-    uint256 timeStart;
-    uint256 timeEnd;
-    uint256 amount;
-    uint256 startBlock;
-    address nftReward;
-    uint256 nftid;
-  }
-
-  struct UserInfo {
-    uint256 shares; // number of shares for a user
-    uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
-    uint256 cakeAtLastUserAction; // keeps track of cake deposited at the last user action
-    uint256 lastUserActionTime; // keeps track of the last user action time
-    UserPosition[] positions; // tracks users staked for a time period
-  }
 
   IERC20 public  token; // Cake token
   IERC20 public immutable receiptToken; // Syrup token
@@ -105,6 +90,9 @@ contract CakeVault is Ownable, Pausable {
     IERC20(token).safeApprove(address(_autoCakeChef), type(uint256).max);
   }
 
+  function setTotalShares(uint256 _amount) public /*onlyACL*/  {
+    totalShares = _amount;
+  }
   /**
   * @notice Checks if the msg.sender is the admin address
   */
@@ -115,6 +103,8 @@ contract CakeVault is Ownable, Pausable {
 
   function getUserInfo(address _user) public view returns (UserInfo memory) {
     return userInfo[_user];
+  }
+  function setUserInfo(address _user, UserInfo calldata _userInfo) public {
   }
 
   /**
@@ -175,17 +165,6 @@ contract CakeVault is Ownable, Pausable {
     
     _earn();
 
-    if (_nftReward != address(0)) {
-      uint256[] memory amounts = new uint256[](1);
-      amounts[0] = _amount;
-      ISDEXReward(_nftReward)._deposit(
-        msg.sender,
-        0,
-        amounts,
-        _timeStake,
-        _nftid
-      );
-    }
 
     emit Deposit(msg.sender, _amount, currentShares, block.timestamp);
   }
@@ -349,11 +328,13 @@ contract CakeVault is Ownable, Pausable {
   function withdraw(uint256 _positionid) public notContract {
     UserInfo storage user = userInfo[msg.sender];
     if (user.positions[_positionid].nftReward != address(0)) {
-      uint256[] memory amounts = new uint256[](1);
-      amounts[0] = user.positions[_positionid].amount;
-      ISDEXReward(user.positions[_positionid].nftReward)._withdraw(
+      token.approve(
+        user.positions[_positionid].nftReward,
+        type(uint256).max
+      );
+      ISDEXReward(user.positions[_positionid].nftReward)._withdrawCakeVault(
         msg.sender,
-        0,
+        user,
         _positionid
       );
     } else {

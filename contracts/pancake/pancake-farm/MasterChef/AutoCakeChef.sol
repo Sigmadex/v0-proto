@@ -18,6 +18,7 @@ contract AutoCakeChef is Ownable {
   IKitchen kitchen;
   IMasterPantry  masterPantry;
   SyrupBar syrup;
+  address cakeVault;
   constructor(
     address _masterPantry,
     address _kitchen
@@ -28,12 +29,17 @@ contract AutoCakeChef is Ownable {
 
   }
 
+  function setCakeVault(address _vault) public onlyOwner{
+    cakeVault = _vault;
+  }
+
   function enterStakingCakeVault(uint256 _amount) public {
     //require(msg.sender == cakeVault, "only the cakevault can call this function");
     kitchen.updatePool(0);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
     IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
     if (user.tokenData.length == 0) {
+      console.log('hello');
       //new staker
       user.tokenData = new IMasterPantry.UserTokenData[](1);
       IMasterPantry.UserTokenData memory cakeTokenData = IMasterPantry.UserTokenData({
@@ -58,6 +64,7 @@ contract AutoCakeChef is Ownable {
     uint256[] memory amounts = new uint256[](1);
     amounts[0] = _amount;
     masterPantry.setUserInfo(0, msg.sender, user);
+    console.log(user.tokenData[0].amount);
     masterPantry.setPoolInfo(0, pool);
     emit Deposit(msg.sender, 0, amounts);
   }
@@ -66,21 +73,23 @@ contract AutoCakeChef is Ownable {
     //require(msg.sender == cakeVault, "only callable by cakeVault");
     kitchen.updatePool(0);
     IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(0);
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, msg.sender);
+    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(0, cakeVault);
+    console.log(user.tokenData[0].amount, 'amount, leavestakingcak');
+    console.log('_amount', _amount);
     require(user.tokenData[0].amount >= _amount, "withdraw: not good");
     uint256 pending = user.tokenData[0].amount * (pool.tokenData[0].accCakePerShare) / (masterPantry.unity()) - (user.tokenData[0].rewardDebt);
     if(pending > 0) {
-      kitchen.safeCakeTransfer(msg.sender, pending);
+      kitchen.safeCakeTransfer(cakeVault, pending);
     }
     if(_amount > 0) {
       user.tokenData[0].amount = user.tokenData[0].amount - (_amount);
-      pool.tokenData[0].token.safeTransfer(address(msg.sender), _amount);
+      pool.tokenData[0].token.safeTransfer(address(cakeVault), _amount);
       pool.tokenData[0].supply -= _amount;
     }
     user.tokenData[0].rewardDebt = user.tokenData[0].amount * (pool.tokenData[0].accCakePerShare) / (masterPantry.unity());
 
-    syrup.burn(msg.sender, _amount);
-    masterPantry.setUserInfo(0, msg.sender, user);
+    syrup.burn(cakeVault, _amount);
+    masterPantry.setUserInfo(0, cakeVault, user);
     masterPantry.setPoolInfo(0, pool);
     emit Withdraw(msg.sender, 0);
   }

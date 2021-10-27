@@ -13,7 +13,7 @@ pragma solidity 0.8.9;
 
 // XXX: import "./SafeMath.sol";
 import "contracts/pancake/pancake-lib/math/SafeMath.sol";
-
+/*
 contract Timelock {
     using SafeMath for uint;
 
@@ -130,3 +130,5 @@ contract Timelock {
         return block.timestamp;
     }
 }
+
+*/

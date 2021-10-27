@@ -39,8 +39,9 @@ contract NFTRewards is Ownable {
       uint256 kindaRandomId = uint256(keccak256(abi.encodePacked(blockhash(block.number - 1), _to, _seed))) % rewards[_token].length;
       IBEP20(_token).approve(
         rewards[_token][kindaRandomId],
-        _rewardAmount
+        type(uint256).max
       );
+      console.log('reward token', rewards[_token][kindaRandomId]);
       ISDEXReward(rewards[_token][kindaRandomId]).rewardNFT(_to, _token, _rewardAmount);
   }
 }

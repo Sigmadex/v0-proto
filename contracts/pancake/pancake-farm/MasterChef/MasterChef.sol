@@ -132,15 +132,6 @@ contract MasterChef is Ownable {
     masterPantry.setUserInfo(_pid, msg.sender, user);
     masterPantry.addPosition(_pid, msg.sender, newPosition);
     masterPantry.setPoolInfo(_pid, pool);
-    if (_nftReward != address(0)) {
-      ISDEXReward(_nftReward)._deposit(
-        msg.sender,
-        _pid,
-        _amounts,
-        _timeStake,
-        _nftid
-      );
-    }
   }
     emit Deposit(msg.sender, _pid, _amounts);
   }
@@ -164,8 +155,11 @@ contract MasterChef is Ownable {
       ISDEXReward(currentPosition.nftReward)._withdraw(
         msg.sender,
         _pid,
+        pool,
+        user,
         _positionid
       );
+      emit Withdraw(msg.sender, _pid);
     } else {
       user = masterPantry.getUserInfo(_pid, msg.sender);
       currentPosition = user.positions[_positionid];

@@ -75,6 +75,7 @@ contract('MasterChef Single User Tests', () => {
       acl.address,
       {from: minter}
     )
+    console.log('cake addr', cake.address)
     syrup = await SyrupBar.new(
       cake.address,
       acl.address,
@@ -143,6 +144,9 @@ contract('MasterChef Single User Tests', () => {
       kitchen.address,
       acl.address,
       nftRewards.address,
+      cakeVault.address,
+      autoCakeChef.address,
+      cake.address,
       { from: minter }
     )
       /*
@@ -167,6 +171,7 @@ contract('MasterChef Single User Tests', () => {
     await acl.setReducedPenalty(reducedPenalty.address, { from: minter })
 
     await pantry.setCakeVault(cakeVault.address, { from: minter })
+    await autoCakeChef.setCakeVault(cakeVault.address, { from: minter })
 
     await cake.mintExecutive(bob, web3.utils.toWei('2', 'ether'), {from: minter})
     await cake.mintExecutive(carol, web3.utils.toWei('1', 'ether'), {from: minter})
@@ -1048,7 +1053,6 @@ contract('MasterChef Single User Tests', () => {
     const penaltyCake= (new web3.utils.BN(cakeDeposit)).sub(refundCake)
     const reduction2 = await reducedPenalty.reductionAmounts(nftId)
     const reductionUsed = reduction.amount.sub(reduction2.amount)
-    const pending = new web3.utils.BN(currentPosition.amounts[0]).mul(new web3.utils.BN(poolInfo3.tokenData[0].accCakePerShare)).div(unity)
     const proportionOfPool = new web3.utils.BN(poolInfo3.allocPoint).mul(unity).div(await pantry.totalAllocPoint())
     const cakePending = proportionOfPool.mul(await pantry.cakePerBlock()).div(unity)
 
@@ -1056,6 +1060,78 @@ contract('MasterChef Single User Tests', () => {
 
     assert.equal(cashierCake2.add(cakePending).toString(), cashierCake3.toString())
     assert.equal(selfChefCake2.sub(refundCake).toString(), selfChefCake3.toString())
+
+  })
+
+  it("can use a reducedPenalty NFT in autoChef", async () => {
+    console.log('========AUTOCAKE=======')
+    let cakeDeposit = web3.utils.toWei('1', 'ether')
+
+    //Cake
+    const joeCake1 = await cake.balanceOf(joe)
+    const autoChefCake1 = await cake.balanceOf(autoCakeChef.address)
+    const cakeVaultCake1 = await cake.balanceOf(cakeVault.address)
+    console.log(cakeVaultCake1.toString(), 'test::cakeVaultCake1')
+    const kitchenCake1 = await cake.balanceOf(kitchen.address)
+    const cashierCake1 = await cake.balanceOf(cashier.address)
+    const nftRewardCake1 = await cake.balanceOf(nftRewards.address)
+
+    //UserInfo
+    const joeUserInfo1 = await cakeVault.getUserInfo(joe)
+    const cakeVaultUserInfo1 = await pantry.getUserInfo(0, cakeVault.address)
+
+    const positionId = joeUserInfo1.positions.length
+
+    //PoolInfo
+    const poolInfo1 = await pantry.getPoolInfo.call(0)
+
+    //NFT
+    const nftId  =  5;
+    const reducedPenaltyNft = await reducedPenalty.balanceOf(joe, nftId)
+    assert.equal(reducedPenaltyNft.toString(), 1)
+    const reduction = await reducedPenalty.reductionAmounts(nftId)
+    assert.equal(reduction.token, cake.address)
+
+    await cake.approve(
+      cakeVault.address,
+      cakeDeposit,
+      {from: joe}
+    )
+
+    await cakeVault.deposit(
+      cakeDeposit,
+      hourInSeconds,
+      reducedPenalty.address,
+      nftId,
+      {from: joe}
+    )
+    const cakePerBlock = (await pantry.cakePerBlock()).mul(new web3.utils.BN(poolInfo1.allocPoint)).div(await pantry.totalAllocPoint())
+    console.log('cakePErBlock', cakePerBlock.toString())
+
+    //Cake
+    const joeCake2 = await cake.balanceOf(joe)
+    const autoChefCake2 = await cake.balanceOf(autoCakeChef.address)
+    const cakeVaultCake2 = await cake.balanceOf(cakeVault.address)
+    const kitchenCake2 = await cake.balanceOf(kitchen.address)
+    const cashierCake2 = await cake.balanceOf(cashier.address)
+    const nftRewardCake2 = await cake.balanceOf(nftRewards.address)
+    console.log('autChefCake1', autoChefCake1.toString())
+    console.log('autChefCake2', autoChefCake2.toString())
+    console.log('cakeVaultCake1', cakeVaultCake1.toString())
+    console.log('cakeVaultCake2', cakeVaultCake2.toString())
+    assert.equal(joeCake1.sub(new web3.utils.BN(cakeDeposit)).toString(), joeCake2.toString())
+    assert.equal(cakeVaultCake1.add(new web3.utils.BN(cakeDeposit)).toString(), autoChefCake2.toString())
+
+    //UserInfo
+    const joeUserInfo2 = await cakeVault.getUserInfo(joe)
+    const cakeVaultUserInfo2 = await pantry.getUserInfo(0, cakeVault.address)
+
+
+    //PoolInfo
+    const poolInfo2 = await pantry.getPoolInfo.call(0)
+
+    await cakeVault.withdraw(positionId, {from: joe})
+
 
   })
 

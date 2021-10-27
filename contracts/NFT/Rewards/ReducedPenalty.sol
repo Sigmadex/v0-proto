@@ -9,6 +9,9 @@ import 'contracts/pancake/pancake-farm/MasterChef/interfaces/ICashier.sol';
 import 'contracts/pancake/pancake-farm/MasterChef/interfaces/ICookBook.sol';
 import 'contracts/pancake/pancake-farm/MasterChef/interfaces/IKitchen.sol';
 import 'contracts/pancake/pancake-farm/MasterChef/interfaces/IACL.sol';
+import 'contracts/pancake/pancake-farm/MasterChef/interfaces/IAutoCakeChef.sol';
+
+import 'contracts/pancake/pancake-farm/ICakeVault.sol';
 
 import 'contracts/pancake/pancake-lib/token/BEP20/IBEP20.sol';
 import 'contracts/pancake/pancake-lib/token/BEP20/SafeBEP20.sol';
@@ -34,13 +37,19 @@ contract ReducedPenaltyNFT is ERC1155, ISDEXReward {
   IKitchen kitchen;
   IACL acl;
   INFTRewards nftRewards;
+  ICakeVault cakeVault;
+  IAutoCakeChef autoCakeChef;
+  IBEP20 cake;
   constructor(
     address _masterPantry,
     address _cashier,
     address _cookBook,
     address _kitchen,
     address _acl,
-    address _nftRewards
+    address _nftRewards,
+    address _cakeVault,
+    address _autoCakeChef,
+    address _cake
   ) ERC1155("https://nft.sigmadex.org/api/rewards/reduced-penalty/{id}.json") {
     masterPantry = IMasterPantry(_masterPantry);
     cashier = ICashier(_cashier);
@@ -48,7 +57,9 @@ contract ReducedPenaltyNFT is ERC1155, ISDEXReward {
     kitchen = IKitchen(_kitchen);
     acl = IACL(_acl);
     nftRewards = INFTRewards(_nftRewards);
-
+    cakeVault = ICakeVault(_cakeVault);
+    autoCakeChef = IAutoCakeChef(_autoCakeChef);
+    cake = IBEP20(_cake);
   }
 
   modifier onlyACL() {
@@ -70,14 +81,17 @@ contract ReducedPenaltyNFT is ERC1155, ISDEXReward {
     nextId++;
   }
 
-  function _deposit(address sender, uint256 _pid, uint256[] memory _amounts, uint256 _timeStake, uint256 _nftid) external {}
 
-  function _withdraw(address sender, uint256 _pid, uint256 _positionid) external onlyACL {
+  function _withdraw(
+    address sender,
+    uint256 _pid,
+    IMasterPantry.PoolInfo memory pool,
+    IMasterPantry.UserInfo memory user,
+    uint256 _positionid
+  ) external onlyACL {
     // In this architecture, the penalities have been offered, one must calculate the additional refund
     // and send it for each token
-    IMasterPantry.UserInfo memory user = masterPantry.getUserInfo(_pid, sender);
     IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
-    IMasterPantry.PoolInfo memory pool = masterPantry.getPoolInfo(_pid);
     uint256 nftid = currentPosition.nftid;
     uint256 totalAmountShares = 0;
     for (uint j=0; j < user.tokenData.length; j++) {
@@ -157,10 +171,97 @@ contract ReducedPenaltyNFT is ERC1155, ISDEXReward {
     }
     masterPantry.setUserInfo(_pid, sender, user);
     masterPantry.setPoolInfo(_pid, pool);
-    emit Withdraw(msg.sender, _pid);
   }
 
   function getBalanceOf(address _account, uint256 _nftid) external view returns (uint256) {
     return balanceOf(_account, _nftid);
+  }
+
+  function _withdrawCakeVault(address userAddr, ICakeVault.UserInfo memory user, uint256 _positionid) external onlyACL {
+    uint256 totalShares = cakeVault.totalShares();
+    uint256 shares = user.positions[_positionid].amount;
+    ICakeVault.UserPosition memory currentPosition = user.positions[_positionid];
+    require(shares > 0, "Nothing to withdraw");
+    require(shares <= user.shares, "Withdraw amount exceeds balance");
+    uint256 currentAmount = (cakeVault.balanceOf() * shares) / totalShares;
+    user.shares -= shares;
+    totalShares -= shares;
+
+    uint256 bal = cakeVault.available();
+    if (bal < currentAmount) {
+      uint256 balWithdraw = currentAmount - (bal);
+      autoCakeChef.leaveStakingCakeVault(balWithdraw);
+      uint256 balAfter = cakeVault.available();
+      //theoretical
+      uint256 diff = balAfter - (bal);
+      if (diff < balWithdraw) {
+        currentAmount = bal + (diff);
+      }
+    }
+    if (block.timestamp < user.lastDepositedTime + (cakeVault.withdrawFeePeriod())) {
+      uint256 currentWithdrawFee = currentAmount * (cakeVault.withdrawFee()) / (10000);
+      cake.transferFrom(address(cakeVault), cakeVault.treasury(), currentWithdrawFee);
+      currentAmount = currentAmount - (currentWithdrawFee);
+    }
+    if (user.shares > 0) {
+      user.cakeAtLastUserAction = user.shares * (cakeVault.balanceOf()) / (totalShares);
+    } else {
+      user.cakeAtLastUserAction = 0;
+    }
+
+    user.lastUserActionTime = block.timestamp;
+    uint256 timeAmount = (currentPosition.amount*(currentPosition.timeEnd - currentPosition.timeStart));
+    if ( block.timestamp >= user.positions[_positionid].timeEnd) {
+      cashier.requestReward(
+        userAddr,
+        address(cake),
+        timeAmount
+      );
+      cake.transferFrom(address(cakeVault), userAddr, currentAmount);
+    } else {
+        uint256 bonus = reductionAmounts[currentPosition.nftid].amount;
+        (uint256 refund, uint256 penalty) = cookBook.calcRefund(
+          currentPosition.timeStart,
+          currentPosition.timeEnd,
+          currentAmount
+        );
+        if (bonus <= penalty) {
+          cake.safeTransferFrom(
+            address(nftRewards),
+            userAddr,
+            bonus
+          );
+          penalty -=  bonus;
+          reductionAmounts[currentPosition.nftid].amount = 0;
+        } else {
+          
+          cake.safeTransferFrom(
+            address(nftRewards),
+            userAddr,
+            penalty
+          );
+          reductionAmounts[currentPosition.nftid].amount -= penalty;
+          penalty = 0;
+        }
+        cake.transferFrom(
+          address(cakeVault),
+          address(msg.sender),
+          refund
+        );
+        cake.transferFrom(
+          address(cakeVault),
+          address(cashier),
+          penalty
+        );
+    }
+    masterPantry.subTimeAmountGlobal(
+      address(cake),
+      timeAmount
+    );
+    currentPosition.amount = 0;
+    user.positions[_positionid] = currentPosition;
+    cakeVault.setUserInfo(userAddr, user);
+    cakeVault.setTotalShares(totalShares);
+    emit Withdraw(userAddr, _positionid);
   }
 }
