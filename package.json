@@ -14,6 +14,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "hardhat": "^2.6.4",
     "hardhat-contract-sizer": "^2.1.1",
+    "hardhat-deploy": "^0.9.4",
     "web3": "^1.5.3"
   },
   "dependencies": {
