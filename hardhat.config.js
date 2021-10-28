@@ -4,7 +4,6 @@ require('dotenv').config()
  */
 require('@nomiclabs/hardhat-truffle5')
 require('hardhat-contract-sizer');
-require('hardhat-deploy');
 
 module.exports = {
   contractSizer: {
@@ -19,10 +18,6 @@ module.exports = {
       enabled: true,
       runs: 200
     }
-  },
-  namedAccounts: {
-    deployer: 0,
-    diamondAdmin: 1
   },
   defaultNetwork: "hardhat",
   networks: {
