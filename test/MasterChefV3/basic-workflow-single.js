@@ -392,6 +392,7 @@ contract('MasterChef Single User Tests', () => {
     )
     const stakeBN = new web3.utils.BN(stakeAmount)
     const accCakePerShare = cakeReward.mul(unity).div(stakeBN)
+    console.log('accCakePerShar', accCakePerShare.toString())
     poolInfo = await pantry.getPoolInfo.call(poolId)
     assert.equal(poolInfo.tokenData[0].token, erc20a.address)
     assert.equal(poolInfo.tokenData[0].supply, 0)

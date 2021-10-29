@@ -37,6 +37,7 @@ struct UserPosition {
   uint256 nftid;
 }
 
+
 struct VaultUserInfo {
   uint256 shares; // number of shares for a user
   uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
@@ -44,6 +45,12 @@ struct VaultUserInfo {
   uint256 lastUserActionTime; // keeps track of the last user action time
   UserPosition[] positions; // tracks users staked for a time period
 }
+
+struct RPAmount {
+  address token;
+  uint256 amount;
+}
+
 struct AppStorage {
   //Farm
   uint256 unity;
@@ -59,22 +66,22 @@ struct AppStorage {
   uint256 sdexRewarded;
 
   //SDEX
-  mapping(address => uint256) _sdexBalances;
-  mapping(address => mapping(address => uint256))  _sdexAllowances;
-  uint256 _sdexTotalSupply;
+  mapping(address => uint256) sdexBalances;
+  mapping(address => mapping(address => uint256))  sdexAllowances;
+  uint256 sdexTotalSupply;
 
-  string _sdexName;
-  string _sdexSymbol;
-  uint8 _sdexDecimals;
+  string sdexName;
+  string sdexSymbol;
+  uint8 sdexDecimals;
 
   //Vault Shares
-  mapping(address => uint256) _vSharesBalances;
-  mapping(address => mapping(address => uint256))  _vSharesAllowances;
-  uint256 _vSharesTotalSupply;
+  mapping(address => uint256) vSharesBalances;
+  mapping(address => mapping(address => uint256))  vSharesAllowances;
+  uint256 vSharesTotalSupply;
 
-  string _vSharesName;
-  string _vSharesSymbol;
-  uint8 _vSharesDecimals;
+  string vSharesName;
+  string vSharesSymbol;
+  uint8 vSharesDecimals;
 
   //Vault
   mapping(address => VaultUserInfo) vaultUserInfo;
@@ -96,19 +103,26 @@ struct AppStorage {
   // NFT
   mapping (address => address[]) rewards;
   uint256 seed;
+  //Reduced Penalty NFT
+  mapping(uint256 => mapping(address => uint256))  rPBalances;
+  mapping(address => mapping(address => bool))  rPOperatorApprovals;
+  mapping(uint256 => RPAmount)  rPAmounts;
+  string  rPUri;
+  uint256 rPNextId;
+
 }
 
 
 library LibAppStorage {
-	function diamondStorage() internal pure returns (AppStorage storage ds) {
-		assembly {
-			ds.slot := 0
-		}
-	}
+  function diamondStorage() internal pure returns (AppStorage storage ds) {
+    assembly {
+      ds.slot := 0
+    }
+  }
 
-	function abs(int256 x) internal pure returns (uint256) {
-		return uint256(x >= 0 ? x : -x);
-	}
+  function abs(int256 x) internal pure returns (uint256) {
+    return uint256(x >= 0 ? x : -x);
+  }
 }
 
 contract Modifiers {

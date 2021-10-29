@@ -42,7 +42,7 @@ contract DiamondInit {
 
     // Farm
     s.unity = 1e27;
-    s.sdexPerBlock = 1;
+    s.sdexPerBlock = 1 ether;
     s.BONUS_MULTIPLIER = 1;
     s.startBlock = 0;
     s.sdexRewarded = 0;
@@ -58,15 +58,15 @@ contract DiamondInit {
     s.poolLength = 1;
     s.totalAllocPoint = 1000;
     // SDEX
-    s._sdexTotalSupply = 0;
-    s._sdexName = 'Sigmadex';
-    s._sdexSymbol = 'SDEX';
-    s._sdexDecimals = 18;
+    s.sdexTotalSupply = 0;
+    s.sdexName = 'Sigmadex';
+    s.sdexSymbol = 'SDEX';
+    s.sdexDecimals = 18;
 
     // Vault Shares
-    s._vSharesName = 'Vaultshares';
-    s._vSharesSymbol = 'VSHR';
-    s._vSharesDecimals = 18;
+    s.vSharesName = 'Vaultshares';
+    s.vSharesSymbol = 'VSHR';
+    s.vSharesDecimals = 18;
 
     // SDEX Vault
     s.vaultTotalShares = 0;

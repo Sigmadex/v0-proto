@@ -11,8 +11,8 @@ contract SdexFacet is IERC20, Context, Modifiers {
     require(to != address(0), 'ERC20: mint to the zero address');
     AppStorage storage s = LibAppStorage.diamondStorage();
 
-    s._sdexTotalSupply +=  amount;
-    s._sdexBalances[to] += amount;
+    s.sdexTotalSupply +=  amount;
+    s.sdexBalances[to] += amount;
 
     emit Transfer(address(0), to, amount);
   }
@@ -20,24 +20,24 @@ contract SdexFacet is IERC20, Context, Modifiers {
     require(to != address(0), 'ERC20: mint to the zero address');
     AppStorage storage s = LibAppStorage.diamondStorage();
 
-    s._sdexTotalSupply +=  amount;
-    s._sdexBalances[to] += amount;
+    s.sdexTotalSupply +=  amount;
+    s.sdexBalances[to] += amount;
 
     emit Transfer(address(0), to, amount);
   }
 
   function name() public  view returns (string memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s._sdexName;
+    return s.sdexName;
 
   }
   function decimals() public  view returns (uint8) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s._sdexDecimals;
+    return s.sdexDecimals;
   }
   function symbol() public  view returns (string memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s._sdexSymbol;
+    return s.sdexSymbol;
   }
 
   /**
@@ -45,7 +45,7 @@ contract SdexFacet is IERC20, Context, Modifiers {
    */
   function totalSupply() external view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s._sdexTotalSupply;
+    return s.sdexTotalSupply;
   }
 
   /**
@@ -53,7 +53,7 @@ contract SdexFacet is IERC20, Context, Modifiers {
    */
   function balanceOf(address account) external view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s._sdexBalances[account];
+    return s.sdexBalances[account];
   }
 
   /**
@@ -77,7 +77,7 @@ contract SdexFacet is IERC20, Context, Modifiers {
     */
   function allowance(address owner, address spender) external view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s._sdexAllowances[owner][spender];
+    return s.sdexAllowances[owner][spender];
   }
 
   /**
@@ -117,7 +117,7 @@ contract SdexFacet is IERC20, Context, Modifiers {
 
     _transfer(sender, recipient, amount);
 
-    uint256 currentAllowance = s._sdexAllowances[sender][_msgSender()];
+    uint256 currentAllowance = s.sdexAllowances[sender][_msgSender()];
     require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
     unchecked {
       _approve(sender, _msgSender(), currentAllowance - amount);
@@ -136,12 +136,12 @@ contract SdexFacet is IERC20, Context, Modifiers {
 
     AppStorage storage s = LibAppStorage.diamondStorage();
 
-    uint256 senderBalance = s._sdexBalances[sender];
+    uint256 senderBalance = s.sdexBalances[sender];
     require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
     unchecked {
-      s._sdexBalances[sender] = senderBalance - amount;
+      s.sdexBalances[sender] = senderBalance - amount;
     }
-    s._sdexBalances[recipient] += amount;
+    s.sdexBalances[recipient] += amount;
 
     emit Transfer(sender, recipient, amount);
   }
@@ -155,7 +155,7 @@ contract SdexFacet is IERC20, Context, Modifiers {
 
     AppStorage storage s = LibAppStorage.diamondStorage();
 
-    s._sdexAllowances[owner][spender] = amount;
+    s.sdexAllowances[owner][spender] = amount;
     emit Approval(owner, spender, amount);
   }
 }

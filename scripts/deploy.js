@@ -11,6 +11,9 @@ const SdexFacet = artifacts.require('SdexFacet')
 const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
 
+const RewardFacet = artifacts.require('RewardFacet')
+const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+
 async function deployDiamond () {
   const accounts = await web3.eth.getAccounts()
   const owner = accounts[0]
@@ -29,7 +32,9 @@ async function deployDiamond () {
     OwnershipFacet,
     SdexFacet,
     ToolShedFacet,
-    TokenFarmFacet
+    TokenFarmFacet,
+    RewardFacet,
+    ReducedPenaltyFacet
   ]
 
   const cut = []

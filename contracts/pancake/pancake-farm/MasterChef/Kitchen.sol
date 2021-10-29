@@ -78,8 +78,11 @@ contract Kitchen is Ownable {
 		//cake.mint(devaddr, cakeReward.div(10));
     // cake is made in the kitchen, kept in the kitchen and provided from the kitchen 
 		cake.mint(address(this), cakeReward);
+    console.log('kitchen::cakeReward', cakeReward);
 		for (uint j=0; j < pool.tokenData.length; j++) {
+      console.log('kichen update', pool.tokenData[j].accCakePerShare);
 			pool.tokenData[j].accCakePerShare =  pool.tokenData[j].accCakePerShare + cakeReward* masterPantry.unity() / (pool.tokenData.length*supplies[j]);
+      console.log('kichen update', pool.tokenData[j].accCakePerShare);
 		}
 		pool.lastRewardBlock = block.number;
     masterPantry.setPoolInfo(_pid, pool);
