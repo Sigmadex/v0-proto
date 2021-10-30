@@ -9,6 +9,5 @@ interface ISdexReward {
     address sender,
     uint256 pid,
     uint256 _positionid) external;
-  function _withdrawCakeVault(address sender, VaultUserInfo memory userInfo, uint256 positionid) external;
-  function getBalanceOf(address account, uint256 nftid) external view returns (uint256);
+  function withdrawVault(address sender, uint256 positionid) external;
 }

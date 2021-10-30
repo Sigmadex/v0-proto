@@ -29,7 +29,6 @@ contract ToolShedFacet {
     SdexFacet(address(this)).mint(address(this), sdexReward);
 		for (uint j=0; j < pool.tokenData.length; j++) {
 			pool.tokenData[j].accSdexPerShare =  pool.tokenData[j].accSdexPerShare + sdexReward* s.unity / (pool.tokenData.length*supplies[j]);
-      
 		}
 		pool.lastRewardBlock = block.number;
 	}

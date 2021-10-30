@@ -9,7 +9,7 @@ pragma solidity ^0.8.0;
 /******************************************************************************/
 
 import {LibDiamond} from "../libraries/LibDiamond.sol";
-import { AppStorage, PoolInfo, PoolTokenData } from '../libraries/LibAppStorage.sol';
+import { AppStorage, PoolInfo, PoolTokenData, Reward } from '../libraries/LibAppStorage.sol';
 import { IDiamondLoupe } from "../interfaces/IDiamondLoupe.sol";
 import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
 import { IERC173 } from "../interfaces/IERC173.sol";
@@ -25,7 +25,12 @@ contract DiamondInit {
   AppStorage internal s;
   // You can add parameters to this function in order to pass in 
   // data to set your own state variables
-  function init() external {
+  function init(
+    address reducedPenaltyReward,
+    bytes4 _withdrawSelector,
+    bytes4 _vaultWithdrawSelector,
+    bytes4 _rewardSelector
+  ) external {
     // adding ERC165 data
     LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
     ds.supportedInterfaces[type(IERC165).interfaceId] = true;
@@ -80,7 +85,18 @@ contract DiamondInit {
     s.withdrawFee = 10;
     s.withdrawFeePeriod = 72 hours;
 
-    // NFT
+    // Rewards 
     s.seed = 11111460156937785151929026842503960837766832936;
+
+    //Reduced Penalty Rewards
+    s.reducedPenaltyReward = reducedPenaltyReward;
+    s.rewards[reducedPenaltyReward] = Reward({
+      withdrawSelector: _withdrawSelector,
+      vaultWithdrawSelector: _vaultWithdrawSelector,
+      rewardSelector: _rewardSelector
+    });
+    s.rPNextId = 1;
+
+
   }
 }

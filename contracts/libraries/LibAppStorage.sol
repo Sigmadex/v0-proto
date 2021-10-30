@@ -5,6 +5,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 struct TokenRewardData {
   uint256 timeAmountGlobal;
   uint256 rewarded;
+  uint256 penalties;
 }
 
 struct PoolTokenData {
@@ -51,6 +52,13 @@ struct RPAmount {
   uint256 amount;
 }
 
+struct Reward{
+  // Withdraw fn
+  // Withdraw Vault fn
+  bytes4 withdrawSelector;
+  bytes4 vaultWithdrawSelector;
+  bytes4 rewardSelector;
+}
 struct AppStorage {
   //Farm
   uint256 unity;
@@ -101,13 +109,14 @@ struct AppStorage {
   uint256 withdrawFeePeriod; // 3 days
 
   // NFT
-  mapping (address => address[]) rewards;
+  // Token addr => valid NFT rewards
+  mapping (address => address[]) validRewards;
+  // NFT Reward addres to reward struct
+  mapping (address => Reward) rewards;
   uint256 seed;
-  //Reduced Penalty NFT
-  mapping(uint256 => mapping(address => uint256))  rPBalances;
-  mapping(address => mapping(address => bool))  rPOperatorApprovals;
+  //Reduced Penalty Reward
+  address reducedPenaltyReward;
   mapping(uint256 => RPAmount)  rPAmounts;
-  string  rPUri;
   uint256 rPNextId;
 
 }

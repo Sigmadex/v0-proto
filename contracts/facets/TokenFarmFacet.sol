@@ -1,10 +1,11 @@
 pragma solidity 0.8.9;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo } from '../libraries/LibAppStorage.sol';
+import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo, Reward } from '../libraries/LibAppStorage.sol';
 import './ToolShedFacet.sol';
 import '../interfaces/ISdexReward.sol';
 import './RewardFacet.sol';
+import './RewardFacets/ReducedPenaltyFacet.sol';
 contract TokenFarmFacet is Modifiers {
   event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
   event Withdraw(address indexed user, uint256 indexed pid);
@@ -52,7 +53,8 @@ contract TokenFarmFacet is Modifiers {
       nftid: 0
     });
     if (nftReward != address(0)) {
-      require(ISdexReward(nftReward).getBalanceOf(msg.sender, nftid) > 0, "User does not have this nft");
+      // FLAG might now work in diamond //
+      require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
       newPosition.nftReward = nftReward;
       newPosition.nftid = nftid;
     }
@@ -73,7 +75,7 @@ contract TokenFarmFacet is Modifiers {
         amounts[j]
       );
       user.tokenData[j].amount += amounts[j];
-      user.tokenData[j].rewardDebt = user.tokenData[j].amount * (pool.tokenData[j].accSdexPerShare) / (s.unity);
+      user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
       pool.tokenData[j].supply += amounts[j];
       s.tokenRewardData[address(pool.tokenData[j].token)].timeAmountGlobal += amounts[j]*timeStake;
 
@@ -87,44 +89,57 @@ contract TokenFarmFacet is Modifiers {
     uint256 positionid
   ) public {
     AppStorage storage s = LibAppStorage.diamondStorage();
+    
     ToolShedFacet(address(this)).updatePool(pid);
     
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
 
     if (position.nftReward != address(0)) {
-      ISdexReward(position.nftReward).withdraw(
-        msg.sender, pid, positionid
-      );
+     Reward memory reward = s.rewards[position.nftReward];
+     bytes memory fnCall = abi.encodeWithSelector(
+       reward.withdrawSelector,
+       msg.sender,
+       pid,
+       positionid
+     );
+     (bool success,) = address(this)
+      .delegatecall(fnCall);
+      require(success, "withdraw failed");
+      
     } else {
       PoolInfo storage pool = s.poolInfo[pid];
       uint256 totalAmountShares = 0;
       //Manage Tokens 
       for (uint j=0; j < user.tokenData.length; j++) {
+        IERC20 token = pool.tokenData[j].token;
         uint256 stakeTime = position.timeEnd - position.timeStart;
-        totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare;
+        totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
         if (position.timeEnd < block.timestamp) {
           //past expiry date
           //return tokens
-          IERC20(pool.tokenData[j].token).transfer(
+          token.transfer(
             address(msg.sender),
             position.amounts[j]
           );
           //request nft Reward
           RewardFacet(address(this)).requestReward(
-            msg.sender, address(pool.tokenData[j].token), stakeTime*position.amounts[j]
+            msg.sender, address(token), stakeTime*position.amounts[j]
           );
         } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.timeStart, position.timeEnd, position.amounts[j]
           );
-          IERC20(pool.tokenData[j].token).transfer(
+
+          token.transfer(
             msg.sender,
             refund
           );
+          s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
+          s.tokenRewardData[address(token)].penalties += penalty;
         }
-        s.tokenRewardData[address(pool.tokenData[j].token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
         user.tokenData[j].amount -= position.amounts[j];
+        user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
         pool.tokenData[j].supply -= position.amounts[j];
         position.amounts[j] = 0;
       }
@@ -138,6 +153,8 @@ contract TokenFarmFacet is Modifiers {
           RewardFacet(address(this)).requestSdexReward(
             msg.sender, position.startBlock, pool.allocPoint, totalAmountShares
           );
+        } else {
+          //s.tokenRewardData[address(this)].penalties += pending;
         } 
       }
     }

@@ -11,12 +11,18 @@ const SdexFacet = artifacts.require('SdexFacet')
 const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
 
+//Rewards
 const RewardFacet = artifacts.require('RewardFacet')
+
+const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+
 
 async function deployDiamond () {
   const accounts = await web3.eth.getAccounts()
   const owner = accounts[0]
+
+
   // deploy DiamondCutFacet
   const diamondCutFacet = await deploy(owner, DiamondCutFacet)
   console.log('DiamondCutFacet deployed:', diamondCutFacet._address)
@@ -48,10 +54,26 @@ async function deployDiamond () {
     })
   }
   console.log('Diamond Cut:', cut)
+
+
+  //Gen 0 NFTS
+  const reducedPenaltyReward =  await deploy(owner, ReducedPenaltyReward, [diamond._address])
+  const withdrawSignature = web3.eth.abi.encodeFunctionSignature(
+    ReducedPenaltyFacet.abi.find((f) => /rPRWithdraw/.test(f.name) == true)
+  )
+  const vaultWithdrawSignature = web3.eth.abi.encodeFunctionSignature(
+    ReducedPenaltyFacet.abi.find((f) => /rPRWithdrawVault/.test(f.name) == true)
+  )
+  const rewardSignature = web3.eth.abi.encodeFunctionSignature(
+    ReducedPenaltyFacet.abi.find((f) => /rPRReward/.test(f.name) == true)
+  )
+
+  
+
   const diamondCut = await new web3.eth.Contract(IDiamondCut.abi, diamond._address)
   const fnCall = web3.eth.abi.encodeFunctionCall(
     DiamondInit.abi.find((f) => f.name == 'init'),
-    []
+    [reducedPenaltyReward._address, withdrawSignature, vaultWithdrawSignature, rewardSignature]
   )
   console.log('function call sig: ', fnCall)
 

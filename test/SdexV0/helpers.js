@@ -20,6 +20,54 @@ function calcPenalty(elapsedTime, stakeTime, stakeAmount) {
   const penalty = (new web3.utils.BN(stakeAmount)).sub(refund)
   return {refund, penalty}
 }
+
+async function calcNFTRewardAmount(token, toolShed, diamondAddress,  stakeTime, stakeAmount) {
+  const rewardData = await toolShed.methods.tokenRewardData(token._address).call()
+  const penalties = new web3.utils.BN(rewardData.penalties);
+  const gtaToken =  new web3.utils.BN(rewardData.timeAmountGlobal)
+  const ltaToken =  new web3.utils.BN(fromExponential(new web3.utils.BN(stakeTime)*stakeAmount))
+  return ltaToken.mul(penalties).div(gtaToken)
+}
+
+async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, diamondAddress, poolid, blocksAhead, user, positionid) {
+  const poolInfo = (await tokenFarmFacet.methods.poolInfo(poolid).call())
+  const userInfo = await tokenFarmFacet.methods.userInfo(poolid, user ).call()
+  const position = userInfo.positions[positionid]
+
+  const poolAllocPoints = new web3.utils.BN(poolInfo.allocPoint)
+  const totalAllocPoints = new web3.utils.BN(await toolShedFacet.methods.totalAllocPoint().call())
+  const sdexPerBlock = new web3.utils.BN(await toolShedFacet.methods.sdexPerBlock().call())
+
+  
+  //Update Pool""
+  const sdexReward = new web3.utils.BN(blocksAhead+1).mul(sdexPerBlock).mul(poolAllocPoints).div(totalAllocPoints)
+  let tAShares = [];
+  for (let i=0; i < poolInfo.tokenData.length; i++) {
+    const accZeroInit = new web3.utils.BN(poolInfo.tokenData[i].accSdexPerShare)
+    const additionNumer = sdexReward.mul(unity)
+    const supply = new web3.utils.BN(poolInfo.tokenData[i].supply)
+    const length = new web3.utils.BN(poolInfo.tokenData.length)
+    const additionDenominator = supply.mul(length)
+    const newAddition = additionNumer.div(additionDenominator)
+    const accSdex0 = accZeroInit.add(newAddition);
+    const amount = new web3.utils.BN(position.amounts[i])
+    const rewardDebt = new web3.utils.BN(userInfo.tokenData[i].rewardDebt)
+    const timeAmountShares = amount.mul(accSdex0).sub(rewardDebt)
+    tAShares.push(timeAmountShares)
+  }
+
+  const totalAmountShares = tAShares.reduce((a,b) => a.add(b))
+
+  const tokenRewardData = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
+  const diamondSdex  = await sdexFacet.methods.balanceOf(diamondAddress).call()
+  const sdexBalance = new web3.utils.BN(diamondSdex).sub(new web3.utils.BN(tokenRewardData.penalties))
+
+  const proportion = new web3.utils.BN(totalAmountShares).div(sdexReward)
+  const reward = sdexBalance.mul(proportion).div(unity)
+  return reward
+}
 exports.calcSdexReward = calcSdexReward
 exports.unity = unity
 exports.calcPenalty = calcPenalty
+exports.calcNFTRewardAmount = calcNFTRewardAmount
+exports.calcSdexNFTRewardAmount = calcSdexNFTRewardAmount
