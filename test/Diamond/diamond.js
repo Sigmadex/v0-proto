@@ -7,6 +7,8 @@ const OwnershipFacet = artifacts.require('OwnershipFacet')
 const SdexFacet = artifacts.require('SdexFacet')
 const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
+const AutoSdexFarmFacet = artifacts.require('AutoSdexFarmFacet')
+const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
 const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
 
@@ -20,6 +22,8 @@ contract("Diamond", (accounts) => {
   let sdexFacet;
   let toolShedFacet;
   let tokenFarmFacet;
+  let autoSdexFarmFacet;
+  let sdexVaultFacet;
   let rewardFacet;
   let reducedPenaltyFacet;
   const addresses = []
@@ -30,18 +34,20 @@ contract("Diamond", (accounts) => {
     ownershipFacet = new web3.eth.Contract(OwnershipFacet.abi, diamondAddress)
     toolShedFacet = new web3.eth.Contract(ToolShedFacet.abi, diamondAddress)
     tokenFarmFacet = new web3.eth.Contract(TokenFarmFacet.abi, diamondAddress)
+    autoSdexFarmFacet = new web3.eth.Contract(AutoSdexFarmFacet.abi, diamondAddress)
+    sdexVaultFacet = new web3.eth.Contract(SdexVaultFacet.abi, diamondAddress)
     sdexFacet = new web3.eth.Contract(SdexFacet.abi, diamondAddress)
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
     reducedPenaltyFacet = new web3.eth.Contract(ReducedPenaltyFacet.abi, diamondAddress)
 
 	})
 
-  it("8 facets", async () => {
+  it("10 facets", async () => {
     const addrs = await diamondLoupeFacet.methods.facetAddresses().call()
     for (const address of await diamondLoupeFacet.methods.facetAddresses().call()) {
 			addresses.push(address)
 		}
-		assert.equal(addresses.length, 8) 
+		assert.equal(addresses.length, 10) 
   })
 
   it("should have correct selectors", async () => {
@@ -63,11 +69,17 @@ contract("Diamond", (accounts) => {
     selectors = getSelectors(tokenFarmFacet)
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[5]).call()
     assert.sameMembers(result, selectors)
-    selectors = getSelectors(rewardFacet)
+    selectors = getSelectors(autoSdexFarmFacet)
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[6]).call()
     assert.sameMembers(result, selectors)
-    selectors = getSelectors(reducedPenaltyFacet)
+    selectors = getSelectors(sdexVaultFacet)
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[7]).call()
+    assert.sameMembers(result, selectors)
+    selectors = getSelectors(rewardFacet)
+    result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[8]).call()
+    assert.sameMembers(result, selectors)
+    selectors = getSelectors(reducedPenaltyFacet)
+    result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[9]).call()
     assert.sameMembers(result, selectors)
   })
 

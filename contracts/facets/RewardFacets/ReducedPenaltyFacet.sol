@@ -112,7 +112,7 @@ contract ReducedPenaltyFacet is  Modifiers {
   }
 
 
-  function rPWithdrawVault(address sender, uint256 positionid) external onlyDiamond {
+  function rPWithdrawVault(uint256 positionid) external onlyDiamond {
     /*
     uint256 totalShares = cakeVault.totalShares();
     uint256 shares = user.positions[_positionid].amount;

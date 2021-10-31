@@ -65,7 +65,7 @@ contract RewardFacet is Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData memory tokenRewardData = s.tokenRewardData[address(this)];
      
-    uint256 sdexBalance = s.sdexBalances[address(this)] - tokenRewardData.penalties;
+    uint256 sdexBalance = s.sdexBalances[address(this)] - tokenRewardData.penalties - s.vSdex;
 
     // totalSdexEmission
     uint256 elapsedBlocks = block.number - positionStartBlock;

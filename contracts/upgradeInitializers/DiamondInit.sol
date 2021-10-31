@@ -74,16 +74,16 @@ contract DiamondInit {
     s.vSharesDecimals = 18;
 
     // SDEX Vault
-    s.vaultTotalShares = 0;
-    s.lastHarvestedTime = 0;
-    s.MAX_PERFORMANCE_FEE = 500;
-    s.MAX_CALL_FEE = 100;
-    s.MAX_WITHDRAW_FEE = 100;
-    s.MAX_WITHDRAW_FEE_PERIOD = 72 hours;
-    s.performanceFee = 200;
-    s.callFee = 25;
-    s.withdrawFee = 10;
-    s.withdrawFeePeriod = 72 hours;
+    s.vTotalShares = 0;
+    s.vLastHarvestedTime = 0;
+    s.vMAX_PERFORMANCE_FEE = 500;
+    s.vMAX_CALL_FEE = 100;
+    s.vMAX_WITHDRAW_FEE = 100;
+    s.vMAX_WITHDRAW_FEE_PERIOD = 72 hours;
+    s.vPerformanceFee = 200;
+    s.vCallFee = 25;
+    s.vWithdrawFee = 10;
+    s.vWithdrawFeePeriod = 72 hours;
 
     // Rewards 
     s.seed = 11111460156937785151929026842503960837766832936;

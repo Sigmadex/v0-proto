@@ -1,11 +1,11 @@
 pragma solidity 0.8.9;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC1155/IERC1155.sol';
+
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo, Reward } from '../libraries/LibAppStorage.sol';
 import './ToolShedFacet.sol';
-import '../interfaces/ISdexReward.sol';
 import './RewardFacet.sol';
-import './RewardFacets/ReducedPenaltyFacet.sol';
 contract TokenFarmFacet is Modifiers {
   event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
   event Withdraw(address indexed user, uint256 indexed pid);
@@ -41,7 +41,7 @@ contract TokenFarmFacet is Modifiers {
     address nftReward,
     uint256 nftid
   ) public {
-    require(pid != 0, "Please use the Self Chef or Cake vault for this token please");
+    //require(pid != 0, "Please use the SdexVault or ManualSdexFarm Facets for this token please");
     AppStorage storage s = LibAppStorage.diamondStorage();
     ToolShedFacet(address(this)).updatePool(pid);
     UserPosition memory newPosition  = UserPosition({
@@ -81,6 +81,9 @@ contract TokenFarmFacet is Modifiers {
 
     }
     user.positions.push(newPosition);
+    if (pid == 0) {
+      s.vSharesBalances[msg.sender] += newPosition.amounts[0];
+    }
     emit Deposit(msg.sender, pid, amounts);
   }
 
@@ -153,6 +156,9 @@ contract TokenFarmFacet is Modifiers {
           );
         } 
       }
+    }
+    if (pid == 0) {
+      s.vSharesBalances[msg.sender] -= position.amounts[0];
     }
   }
 

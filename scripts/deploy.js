@@ -10,7 +10,8 @@ const IDiamondCut = artifacts.require('IDiamondCut')
 const SdexFacet = artifacts.require('SdexFacet')
 const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
-
+const AutoSdexFarmFacet = artifacts.require('AutoSdexFarmFacet')
+const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 //Rewards
 const RewardFacet = artifacts.require('RewardFacet')
 
@@ -39,6 +40,8 @@ async function deployDiamond () {
     SdexFacet,
     ToolShedFacet,
     TokenFarmFacet,
+    AutoSdexFarmFacet,
+    SdexVaultFacet,
     RewardFacet,
     ReducedPenaltyFacet
   ]
