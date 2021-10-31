@@ -1,20 +1,23 @@
 pragma solidity 0.8.9;
 
-import { AppStorage, LibAppStorage, Modifiers, RPAmount } from '../../libraries/LibAppStorage.sol';
+import { AppStorage, LibAppStorage, Modifiers, RPAmount, PoolInfo, UserInfo, UserPosition } from '../../libraries/LibAppStorage.sol';
 import '../../interfaces/IERC1155.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+
+import '../RewardFacet.sol';
+import '../ToolShedFacet.sol';
 
 contract ReducedPenaltyFacet is  Modifiers {
 
   constructor() {
   }
 
-  function rPRAddress() public returns (address) {
+  function rPAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.reducedPenaltyReward;
   }
 
-  function rPRReward(
+  function rPReward(
     address to,
     address token,
     uint256 amount
@@ -30,100 +33,86 @@ contract ReducedPenaltyFacet is  Modifiers {
     s.rPNextId++;
   }
 
-  function rPRReductionAmount(uint256 id) external returns (RPAmount memory) {
+  function rPReductionAmount(uint256 id) external returns (RPAmount memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.rPAmounts[id];
   }
 
-  function rPRWithdraw(address sender, uint256 pid, uint256 positionid) public onlyDiamond {
-    /*
-    // In this architecture, the penalities have been offered, one must calculate the additional refund
-    // and send it for each token
-    IMasterPantry.UserPosition memory currentPosition = user.positions[_positionid];
-    uint256 nftid = currentPosition.nftid;
+  function rPWithdraw(uint256 pid, uint256 positionid) public  {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    PoolInfo storage pool = s.poolInfo[pid];
+    UserInfo storage user = s.userInfo[pid][msg.sender];
+    UserPosition storage position = user.positions[positionid];
+   
     uint256 totalAmountShares = 0;
+    //Manage Tokens 
     for (uint j=0; j < user.tokenData.length; j++) {
-      uint256 amount = currentPosition.amounts[j];
-      uint256 accCakePerShare = pool.tokenData[j].accCakePerShare;
-      // pool level, verses position level pending question
-      totalAmountShares += amount * accCakePerShare;
-      if (currentPosition.timeEnd < block.timestamp) {
-        pool.tokenData[j].token.safeTransfer(
-          address(sender),
-          amount
+      IERC20 token = pool.tokenData[j].token;
+      uint256 stakeTime = position.timeEnd - position.timeStart;
+      totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
+      if (position.timeEnd < block.timestamp) {
+        //past expiry date
+        //return tokens
+        token.transfer(
+          msg.sender,
+          position.amounts[j]
         );
-        uint256 stakeTime = user.positions[_positionid].timeEnd - user.positions[_positionid].timeStart;
-        cashier.requestReward(sender, address(pool.tokenData[j].token), stakeTime * amount);
+        //request nft Reward
+        RewardFacet(address(this)).requestReward(
+          msg.sender, address(token), stakeTime*position.amounts[j]
+        );
       } else {
-        (uint256 refund, uint256 penalty) = cookBook.calcRefund(
-          user.positions[_positionid].timeStart,
-          user.positions[_positionid].timeEnd,
-          amount
+        (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
+          position.timeStart, position.timeEnd, position.amounts[j]
         );
-
-        if (address(pool.tokenData[j].token) == reductionAmounts[nftid].token) {
-          uint256 bonus = reductionAmounts[nftid].amount;
+        RPAmount storage rPAmount = s.rPAmounts[position.nftid];
+        if (address(token) == rPAmount.token) {
+          uint256 bonus = rPAmount.amount;
           if (bonus <= penalty) {
-            pool.tokenData[j].token.safeTransferFrom(
-              address(nftRewards),
-              sender,
+            token.transfer(
+              msg.sender,
               bonus
             );
             penalty -=  bonus;
-            reductionAmounts[nftid].amount = 0;
+            rPAmount.amount = 0;
           } else {
-            
-            pool.tokenData[j].token.safeTransferFrom(
-              address(nftRewards),
-              sender,
+            // partial refund
+            token.transfer(
+              msg.sender,
               penalty
             );
-            reductionAmounts[nftid].amount -= penalty;
+            rPAmount.amount -= penalty;
             penalty = 0;
           }
         }
-        pool.tokenData[j].token.safeTransferFrom(
+        token.transfer(
           msg.sender,
-          address(sender),
           refund
         );
-        pool.tokenData[j].token.safeTransferFrom(
-          msg.sender,
-          address(cashier),
-          penalty
-        );
+        s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
+        s.tokenRewardData[address(token)].penalties += penalty;
       }
-      user.tokenData[j].amount -= currentPosition.amounts[j];
-      pool.tokenData[j].supply = pool.tokenData[j].supply - amount;
-
-      masterPantry.subTimeAmountGlobal(
-        address(pool.tokenData[j].token),
-        (currentPosition.amounts[j]*(currentPosition.timeEnd - currentPosition.timeStart))
-      );
-      user.positions[_positionid].amounts[j] = 0;
+      user.tokenData[j].amount -= position.amounts[j];
+      user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
+      pool.tokenData[j].supply -= position.amounts[j];
+      position.amounts[j] = 0;
     }
 
-    uint256 pending = totalAmountShares / masterPantry.unity();
-    if (pending > 0) {
-      if (currentPosition.timeEnd < block.timestamp) {
-        kitchen.safeCakeTransfer(address(sender), pending);
-        cashier.requestCakeReward(
-          sender,
-          currentPosition.startBlock,
-          pool.allocPoint,
-          totalAmountShares
+    //Manage SDEX
+    uint256 pending = totalAmountShares / s.unity;
+    if (pending >0) {
+      if (position.timeEnd < block.timestamp) {
+        //Past Expiry Date
+        SdexFacet(address(this)).transfer(msg.sender, pending);
+        RewardFacet(address(this)).requestSdexReward(
+          msg.sender, position.startBlock, pool.allocPoint, totalAmountShares
         );
-      } else {
-        kitchen.safeCakeTransfer(address(cashier), pending);
-      }
+      } 
     }
-    masterPantry.setUserInfo(_pid, sender, user);
-    masterPantry.setPoolInfo(_pid, pool);
-   */
   }
 
 
-  function rPRWithdrawVault(address sender, uint256 positionid) external onlyDiamond {
+  function rPWithdrawVault(address sender, uint256 positionid) external onlyDiamond {
     /*
     uint256 totalShares = cakeVault.totalShares();
     uint256 shares = user.positions[_positionid].amount;

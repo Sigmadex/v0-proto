@@ -82,7 +82,7 @@ contract ToolShedFacet {
 	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     AppStorage storage s = LibAppStorage.diamondStorage();
 		uint256 timeElapsed = block.timestamp - timeStart;
-    //console.log('timeElapsed', timeElapsed);
+    // console.log('timeElapsed', timeElapsed);
 		uint256 timeTotal = timeEnd - timeStart;
 		uint256 proportion = timeElapsed * s.unity / timeTotal;
 		uint256 refund = amount * proportion / s.unity;

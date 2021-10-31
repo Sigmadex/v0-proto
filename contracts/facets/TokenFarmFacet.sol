@@ -99,7 +99,6 @@ contract TokenFarmFacet is Modifiers {
      Reward memory reward = s.rewards[position.nftReward];
      bytes memory fnCall = abi.encodeWithSelector(
        reward.withdrawSelector,
-       msg.sender,
        pid,
        positionid
      );
@@ -130,7 +129,6 @@ contract TokenFarmFacet is Modifiers {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.timeStart, position.timeEnd, position.amounts[j]
           );
-
           token.transfer(
             msg.sender,
             refund
@@ -153,8 +151,6 @@ contract TokenFarmFacet is Modifiers {
           RewardFacet(address(this)).requestSdexReward(
             msg.sender, position.startBlock, pool.allocPoint, totalAmountShares
           );
-        } else {
-          //s.tokenRewardData[address(this)].penalties += pending;
         } 
       }
     }

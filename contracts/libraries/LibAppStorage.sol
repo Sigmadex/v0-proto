@@ -116,6 +116,7 @@ struct AppStorage {
   uint256 seed;
   //Reduced Penalty Reward
   address reducedPenaltyReward;
+  // ?
   mapping(uint256 => RPAmount)  rPAmounts;
   uint256 rPNextId;
 

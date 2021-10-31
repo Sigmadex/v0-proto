@@ -59,13 +59,13 @@ async function deployDiamond () {
   //Gen 0 NFTS
   const reducedPenaltyReward =  await deploy(owner, ReducedPenaltyReward, [diamond._address])
   const withdrawSignature = web3.eth.abi.encodeFunctionSignature(
-    ReducedPenaltyFacet.abi.find((f) => /rPRWithdraw/.test(f.name) == true)
+    ReducedPenaltyFacet.abi.find((f) => /rPWithdraw/.test(f.name) == true)
   )
   const vaultWithdrawSignature = web3.eth.abi.encodeFunctionSignature(
-    ReducedPenaltyFacet.abi.find((f) => /rPRWithdrawVault/.test(f.name) == true)
+    ReducedPenaltyFacet.abi.find((f) => /rPWithdrawVault/.test(f.name) == true)
   )
   const rewardSignature = web3.eth.abi.encodeFunctionSignature(
-    ReducedPenaltyFacet.abi.find((f) => /rPRReward/.test(f.name) == true)
+    ReducedPenaltyFacet.abi.find((f) => /rPReward/.test(f.name) == true)
   )
 
   
