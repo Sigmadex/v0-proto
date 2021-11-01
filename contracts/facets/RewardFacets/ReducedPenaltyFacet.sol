@@ -113,183 +113,91 @@ contract ReducedPenaltyFacet is  Modifiers {
   }
 
 
-  function rPWithdrawVault(uint256 positionid) external onlyDiamond {
+  function rPWithdrawVault(uint256 positionid) external  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     UserPosition storage position = vUser.positions[positionid];
-    if (position.nftReward != address(0)) {
-     Reward memory reward = s.rewards[position.nftReward];
-     bytes memory fnCall = abi.encodeWithSelector(
-       reward.vaultWithdrawSelector,
-       positionid
-     );
-     (bool success,) = address(this)
-      .delegatecall(fnCall);
-      require(success, "withdraw failed");
-      
-    } else {
-      uint256 shares = position.amounts[0];
-      require(shares > 0, "Nothing to withdraw");
-      uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
-      uint256 currentAmount = shares * vaultBalance / s.vTotalShares;
-      vUser.shares -= shares;
-      s.vTotalShares -= shares;
-      
-      uint256 bal = s.vSdex;
-      // Consider the edge case where not all funds are staked, kinda odd, but it was there
-      if (bal < currentAmount) {
-        uint256 balWithdraw = currentAmount - bal;
-        AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
-
-        uint256 balAfter = s.vSdex;
-        //theoretical
-        uint256 diff = balAfter - bal;
-        if (diff < balWithdraw) {
-          currentAmount = bal + diff;
-        }
-      }
-
-      if (vUser.shares > 0) {
-        vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
-        vUser.sdexAtLastUserAction = vUser.shares * vaultBalance / s.vTotalShares;
-      } else {
-        vUser.sdexAtLastUserAction = 0;
-      }
-      vUser.lastUserActionTime = block.timestamp;
-      uint256 stakeTime = position.timeEnd - position.timeStart;
-      uint256 timeAmount = (currentAmount*stakeTime);
-      if (position.timeEnd < block.timestamp) {
-          SdexFacet(address(this)).transfer(
-            msg.sender,
-            currentAmount
-          );
-          s.vSdex -= currentAmount;
-          //request nft Reward
-          RewardFacet(address(this)).requestReward(
-            msg.sender, address(this), timeAmount
-          );
-      } else {
-
-          (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-            position.timeStart, position.timeEnd, currentAmount
-          );
-          RPAmount storage rPAmount = s.rPAmounts[position.nftid];
-          uint256 bonus = rPAmount.amount;
-          if (bonus <= penalty) {
-            SdexFacet(address(this)).transfer(
-              msg.sender,
-              bonus
-            );
-            penalty -=  bonus;
-            rPAmount.amount = 0;
-          } else {
-            // partial refund
-            SdexFacet(address(this)).transfer(
-              msg.sender,
-              penalty
-            );
-            rPAmount.amount -= penalty;
-            penalty = 0;
-          }
-
-          SdexFacet(address(this)).transfer(
-            msg.sender,
-            refund
-          );
-
-          s.vSdex -= refund;
-          s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
-          s.tokenRewardData[address(this)].penalties += penalty;
-      }
-      position.amounts[0] = 0;
-    }
-    /*
-    uint256 totalShares = cakeVault.totalShares();
-    uint256 shares = user.positions[_positionid].amount;
-    ICakeVault.UserPosition memory currentPosition = user.positions[_positionid];
+    uint256 shares = position.amounts[0];
     require(shares > 0, "Nothing to withdraw");
-    require(shares <= user.shares, "Withdraw amount exceeds balance");
-    uint256 currentAmount = (cakeVault.balanceOf() * shares) / totalShares;
-    user.shares -= shares;
-    totalShares -= shares;
-
-    uint256 bal = cakeVault.available();
+    uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
+    uint256 currentAmount = shares * vaultBalance / s.vTotalShares;
+    vUser.shares -= shares;
+    s.vTotalShares -= shares;
+    
+    uint256 bal = s.vSdex;
+    // Consider the edge case where not all funds are staked, kinda odd, but it was there
     if (bal < currentAmount) {
-      uint256 balWithdraw = currentAmount - (bal);
-      autoCakeChef.leaveStakingCakeVault(balWithdraw);
-      uint256 balAfter = cakeVault.available();
+      uint256 balWithdraw = currentAmount - bal;
+      AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
+
+      uint256 balAfter = s.vSdex;
       //theoretical
-      uint256 diff = balAfter - (bal);
+      uint256 diff = balAfter - bal;
       if (diff < balWithdraw) {
-        currentAmount = bal + (diff);
+        currentAmount = bal + diff;
       }
     }
-    if (block.timestamp < user.lastDepositedTime + (cakeVault.withdrawFeePeriod())) {
-      uint256 currentWithdrawFee = currentAmount * (cakeVault.withdrawFee()) / (10000);
-      cake.transferFrom(address(cakeVault), cakeVault.treasury(), currentWithdrawFee);
-      currentAmount = currentAmount - (currentWithdrawFee);
-    }
-    if (user.shares > 0) {
-      user.cakeAtLastUserAction = user.shares * (cakeVault.balanceOf()) / (totalShares);
-    } else {
-      user.cakeAtLastUserAction = 0;
-    }
 
-    user.lastUserActionTime = block.timestamp;
-    uint256 timeAmount = (currentPosition.amount*(currentPosition.timeEnd - currentPosition.timeStart));
-    if ( block.timestamp >= user.positions[_positionid].timeEnd) {
-      cashier.requestReward(
-        userAddr,
-        address(cake),
-        timeAmount
-      );
-      cake.transferFrom(address(cakeVault), userAddr, currentAmount);
+    if (vUser.shares > 0) {
+      vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
+      vUser.sdexAtLastUserAction = vUser.shares * vaultBalance / s.vTotalShares;
     } else {
-        uint256 bonus = reductionAmounts[currentPosition.nftid].amount;
-        (uint256 refund, uint256 penalty) = cookBook.calcRefund(
-          currentPosition.timeStart,
-          currentPosition.timeEnd,
+      vUser.sdexAtLastUserAction = 0;
+    }
+    vUser.lastUserActionTime = block.timestamp;
+    
+    uint256 stakeTime = position.timeEnd - position.timeStart;
+    if (position.timeEnd < block.timestamp) {
+        SdexFacet(address(this)).transfer(
+          msg.sender,
           currentAmount
         );
+        s.vSdex -= currentAmount;
+        //request nft Reward
+        uint256 rewardAmount = RewardFacet(address(this)).requestReward(
+          msg.sender, address(this), position.amounts[0]*stakeTime
+        );
+
+        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+        s.tokenRewardData[address(this)].rewarded += rewardAmount;
+        s.tokenRewardData[address(this)].penalties -= rewardAmount;
+    } else {
+
+        (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
+          position.timeStart, position.timeEnd, currentAmount
+        );
+        RPAmount storage rPAmount = s.rPAmounts[position.nftid];
+        uint256 bonus = rPAmount.amount;
         if (bonus <= penalty) {
-          cake.safeTransferFrom(
-            address(nftRewards),
-            userAddr,
+          SdexFacet(address(this)).transfer(
+            msg.sender,
             bonus
           );
+          s.vSdex -= bonus;
           penalty -=  bonus;
-          reductionAmounts[currentPosition.nftid].amount = 0;
+          rPAmount.amount = 0;
         } else {
-          
-          cake.safeTransferFrom(
-            address(nftRewards),
-            userAddr,
+          // partial refund
+          SdexFacet(address(this)).transfer(
+            msg.sender,
             penalty
           );
-          reductionAmounts[currentPosition.nftid].amount -= penalty;
+          s.vSdex -= penalty;
+          rPAmount.amount -= penalty;
           penalty = 0;
         }
-        cake.transferFrom(
-          address(cakeVault),
-          address(msg.sender),
+
+        SdexFacet(address(this)).transfer(
+          msg.sender,
           refund
         );
-        cake.transferFrom(
-          address(cakeVault),
-          address(cashier),
-          penalty
-        );
+
+        s.vSdex -= refund;
+        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+        s.tokenRewardData[address(this)].penalties += penalty;
+
     }
-    masterPantry.subTimeAmountGlobal(
-      address(cake),
-      timeAmount
-    );
-    currentPosition.amount = 0;
-    user.positions[_positionid] = currentPosition;
-    cakeVault.setUserInfo(userAddr, user);
-    cakeVault.setTotalShares(totalShares);
-    emit Withdraw(sender, positionid);
-   */
+    position.amounts[0] = 0;
   }
 }
 

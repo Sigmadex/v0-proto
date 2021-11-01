@@ -59,6 +59,7 @@ contract SdexVaultFacet {
     vUser.lastUserActionTime = block.timestamp;
 
     s.vUserInfo[msg.sender].positions.push(newPosition);
+
     s.tokenRewardData[address(this)].timeAmountGlobal += amount*timeStake;
     
     earn();
@@ -76,9 +77,7 @@ contract SdexVaultFacet {
 
     uint256 currentCallFee = bal * s.vCallFee / 10000;
 
-    console.log('harvest', vaultBalance(), 'vault balance');
     SdexFacet(address(this)).transfer(msg.sender, currentCallFee);
-    console.log('harvest', vaultBalance(), 'vault balance');
     s.vSdex -= currentCallFee;
 
     earn();
@@ -103,11 +102,7 @@ contract SdexVaultFacet {
       
     } else {
       uint256 shares = position.amounts[0];
-      console.log('shares', shares);
       require(shares > 0, "Nothing to withdraw");
-      console.log(vaultBalance(), 'vault balance');
-      console.log('total Shares', s.vTotalShares);
-      console.log('diamond sdex', SdexFacet(address(this)).balanceOf(address(this)));
       uint256 currentAmount = shares * vaultBalance() / s.vTotalShares;
       vUser.shares -= shares;
       s.vTotalShares -= shares;
@@ -122,7 +117,6 @@ contract SdexVaultFacet {
         //theoretical
         uint256 diff = balAfter - bal;
         if (diff < balWithdraw) {
-          console.log('theo');
           currentAmount = bal + diff;
         }
       }
@@ -134,22 +128,21 @@ contract SdexVaultFacet {
       }
       vUser.lastUserActionTime = block.timestamp;
       uint256 stakeTime = position.timeEnd - position.timeStart;
-      uint256 timeAmount = (currentAmount*stakeTime);
+      //uint256 timeAmount = (currentAmount*stakeTime);
       if (position.timeEnd < block.timestamp) {
           SdexFacet(address(this)).transfer(
             msg.sender,
             currentAmount
           );
-          console.log(currentAmount, 'sent');
           s.vSdex -= currentAmount;
           //request nft Reward
           uint256 rewardAmount = RewardFacet(address(this)).requestReward(
-            msg.sender, address(this), timeAmount
+            msg.sender, address(this), position.amounts[0]*stakeTime
           );
           s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
           s.tokenRewardData[address(this)].rewarded += rewardAmount;
+          s.tokenRewardData[address(this)].penalties -= rewardAmount;
       } else {
-        console.log('in penalty');
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.timeStart, position.timeEnd, currentAmount
           );

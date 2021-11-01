@@ -19,7 +19,6 @@ contract AutoSdexFarmFacet is Modifiers {
     UserInfo storage user = s.userInfo[0][address(this)];
     if (user.tokenData[0].amount > 0) {
       uint256 pending = (user.tokenData[0].amount * pool.tokenData[0].accSdexPerShare - user.tokenData[0].rewardDebt) / s.unity;
-      console.log('pending', pending);
       if(pending > 0) {
         s.vSdex += pending;
       }
@@ -43,11 +42,7 @@ contract AutoSdexFarmFacet is Modifiers {
 
 
     require(user.tokenData[0].amount >= amount, "withdraw: not good");
-    console.log('amount', user.tokenData[0].amount);
-    console.log('pending', pool.tokenData[0].accSdexPerShare*user.tokenData[0].amount - user.tokenData[0].rewardDebt);
-    console.log('rewardDebt', user.tokenData[0].rewardDebt);
     uint256 pending = (user.tokenData[0].amount * pool.tokenData[0].accSdexPerShare - user.tokenData[0].rewardDebt) / s.unity;
-    console.log('leavestaking pending', pending);
     if(pending > 0) {
       s.vSdex += pending;
     }
