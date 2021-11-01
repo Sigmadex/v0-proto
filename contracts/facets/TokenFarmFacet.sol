@@ -82,7 +82,7 @@ contract TokenFarmFacet is Modifiers {
     }
     user.positions.push(newPosition);
     if (pid == 0) {
-      s.vSharesBalances[msg.sender] += newPosition.amounts[0];
+      s.vShares[msg.sender] += newPosition.amounts[0];
     }
     emit Deposit(msg.sender, pid, amounts);
   }
@@ -125,9 +125,13 @@ contract TokenFarmFacet is Modifiers {
             position.amounts[j]
           );
           //request nft Reward
-          RewardFacet(address(this)).requestReward(
+          uint256 rewardAmount = RewardFacet(address(this)).requestReward(
             msg.sender, address(token), stakeTime*position.amounts[j]
           );
+
+          s.tokenRewardData[address(token)].timeAmountGlobal -= stakeTime*position.amounts[j];
+          s.tokenRewardData[address(token)].rewarded += rewardAmount;
+          s.tokenRewardData[address(token)].penalties -= rewardAmount;
         } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.timeStart, position.timeEnd, position.amounts[j]
@@ -158,7 +162,7 @@ contract TokenFarmFacet is Modifiers {
       }
     }
     if (pid == 0) {
-      s.vSharesBalances[msg.sender] -= position.amounts[0];
+      s.vShares[msg.sender] -= position.amounts[0];
     }
   }
 

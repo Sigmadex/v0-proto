@@ -9,7 +9,7 @@ pragma solidity ^0.8.0;
 /******************************************************************************/
 
 import {LibDiamond} from "../libraries/LibDiamond.sol";
-import { AppStorage, PoolInfo, PoolTokenData, Reward } from '../libraries/LibAppStorage.sol';
+import { AppStorage, PoolInfo, PoolTokenData, Reward, UserTokenData } from '../libraries/LibAppStorage.sol';
 import { IDiamondLoupe } from "../interfaces/IDiamondLoupe.sol";
 import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
 import { IERC173 } from "../interfaces/IERC173.sol";
@@ -55,10 +55,16 @@ contract DiamondInit {
     s.poolInfo[0].lastRewardBlock = block.number;
     s.poolInfo[0].tokenData.push(
       PoolTokenData({
-      token: SdexFacet(address(this)),
-      supply:0,
-      accSdexPerShare: 0
-    })
+        token: SdexFacet(address(this)),
+        supply:0,
+        accSdexPerShare: 0
+      })
+    );
+    s.userInfo[0][address(this)].tokenData.push(
+      UserTokenData({
+        amount:0,
+        rewardDebt:0
+      }) 
     );
     s.poolLength = 1;
     s.totalAllocPoint = 1000;
@@ -78,12 +84,8 @@ contract DiamondInit {
     s.vLastHarvestedTime = 0;
     s.vMAX_PERFORMANCE_FEE = 500;
     s.vMAX_CALL_FEE = 100;
-    s.vMAX_WITHDRAW_FEE = 100;
-    s.vMAX_WITHDRAW_FEE_PERIOD = 72 hours;
     s.vPerformanceFee = 200;
     s.vCallFee = 25;
-    s.vWithdrawFee = 10;
-    s.vWithdrawFeePeriod = 72 hours;
 
     // Rewards 
     s.seed = 11111460156937785151929026842503960837766832936;

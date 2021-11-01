@@ -84,9 +84,9 @@ struct AppStorage {
 
   uint256 vSdex;
   //Vault Shares
-  mapping(address => uint256) vSharesBalances;
-  mapping(address => mapping(address => uint256))  vSharesAllowances;
-  uint256 vSharesTotalSupply;
+  mapping(address => uint256) vShares;
+  mapping(address => mapping(address => uint256))  vAllowances;
+  //uint256 vSharesTotalSupply;
 
   string vSharesName;
   string vSharesSymbol;
@@ -101,13 +101,9 @@ struct AppStorage {
 
   uint256 vMAX_PERFORMANCE_FEE; // 5%
   uint256 vMAX_CALL_FEE; // 1%
-  uint256 vMAX_WITHDRAW_FEE; // 1%
-  uint256 vMAX_WITHDRAW_FEE_PERIOD; // 3 days
 
   uint256 vPerformanceFee; // 2%
   uint256 vCallFee; // 0.25%
-  uint256 vWithdrawFee; // 0.1%
-  uint256 vWithdrawFeePeriod; // 3 days
 
   // NFT
   // Token addr => valid NFT rewards

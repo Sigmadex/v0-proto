@@ -39,7 +39,7 @@ contract RewardFacet is Modifiers {
     require(success, "reward NFT failed");
   }
 
-  function requestReward(address to, address token, uint256 timeAmount) public onlyDiamond {
+  function requestReward(address to, address token, uint256 timeAmount) public onlyDiamond returns (uint256){
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData storage tokenRewardData = s.tokenRewardData[token];
     uint256 proportio = timeAmount * s.unity / tokenRewardData.timeAmountGlobal;
@@ -50,10 +50,8 @@ contract RewardFacet is Modifiers {
        rewardAmount
        );
      */
-    tokenRewardData.timeAmountGlobal -= timeAmount;
-    tokenRewardData.rewarded += rewardAmount;
-    tokenRewardData.penalties -= rewardAmount;
     mintReward(to, token, rewardAmount);
+    return rewardAmount;
   }
 
   function requestSdexReward(

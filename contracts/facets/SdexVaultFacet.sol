@@ -1,8 +1,11 @@
 pragma solidity 0.8.9;
 
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserTokenData, UserInfo, Reward, VaultUserInfo, UserPosition } from '../libraries/LibAppStorage.sol';
-
+import '../interfaces/IERC1155.sol';
 import './AutoSdexFarmFacet.sol';
+import './SdexFacet.sol';
+import './ToolShedFacet.sol';
+import './RewardFacet.sol';
 contract SdexVaultFacet {
   event Deposit(address indexed sender, uint256 amount, uint256 shares, uint256 lastDepositedTime);
   event Withdraw(address indexed sender, uint256 amount, uint256 shares);
@@ -72,7 +75,10 @@ contract SdexVaultFacet {
     s.vSdex -= currentPerformanceFee;
 
     uint256 currentCallFee = bal * s.vCallFee / 10000;
+
+    console.log('harvest', vaultBalance(), 'vault balance');
     SdexFacet(address(this)).transfer(msg.sender, currentCallFee);
+    console.log('harvest', vaultBalance(), 'vault balance');
     s.vSdex -= currentCallFee;
 
     earn();
@@ -85,7 +91,6 @@ contract SdexVaultFacet {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     UserPosition storage position = vUser.positions[positionid];
-    
     if (position.nftReward != address(0)) {
      Reward memory reward = s.rewards[position.nftReward];
      bytes memory fnCall = abi.encodeWithSelector(
@@ -98,31 +103,30 @@ contract SdexVaultFacet {
       
     } else {
       uint256 shares = position.amounts[0];
+      console.log('shares', shares);
       require(shares > 0, "Nothing to withdraw");
+      console.log(vaultBalance(), 'vault balance');
+      console.log('total Shares', s.vTotalShares);
+      console.log('diamond sdex', SdexFacet(address(this)).balanceOf(address(this)));
       uint256 currentAmount = shares * vaultBalance() / s.vTotalShares;
       vUser.shares -= shares;
       s.vTotalShares -= shares;
       
       uint256 bal = s.vSdex;
+      // Consider the edge case where not all funds are staked, kinda odd, but it was there
       if (bal < currentAmount) {
         uint256 balWithdraw = currentAmount - bal;
         AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
+
         uint256 balAfter = s.vSdex;
         //theoretical
         uint256 diff = balAfter - bal;
         if (diff < balWithdraw) {
+          console.log('theo');
           currentAmount = bal + diff;
         }
       }
 
-      if (block.timestamp < vUser.lastDepositedTime + s.vWithdrawFeePeriod) {
-        uint256 currentWithdrawFee = currentAmount * s.vWithdrawFee / 10000;
-        // Treasure question
-        //token.safeTransfer(treasury, currentWithdrawFee);
-        s.vSdex -= currentWithdrawFee;
-        s.vTreasury += currentWithdrawFee;
-        currentAmount = currentAmount - currentWithdrawFee;
-      }
       if (vUser.shares > 0) {
         vUser.sdexAtLastUserAction = vUser.shares * vaultBalance() / s.vTotalShares;
       } else {
@@ -130,25 +134,31 @@ contract SdexVaultFacet {
       }
       vUser.lastUserActionTime = block.timestamp;
       uint256 stakeTime = position.timeEnd - position.timeStart;
-      uint256 timeAmount = (position.amounts[0]*(stakeTime));
+      uint256 timeAmount = (currentAmount*stakeTime);
       if (position.timeEnd < block.timestamp) {
           SdexFacet(address(this)).transfer(
             msg.sender,
             currentAmount
           );
+          console.log(currentAmount, 'sent');
           s.vSdex -= currentAmount;
           //request nft Reward
-          RewardFacet(address(this)).requestReward(
-            msg.sender, address(this), stakeTime*position.amounts[0]
+          uint256 rewardAmount = RewardFacet(address(this)).requestReward(
+            msg.sender, address(this), timeAmount
           );
+          s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+          s.tokenRewardData[address(this)].rewarded += rewardAmount;
       } else {
+        console.log('in penalty');
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.timeStart, position.timeEnd, currentAmount
           );
+
           SdexFacet(address(this)).transfer(
             msg.sender,
             refund
           );
+
           s.vSdex -= refund;
           s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
           s.tokenRewardData[address(this)].penalties += penalty;
@@ -168,9 +178,40 @@ contract SdexVaultFacet {
 
   function vaultBalance() public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-      return s.vSdex + s.userInfo[0][address(this)].tokenData[0].amount;
+      return s.vSdex + s.userInfo[0][address(this)].tokenData[0].amount - s.tokenRewardData[address(this)].penalties;
   }
-  function available() public view returns (uint256) {
-    //return token.balanceOf(address(this));
+  
+  function vSdex() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vSdex;
   }
+  function vTreasury() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vTreasury;
+  }
+
+  function vUserInfo(address user) public view returns (VaultUserInfo memory) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vUserInfo[user];
+  }
+
+  function vTotalShares() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vTotalShares;
+  }
+  function vShares(address user) public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vShares[user];
+  }
+
+  function vCallFee() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vCallFee;
+  }
+
+  function vPerformanceFee() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.vPerformanceFee;
+  }
+
 }

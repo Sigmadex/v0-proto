@@ -168,6 +168,8 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(userInfo2.positions[0].amounts[1], stakeAmount)
     assert.equal(userInfo2.positions[0].nftReward, ADDRESSZERO)
     assert.equal(userInfo2.positions[0].nftid, 0)
+    // Double Check this ***************
+    assert.equal(userInfo2.lastRewardBlock, 0)
 
     //Tokens
     let aliceTokenA2 = await tokenA.methods.balanceOf(alice).call()

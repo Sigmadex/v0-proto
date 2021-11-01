@@ -22,13 +22,13 @@ contract ToolShedFacet {
 			pool.lastRewardBlock = block.number;
 			return;
 		}
-   
-		uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+  
+    uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
 		uint256 sdexReward = multiplier * s.sdexPerBlock *pool.allocPoint / s.totalAllocPoint;
     //https://eip2535diamonds.substack.com/p/how-to-share-functions-between-facets
     SdexFacet(address(this)).mint(address(this), sdexReward);
 		for (uint j=0; j < pool.tokenData.length; j++) {
-			pool.tokenData[j].accSdexPerShare =  pool.tokenData[j].accSdexPerShare + sdexReward* s.unity / (pool.tokenData.length*supplies[j]);
+			pool.tokenData[j].accSdexPerShare += sdexReward* s.unity / (pool.tokenData.length*supplies[j]);
 		}
 		pool.lastRewardBlock = block.number;
 	}
@@ -82,7 +82,7 @@ contract ToolShedFacet {
 	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     AppStorage storage s = LibAppStorage.diamondStorage();
 		uint256 timeElapsed = block.timestamp - timeStart;
-    // console.log('timeElapsed', timeElapsed);
+    //console.log('timeElapsed', timeElapsed);
 		uint256 timeTotal = timeEnd - timeStart;
 		uint256 proportion = timeElapsed * s.unity / timeTotal;
 		uint256 refund = amount * proportion / s.unity;
