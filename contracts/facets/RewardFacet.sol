@@ -2,7 +2,6 @@ pragma solidity 0.8.9;
 
 import { LibAppStorage, AppStorage, Modifiers, TokenRewardData, Reward } from '../libraries/LibAppStorage.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '../interfaces/ISdexReward.sol';
 import './ToolShedFacet.sol';
 import 'hardhat/console.sol';
 contract RewardFacet is Modifiers {

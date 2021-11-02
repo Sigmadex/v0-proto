@@ -3,7 +3,7 @@ const { deploy } = require('../../scripts/libraries/diamond.js')
 const { ADDRESSZERO, advanceChain } = require('../utilities.js')
 const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('./helpers.js')
 
-const MockERC20 = artifacts.require('MockBEP20')
+const MockERC20 = artifacts.require('MockERC20')
 
 const SdexFacet = artifacts.require('SdexFacet')
 const ToolShedFacet = artifacts.require('ToolShedFacet')
