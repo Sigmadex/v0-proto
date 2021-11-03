@@ -1,15 +1,8 @@
-.env
-node_modules/
-cache/
-artifacts/
-.swp
-
-
 # Dependencies
-docusaur/node_modules
+/node_modules
 
 # Production
-docusaur/build
+/build
 
 # Generated files
 .docusaurus

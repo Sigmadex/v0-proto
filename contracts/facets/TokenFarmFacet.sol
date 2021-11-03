@@ -6,26 +6,37 @@ import '@openzeppelin/contracts/token/ERC1155/IERC1155.sol';
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo, Reward } from '../libraries/LibAppStorage.sol';
 import './ToolShedFacet.sol';
 import './RewardFacet.sol';
+
+/**
+  * @title TokenFarmFacet
+  * @dev Token Farm concerns creating and removing of positions from various created pools, as well as the associated getters for {UserInfo} and {PoolInfo}
+*/
 contract TokenFarmFacet is Modifiers {
   event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
   event Withdraw(address indexed user, uint256 indexed pid);
 
+  /**
+    *Adds a new liquidity pool to the protocol
+    * @param tokens tokens to be added to the pool, can be one or many (only currently tested for max 2)
+    * @param allocPoint allocation points for pool.  This determines what proportion of SDEX is given to this pool every block. allocPoint / TotalAllocPoint = proportion of sdexPerBlock
+    * @param withUpdate runs the massUpdatePool option on execution to update all pool states
+  */
   function add(
-    IERC20[] memory _tokens,
-    uint256 _allocPoint,
-    bool _withUpdate
+    IERC20[] memory tokens,
+    uint256 allocPoint,
+    bool withUpdate
   ) public onlyOwner {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    if (_withUpdate) {
+    if (withUpdate) {
       ToolShedFacet(address(this)).massUpdatePools();
     }
     uint256 lastRewardBlock = block.number > s.startBlock ? block.number : s.startBlock;
-    s.totalAllocPoint += _allocPoint;
-    s.poolInfo[s.poolLength].allocPoint = _allocPoint;
+    s.totalAllocPoint += allocPoint;
+    s.poolInfo[s.poolLength].allocPoint = allocPoint;
     s.poolInfo[s.poolLength].lastRewardBlock = lastRewardBlock;
-    for (uint j=0; j < _tokens.length; j++) {
+    for (uint j=0; j < tokens.length; j++) {
       s.poolInfo[s.poolLength].tokenData.push(PoolTokenData({
-        token: _tokens[j],
+        token: tokens[j],
         supply: 0,
         accSdexPerShare: 0
       }));
@@ -33,7 +44,14 @@ contract TokenFarmFacet is Modifiers {
     s.poolLength++;
     ToolShedFacet(address(this)).updateStakingPool();
   }
-
+  /**
+    * Used to deposit a users tokens in a pool for a specific time. Opens up a position in the pool for the amounts given for the time staked.  Users with NFT rewards attach here.
+    * @param pid Pool Id
+    * @param amounts Array of amounts of each token, consult pool at pid for order and number
+    * @param timeStake amount of time in seconds to stake amounts in protocol
+    * @param nftReward address of nft reward token, address(0) for no NFT
+    * @param nftid The id of the nft at the nft address, 0 for noNFT
+  */
   function deposit(
     uint256 pid,
     uint256[] memory amounts,
@@ -86,29 +104,33 @@ contract TokenFarmFacet is Modifiers {
     }
     emit Deposit(msg.sender, pid, amounts);
   }
-
+  /**
+    * Withdraws a users tokens from a pool by position. Currently a no partial liquiditations are permitted, a withdraw before the stake time is subject to a penalty.  If only 50% of time has passed, only 50% of funds are returned, and all these tokens, and accrued SDEX is sent to the penalty pool as a gift for future stakers who complete their stakeTime.  Withdrawing after the stake time returns all tokens, accrued Sdex and an NFT gift from the penalty pool 
+    * @param pid pool id 
+    * @param positionid id of position to withdraw
+  */
   function withdraw(
     uint256 pid,
     uint256 positionid
   ) public {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    
+
     ToolShedFacet(address(this)).updatePool(pid);
-    
+
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
 
     if (position.nftReward != address(0)) {
-     Reward memory reward = s.rewards[position.nftReward];
-     bytes memory fnCall = abi.encodeWithSelector(
-       reward.withdrawSelector,
-       pid,
-       positionid
-     );
-     (bool success,) = address(this)
+      Reward memory reward = s.rewards[position.nftReward];
+      bytes memory fnCall = abi.encodeWithSelector(
+        reward.withdrawSelector,
+        pid,
+        positionid
+      );
+      (bool success,) = address(this)
       .delegatecall(fnCall);
       require(success, "withdraw failed");
-      
+
     } else {
       PoolInfo storage pool = s.poolInfo[pid];
       uint256 totalAmountShares = 0;
@@ -165,15 +187,29 @@ contract TokenFarmFacet is Modifiers {
       s.vShares[msg.sender] -= position.amounts[0];
     }
   }
-
+  /**
+    * Getter function for the amount of pools in the protocol
+    * @return poolLength the amount of pools
+  */
   function poolLength() external view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.poolLength;
   }
+  /**
+    * Getter function for the information of a pools
+    * @param pid id for pool
+    * @return PoolInfo Information of the pools current state 
+  */
   function poolInfo(uint256 pid) external view returns (PoolInfo memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.poolInfo[pid];
   }
+  /**
+    * Returns the Information of a user based on a specific pool, positions are found here.
+    * @param pid the id of a pool
+    * @param user address of the user
+    * @return UserInfo Information of the user
+  */
   function userInfo(uint256 pid, address user) public view returns (UserInfo memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.userInfo[pid][user];

@@ -6,10 +6,19 @@ import './ToolShedFacet.sol';
 import './RewardFacet.sol';
 import './RewardFacets/ReducedPenaltyFacet.sol';
 import 'hardhat/console.sol';
+
+/**
+  * @title AutoSdexFarmFacet
+  * @dev The Native token vault (pid=0) has a special feature that can automatically reinvest Sdex farmed.  This Facet Is Internal to the Diamond, coordinating the restaking by the {SdexVaultFacet}
+*/
 contract AutoSdexFarmFacet is Modifiers {
   event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
   event Withdraw(address indexed user, uint256 indexed pid);
 
+  /**
+    * Enter Staking is called by by the Vault to reinvest any Sdex it has accrued into the pool
+    * @param amount The amount of Sdex to be invested into the Sdex Pool (pid=0)
+  */
   function enterStaking(
     uint256 amount
   ) public onlyDiamond {
@@ -32,6 +41,11 @@ contract AutoSdexFarmFacet is Modifiers {
     s.vShares[address(this)] += amount;
     emit Deposit(msg.sender, 0, amount);
   }
+  
+  /**
+    *leave staking coordinates the {SdexVaultFacets} removal of funds from the pool to distribute to users or too recollect prior to restaking
+    * @param amount The amount of funds the {SdexVaultFacet} withdraws from the Sdex pool (pid=1)
+  */
 
   function leaveStaking(uint256 amount) public onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();

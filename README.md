@@ -12,6 +12,12 @@
 
 ``npx hardhat test``
 
+### Build Docs
+``npm install -g doctoc``
+``npm run docgen``
+
+### Serve Docs
+``npm run serve-doc``
 ## Sigmadex Resources
 
 https://sigmadex.org<br>

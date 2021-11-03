@@ -4,11 +4,19 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './SdexFacet.sol';
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, TokenRewardData } from '../libraries/LibAppStorage.sol';
 import 'hardhat/console.sol';
-contract ToolShedFacet {
-  
-	function updatePool(uint256 _pid) public {
+
+/** @title ToolShedFacet
+*  @dev The {ToolShedFacet} provides the tools that make the Vault, Farms and Reward system run and work together.  It updates the pools, calculated the penalties, and provides a variety of getter functions that concern global state
+*/
+contract ToolShedFacet is Modifiers{
+
+  /** 
+   * the update pool function is called by the system as the first order of business on every deposit and withdraw and does the heavily lifting in terms of minting the SDEX block reward and distributing it out to the various pools.
+   * @param  pid the pool id currently being updated
+  */ 
+	function updatePool(uint256 pid) public onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    PoolInfo storage pool = s.poolInfo[_pid];
+    PoolInfo storage pool = s.poolInfo[pid];
 		if (block.number <= pool.lastRewardBlock) {
 			return;
 		}
@@ -33,8 +41,10 @@ contract ToolShedFacet {
 		pool.lastRewardBlock = block.number;
 	}
 
-  
-	function updateStakingPool() public  {
+  /**
+   * Used during pool addtion, or allocPoint recalibration to manage total Allocation points for all pools
+  */ 
+	function updateStakingPool() public  onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
 		uint256 points = 0;
 		// pid = 1 -> pid = 1 (rm cake pool)
@@ -50,7 +60,9 @@ contract ToolShedFacet {
 			}
 		 */
 	}
-
+  /**
+  * massUpdatePools can be called to update the state of all pools
+ */
 	function massUpdatePools() public {
     AppStorage storage s = LibAppStorage.diamondStorage();
 		for (uint256 pid = 0; pid < s.poolLength; ++pid) {
@@ -58,27 +70,50 @@ contract ToolShedFacet {
 		}
   }
 
-
-	function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+  /**
+  * Normally Sdex is emitted at a constant rate per block, though sometimes a multiplier may be added to multiply this number a certain factor, getMultiplier manages this
+  * @param  from the starting block one wishes to calculate from
+  * @param to the final block one wishes to calculate from
+  * @return uint256 the multipler applied to all cake over this block period
+  */ 
+	function getMultiplier(uint256 from, uint256 to) public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-		return _to - _from * s.BONUS_MULTIPLIER;
+		return to - from * s.BONUS_MULTIPLIER;
 	}
-
+  /**
+  * totalAllocPoint returns the total allocation points over all pools.  This number is divided against to determine which proportion of the block emission goes to each pool
+  * @return uint256 total ammount of allocation points across all pools
+  */
   function totalAllocPoint() public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.totalAllocPoint;
   }
-
+  /**
+  * returns how many SDEX tokens are being emitted per block, remember to pair with the getMultiplier function if the bonus multiplier is not 1
+  * @return uint256 amount of SDEX emitted per block
+  */
   function sdexPerBlock() public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.sdexPerBlock;
   }
-
+  /**
+  * tokenRewardData returns the inner tally of information that is kept on each token on the platform that concerns the distribution of rewards of each of these tokens from the penalty pool
+  * @param token address of token in question
+  * @return TokenRewardData see {TokenRewardData} for more info
+  */
   function tokenRewardData(address token) public view returns (TokenRewardData memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.tokenRewardData[token];
   }
-
+ 
+  /**
+   * calcRefund returns the refund and penalty of an amount of a token given a timeStart (often the current Time) and the timeEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
+   * @param timeStart the time, in seconds one wishes to calculate
+   * @param timeEnd the time, in seconds one wishes to end
+   * @param amount the amount of a token in question
+   * @return refund how much is refunded if withdrawing at start time given endTime and how much is penalized
+   * @return penalty how much one is penalized
+  */ 
 	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     AppStorage storage s = LibAppStorage.diamondStorage();
 		uint256 timeElapsed = block.timestamp - timeStart;

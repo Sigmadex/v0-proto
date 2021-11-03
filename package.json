@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx hardhat test",
+    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o docusaur/src/pages -t docusaur/docgen-template && doctoc ./docusaur/src/pages",
+    "serve-doc": "cd docusaur && npx docusaurus start"
   },
   "keywords": [],
   "author": "",
