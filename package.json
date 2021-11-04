@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
-    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o docusaur/src/pages -t docusaur/docgen-template && doctoc ./docusaur/src/pages",
+    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o 'docusaur/docs/Api Specification' -t docusaur/docgen-template",
     "serve-doc": "cd docusaur && npx docusaurus start"
   },
   "keywords": [],

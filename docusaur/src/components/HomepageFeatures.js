@@ -4,47 +4,54 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'Easy to Use',
-    Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Protocol Overview',
+    image: '/img/favicon.png',
+    link: 'docs/Protocol Overview/Protocol Overview',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+      A Decentralized Exchange Focused on creating
+      long term incentives through the use of a time staking mechanism
+      that penalizes users for premature withdrawls and rewarding users with
+      Platform Rewards in the form of NFTs
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('../../static/img/undraw_docusaurus_tree.svg').default,
+    title: 'Systems Overview',
+    image: '/img/image-token-mobile.png',
+    link: 'docs/System Overview/System Overview',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+      Sigmadex utilizes the EIP-2535 Diamond architecture to bring the native token SDEX,
+      A multi-token farm, an autocompounding native token pool, and a Governance structure.
+      Swap/Pool systems coming Soon!
       </>
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
+    title: 'API Spec',
+    image: '/img/crosschain-mobile.png',
+    link: 'docs/API Specification/Diamond',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+      A description of the various sigmadex smart contract funtions
       </>
     ),
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({image, link, title, description}) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} alt={title} />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
+      <a href={link}>
+        <div className="text--center">
+          <img src={image} className={styles.featureSvg} alt={title} />
+        </div>
+        <div className="text--center padding-horiz--md">
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+      </a>
     </div>
   );
 }

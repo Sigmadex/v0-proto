@@ -8,16 +8,30 @@ import '../RewardFacet.sol';
 import '../ToolShedFacet.sol';
 import '../SdexVaultFacet.sol';
 import '../SdexFacet.sol';
+
+/**
+  * @title ReducedPenaltyFacet
+  * @dev The {ReducedPenaltyFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {ReducedPenaltyReward} NFT.    
+*/
 contract ReducedPenaltyFacet is  Modifiers {
 
   constructor() {
   }
-
+  /**
+    * the reduced Penalty Address is the address of the NFT
+    * @return address location of NFT on blockchain
+  */
   function rPAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.reducedPenaltyReward;
   }
 
+  /**
+  * reduced penalty reward is charged with minting the NFT and updating the diamonds internal state relative to this NFT.
+  * @param to address of the user receiving the reward
+  * @param token the underlying asset the reduced penalty provides (eg USDT)
+  * @param amount the amount of the underlying asset that the NFT can reduce
+  */
   function rPReward(
     address to,
     address token,
@@ -34,11 +48,21 @@ contract ReducedPenaltyFacet is  Modifiers {
     s.rPNextId++;
   }
 
+  /**
+  * returns {RPAmount} for the nft id in question
+  * @param id the nft id 
+  * @return RPAmount the amount of reduction it can provide in what token
+  */
   function rPReductionAmount(uint256 id) external returns (RPAmount memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.rPAmounts[id];
   }
-
+  
+  /**
+  * reduced Penalty Withdraw substitutes for the withdraw function of {TokenFarm} when withdrawing a {UserPosition} that has the {ReducedPenaltyReward} nft address associated with it.  Provides compensating the user the reduction amount in the even of an early withdraw
+  * @param pid the poolid of the pool in question
+  * @param positionid the position id in question, retreived from the array postion of {UserInfo}
+  */
   function rPWithdraw(uint256 pid, uint256 positionid) public  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     PoolInfo storage pool = s.poolInfo[pid];
@@ -113,6 +137,10 @@ contract ReducedPenaltyFacet is  Modifiers {
   }
 
 
+  /**
+  * reduced Penalty Withdraw vaults substitutes the withdrawVault function in {SdexVaultFacet} in the event the {UserPosition} in {VaultUserInfo} has the reduced penalty nft address associated with it
+  * @param positionid the id of the associated position, found in the {UserPosition} array length - 1 of {VaultUserInfo} 
+  */
   function rPWithdrawVault(uint256 positionid) external  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];

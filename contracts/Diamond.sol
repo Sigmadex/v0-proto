@@ -11,6 +11,9 @@ pragma solidity ^0.8.0;
 import { LibDiamond } from "./libraries/LibDiamond.sol";
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 
+/** @title Diamond
+* @dev Sigmadex utilizes the multi-facet proxy architecture as defined by EIP-2535 called the *Diamond*. The address {Diamond} is the persistent address for all of SDEX.  One can learn more of the Diamond architecture [here](https://eips.ethereum.org/EIPS/eip-2535)
+*/
 contract Diamond {    
 
   constructor(address _contractOwner, address _diamondCutFacet) payable {        

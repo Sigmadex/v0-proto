@@ -5,30 +5,6 @@
 {{{natspec.userdoc}}}
 {{#if natspec.devdoc}}> {{natspec.devdoc}}{{/if}}
 
-## Contents
-<!-- START doctoc -->
-<!-- END doctoc -->
-
-{{natspec.structs}}
-{{#if structs}}
-{{#each structs}}
-### `{{name}}`
-
-{{#each members}}
-
-{{type}} {{name}}
-
-{{/each}}
-
-{{/each}}
-
-## Structs
-| name | type |
-| ---  | ---  |
-{{#ownStructs}}
-| {{name}} | {{type}}
-{{/ownStructs}}
-{{/if}}
 {{#if ownVariables}}
 ## Globals
 
