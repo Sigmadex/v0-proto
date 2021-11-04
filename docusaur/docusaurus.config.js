@@ -9,12 +9,16 @@ const config = {
   title: 'Smart Contracts',
   tagline: 'documentation',
   url: 'https://your-docusaurus-test-site.com',
-  baseUrl: '/',
+  trailingSlash: false,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.png',
+  favicon: 'img/favicon.ico',
   organizationName: 'Sigmadex', // Usually your GitHub org/user name.
-  projectName: 'Contracts', // Usually your repo name.,
+  projectName: 'v0-proto', // Usually your repo name.,
+  deploymentBranch: 'gh-pages',
+  url: 'https://sigmadex.github.io',
+  baseUrl: '/v0-proto/',
+
 
   presets: [
     [
@@ -24,7 +28,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
-          editUrl: 'https://github.com/Sigmadex/v0-proto',
+          //editUrl: 'https://github.com/Sigmadex/v0-proto',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -40,7 +44,7 @@ const config = {
         title: '',
         logo: {
           alt: 'Sigmadex',
-          src: 'img/sigmadex-logo.png',
+          src: '/img/sigmadex-logo.png',
         },
         items: [
           {

@@ -1,11 +1,15 @@
 import React from 'react';
 import clsx from 'clsx';
 import styles from './HomepageFeatures.module.css';
+import Favicon from '@site/static/img/favicon.ico';
+import ImageTokenMobile from '@site/static/img/image-token-mobile.png';
+import CrossChainMobile from '@site/static/img/crosschain-mobile.png';
+
 
 const FeatureList = [
   {
     title: 'Protocol Overview',
-    image: '/img/favicon.png',
+    image: Favicon,
     link: 'docs/Protocol Overview/Protocol Overview',
     description: (
       <>
@@ -18,7 +22,7 @@ const FeatureList = [
   },
   {
     title: 'Systems Overview',
-    image: '/img/image-token-mobile.png',
+    image: ImageTokenMobile,
     link: 'docs/System Overview/System Overview',
     description: (
       <>
@@ -30,7 +34,7 @@ const FeatureList = [
   },
   {
     title: 'API Spec',
-    image: '/img/crosschain-mobile.png',
+    image: CrossChainMobile,
     link: 'docs/API Specification/Diamond',
     description: (
       <>
