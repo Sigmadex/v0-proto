@@ -90,7 +90,7 @@ $$
 :::
 
 ### NFT
-In the condition, that an NFT is applied to this withdrawl, one will find these same conditions apply, but with the bonus that that specific NFT indicates.  If for example, the NFT was the {PenaltyReductionReward} NFT, one will find the penalty decreased. More information is available about this in the [Reward](./Rewards) page.
+In the condition, that an NFT is applied to this withdrawl, one will find these same conditions apply, but with the bonus that that specific NFT indicates.  If for example, the NFT was the {PenaltyReductionReward} NFT, one will find the penalty decreased. More information is available about this in the [Reward](./Rewards/Rewards) page.
 
 ## Vault
 

@@ -12,7 +12,6 @@ const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
 const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
 
-const Test1Facet = artifacts.require('Test1Facet')
 
 contract("Diamond", (accounts) => {
   let owner = accounts[0]
@@ -82,7 +81,7 @@ contract("Diamond", (accounts) => {
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[9]).call()
     assert.sameMembers(result, selectors)
   })
-
+    /*
   it("should add test1 facet", async () => {
     const test1Facet = await deploy(owner, Test1Facet)
     addresses.push(test1Facet._address)
@@ -104,4 +103,5 @@ contract("Diamond", (accounts) => {
       '0x'
     ).send({from:owner})
   })
+  */
 })
