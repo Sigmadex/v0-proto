@@ -1,6 +1,3 @@
----
-sidebar_position: 1
----
 
 At a high level, Sigmadex is a simple extension of the Swap/Pool/Farm Decentralized Exchange model one may be familiar with from the likes of [PancakeSwap](https://pancakeswap.finance) and [SushiSwap](https://sushi.com).  When one arrives at the platform, they can expect to see the usual interface that allows one to swap tokens, add liquidity in exchange for liquidity tokens, and interact with an interface that allows themselves to stake these variety of tokens in farms in exchange for the native platform token SDEX, which holds stake in its governance system.
 
@@ -10,4 +7,11 @@ Our answer to the question of providing these incentives at Sigmadex has come in
 
 For Version 0: we are exposing the Farm For users to stake various type of tokens as a way to source liquidity from the community for the launch of the Swap and Pool functionality, provide a means of initially allocating the SDEX token beyond the TGE, and provide an opportunity for users to earn some Gen 0 NFTs. The proceeding sections will cover how Depositing and withdrawing from a farm and the vault works, how the penalties and rewards are calculated, and an overview of the Gen0 NFTs. 
 
+### [Farming](./Farming)
+Information about Depositing, Accruing Rewards, Withdrawing, The Vault
 
+### [Rewards](./Rewards/Rewards)
+Descriptions of how Rewards work and the various ones currently available
+
+### [Governance](./Governance)
+How one can engage and participate in governance, the scope and how the voting works
