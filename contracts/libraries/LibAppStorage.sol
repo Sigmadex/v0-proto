@@ -8,11 +8,13 @@ struct TokenRewardData {
   uint256 penalties;
 }
 
+
 struct PoolTokenData {
   IERC20 token;
   uint256 supply;
   uint256 accSdexPerShare;
 }
+
 struct PoolInfo {
   PoolTokenData[] tokenData;
   uint256 allocPoint;
@@ -59,6 +61,12 @@ struct Reward{
   bytes4 vaultWithdrawSelector;
   bytes4 rewardSelector;
 }
+
+/** @title AppStorage
+  * @dev centralized storage
+  * @struct AppStorage does stuff
+  * @param unity something
+*/
 struct AppStorage {
   //Farm
   uint256 unity;
@@ -120,7 +128,9 @@ struct AppStorage {
 
 }
 
-
+/** @title LibAppStorage
+* @dev LibAppStorage defines the internal state of Sigmadex.  Is appended to over time as new functionalities requiring new state are added
+*/
 library LibAppStorage {
   function diamondStorage() internal pure returns (AppStorage storage ds) {
     assembly {

@@ -21,10 +21,21 @@ import '../facets/SdexFacet.sol';
 // with data from a deployment script. Use the init function to initialize state variables
 // of your diamond. Add parameters to the init funciton if you need to.
 
+/** @title DiamondInit
+* @dev Holds the initialization function for SDEX's internal state, which is defined in {AppStorage}
+*/
 contract DiamondInit {
   AppStorage internal s;
   // You can add parameters to this function in order to pass in 
   // data to set your own state variables
+
+  /**
+  * called during deployment to intialize SDEX variables for the {SdexFacet} native governance token, the {TokenFarmFacet} yield farm, the {SdexVaultFacet}
+ * @param reducedPenaltyReward address, will be array of GEN0 NFT soon 
+ * @param _withdrawSelector function signature of the reduced penalty withdraw function.  will be array of GEN0 NFT withdraw function selectors soon
+ * @param _vaultWithdrawSelector fn selectors for vault withdraw
+ * @param _rewardSelector fn selectors for reward function
+  */
   function init(
     address reducedPenaltyReward,
     bytes4 _withdrawSelector,

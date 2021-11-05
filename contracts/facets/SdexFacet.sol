@@ -5,8 +5,18 @@ import '@openzeppelin/contracts/utils/Context.sol';
 
 
 import { AppStorage, LibAppStorage, Modifiers } from '../libraries/LibAppStorage.sol';
+/**
+  * @title SdexFacet
+  * @dev The SdexFacet is the ERC20 compliant token native to the Sigmadex platform. SDEX!. used in onchain governance as the protocol decentralizes
+*/
 contract SdexFacet is IERC20, Context, Modifiers {
 
+  /**
+    * Mints Sdex, only callable by diamond
+    * @param to address for receiving the tokens
+    * @param amount amount to receive 
+    * @return bool if successful
+  */
   function mint(address to, uint256 amount) external onlyDiamond returns (bool) {
     require(to != address(0), 'ERC20: mint to the zero address');
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -16,6 +26,13 @@ contract SdexFacet is IERC20, Context, Modifiers {
 
     emit Transfer(address(0), to, amount);
   }
+  /**
+    * executiveMint, only callable by owner for initial token generation event, planned to be disabled after protocol bootstrap
+    * @param to address the tokens get minted to
+    * @param amount amount of tokens to be minted
+    * @return bool success of the mint
+
+  */
   function executiveMint(address to, uint256 amount) external onlyOwner returns (bool) {
     require(to != address(0), 'ERC20: mint to the zero address');
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -26,22 +43,35 @@ contract SdexFacet is IERC20, Context, Modifiers {
     emit Transfer(address(0), to, amount);
   }
 
+  /**
+    * returns the name of the token
+    * @return string name of token
+  */ 
   function name() public  view returns (string memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.sdexName;
 
   }
+  /**
+    * returns the amount of decimals for the token
+    * @return uint8 amount of decimals
+  */ 
   function decimals() public  view returns (uint8) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.sdexDecimals;
   }
+  /**
+    * returns the symbol of the token
+    * @return string name of symbol
+  */ 
   function symbol() public  view returns (string memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.sdexSymbol;
   }
 
   /**
-   * @dev Returns the amount of tokens in existence.
+     * Returns the amount of tokens in existence.
+     * @return uint256 amount of tokens
    */
   function totalSupply() external view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -49,7 +79,9 @@ contract SdexFacet is IERC20, Context, Modifiers {
   }
 
   /**
-   * @dev Returns the amount of tokens owned by `account`.
+     * Returns the amount of tokens owned by `account`
+     * @param account address of the account in question
+     * @return uint256  amount of SDEX tokens
    */
   function balanceOf(address account) external view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -57,10 +89,10 @@ contract SdexFacet is IERC20, Context, Modifiers {
   }
 
   /**
-  * @dev Moves `amount` tokens from the caller's account to `recipient`.
-  *
-    * Returns a boolean value indicating whether the operation succeeded.
-    *
+    * Moves `amount` tokens from the caller's account to `recipient`.
+    * @param recipient the address of who is getting the tokens
+    * @param amount the amount of tokens recieved
+    * @return bool transfer success
     * Emits a {Transfer} event.
     */
   function transfer(address recipient, uint256 amount) external returns (bool) {
@@ -92,6 +124,9 @@ contract SdexFacet is IERC20, Context, Modifiers {
   * desired value afterwards:
   * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
     *
+    * @param spender who you are allowing to spend your coins
+    * @param amount the amount your willing to let them spend
+    * @return bool approval success
     * Emits an {Approval} event.
     */
   function approve(address spender, uint256 amount) external returns (bool) {
@@ -100,12 +135,15 @@ contract SdexFacet is IERC20, Context, Modifiers {
   }
 
   /**
-  * @dev Moves `amount` tokens from `sender` to `recipient` using the
+  * Moves `amount` tokens from `sender` to `recipient` using the
   * allowance mechanism. `amount` is then deducted from the caller's
   * allowance.
   *
     * Returns a boolean value indicating whether the operation succeeded.
-    *
+    * @param sender address of who your taking coins from
+    * @param recipient address of who your sending these coins to
+    * @param amount that amount of tokens that you are moving
+    * @return bool success of transferFrom
     * Emits a {Transfer} event.
     */
   function transferFrom(

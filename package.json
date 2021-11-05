@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx hardhat test",
+    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o 'docusaur/docs/Api Specification' -t docusaur/docgen-template",
+    "serve-doc": "cd docusaur && npx docusaurus start"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +16,8 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "hardhat": "^2.6.4",
     "hardhat-contract-sizer": "^2.1.1",
+    "solc-0.8": "npm:solc@^0.8.9",
+    "solidity-docgen": "^0.5.16",
     "web3": "^1.5.3"
   },
   "dependencies": {
