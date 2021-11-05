@@ -1,7 +1,3 @@
----
-sidebar_position: 2
----
-
 A Farm on Sigmadex, much like other platforms, consists of an area where users can stake their tokens in exchange for platform rewards. Here, a farm can consist of one or many ERC20 tokens, LP, stablecoins or otherwise.  When staking these tokens in a farm, a user provides the amounts staked, the amount of time to stake them, and, optionally, to provide an NFT reward that provides various bonuses.
 
 ## Deposit

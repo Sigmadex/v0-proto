@@ -11,8 +11,8 @@ The Protocol Overview Section Concerns the general functions of the Protocol, sp
 
 ## [System Overview](System%20Overview/System%20Overview)
 
-The System Overview Section Concerns the internal structure of the various subsystems and how they come together to provide the features described in the Protocol Overview
+The System Overview Section Concerns the internal structure of the various subsystems and how they come together to provide the features described in the Protocol Overview.  Useful for those wanting to understand the functioning of the smart contracts
 
 ## [API Reference](Api%20Specification/Diamond)
 
-The API Reference Section Concerns a function by function description and explanation of the protocol.
+The API Reference Section Concerns a function by function description and explanation of the protocol.  Useful for those seeking to develop with or into Sigmadex
