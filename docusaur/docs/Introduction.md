@@ -15,4 +15,4 @@ The System Overview Section Concerns the internal structure of the various subsy
 
 ## [API Reference](Api%20Specification/Diamond)
 
-The API Reference Section Concerns a function by function description and explanation of the protocol
+The API Reference Section Concerns a function by function description and explanation of the protocol.
