@@ -378,6 +378,7 @@ contract("SdexVaultFacet", (accounts) => {
     const reduction3BN =  new web3.utils.BN(reduction3.amount)
     //Alice Sdex
     assert.equal(new web3.utils.BN(aliceSdex1).sub(new web3.utils.BN(stakeAmount)).toString(), aliceSdex2)
+    
     assert.equal(new web3.utils.BN(aliceSdex2).add(refund).add(reduction2BN).toString(), aliceSdex3)
     //Diamond Sdex
     assert.equal(new web3.utils.BN(diamondSdex1).add(new web3.utils.BN(stakeAmount)).add(sdexReward).add(sdexReward).toString(), diamondSdex2)

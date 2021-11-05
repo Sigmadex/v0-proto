@@ -33,23 +33,7 @@ contract SdexVaultFacet {
   ) external   {
     require(amount > 0, "Nothing to deposit");
     AppStorage storage s = LibAppStorage.diamondStorage();
-    uint256[] memory amountArray = new uint256[](1);
-    amountArray[0] = amount;
-    UserPosition memory newPosition = UserPosition({
-      timeStart: block.timestamp,
-      timeEnd: block.timestamp + timeStake,
-      amounts: amountArray,
-      startBlock: block.number,
-      nftReward: address(0),
-      nftid: 0
-    });
 
-    if (nftReward != address(0)) {
-      // FLAG might now work in diamond //
-      require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
-      newPosition.nftReward = nftReward;
-      newPosition.nftid = nftid;
-    }
     uint256 pool = vaultBalance();
     SdexFacet(address(this)).transferFrom(msg.sender, address(this), amount);
     s.vSdex += amount;
@@ -61,7 +45,6 @@ contract SdexVaultFacet {
       currentShares = amount;
     }
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
-
     vUser.shares = vUser.shares + currentShares;
     vUser.lastDepositedTime = block.timestamp;
 
@@ -69,9 +52,26 @@ contract SdexVaultFacet {
     vUser.sdexAtLastUserAction = (vUser.shares * vaultBalance()) / s.vTotalShares;
     vUser.lastUserActionTime = block.timestamp;
 
-    s.vUserInfo[msg.sender].positions.push(newPosition);
 
-    s.tokenRewardData[address(this)].timeAmountGlobal += amount*timeStake;
+    s.tokenRewardData[address(this)].timeAmountGlobal += currentShares*timeStake;
+    
+    uint256[] memory amountArray = new uint256[](1);
+    amountArray[0] =  currentShares;
+    UserPosition memory newPosition = UserPosition({
+      timeStart: block.timestamp,
+      timeEnd: block.timestamp + timeStake,
+      amounts: amountArray,
+      startBlock: block.number,
+      nftReward: address(0),
+      nftid: 0
+    });
+    if (nftReward != address(0)) {
+      // FLAG might now work in diamond //
+      require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
+      newPosition.nftReward = nftReward;
+      newPosition.nftid = nftid;
+    }
+    s.vUserInfo[msg.sender].positions.push(newPosition);
     
     earn();
 
@@ -192,7 +192,7 @@ contract SdexVaultFacet {
   */
   function vaultBalance() public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-      return s.vSdex + s.userInfo[0][address(this)].tokenData[0].amount - s.tokenRewardData[address(this)].penalties;
+      return s.vSdex + s.userInfo[0][address(this)].tokenData[0].amount - s.tokenRewardData[address(this)].penalties; //probable need an indicator for other sdex pool here as well
   }
  
   /**

@@ -38,7 +38,7 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
   const totalAllocPoints = new web3.utils.BN(await toolShedFacet.methods.totalAllocPoint().call())
   const sdexPerBlock = new web3.utils.BN(await toolShedFacet.methods.sdexPerBlock().call())
 
-  
+
   //Update Pool""
   const sdexReward = new web3.utils.BN(blocksAhead+1).mul(sdexPerBlock).mul(poolAllocPoints).div(totalAllocPoints)
   let tAShares = [];
@@ -66,8 +66,52 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
   const reward = sdexBalance.mul(proportion).div(unity)
   return reward
 }
+
+
+async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, pool) {
+  const returnObj = {}
+  for (const user of users) {
+    returnObj[user] = { 
+      'sdex':  await sdexFacet.methods.balanceOf(user).call(),
+      'userInfo': await tokenFarmFacet.methods.userInfo(pool, user).call(),
+      'vUserInfo': await sdexVaultFacet.methods.vUserInfo(user).call(),
+      'vShares': await sdexVaultFacet.methods.vShares(user).call()
+    }
+  }
+  const diamondSdex = await sdexFacet.methods.balanceOf(diamondAddress).call()
+
+  const vSdex = await sdexVaultFacet.methods.vSdex().call()
+  const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
+  const vTotalShares = await sdexVaultFacet.methods.vTotalShares().call()
+
+  const poolInfo = await tokenFarmFacet.methods.poolInfo(pool).call()
+  const userInfo = await tokenFarmFacet.methods.userInfo(pool, diamondAddress).call()
+  const tokenGlobals = await Promise.all(
+    poolInfo.tokenData.map(async(tokenData) => {
+      return await toolShedFacet.methods.tokenRewardData(tokenData.token).call()
+    })
+  )
+  
+  const tokenGlobalSdex = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
+  tokenGlobals.push(tokenGlobalSdex)
+
+  returnObj[diamondAddress] = {
+    'sdex': diamondSdex,
+    'userInfo': userInfo,
+    'vShares': vSharesDiamond
+  }
+  returnObj['vault'] = {
+      'vSdex': vSdex,
+      'vTotalShares': vTotalShares
+  }
+  returnObj['pool'] = poolInfo
+  returnObj['rewardGlobals'] = tokenGlobals
+  return returnObj
+
+}
 exports.calcSdexReward = calcSdexReward
 exports.unity = unity
 exports.calcPenalty = calcPenalty
 exports.calcNFTRewardAmount = calcNFTRewardAmount
 exports.calcSdexNFTRewardAmount = calcSdexNFTRewardAmount
+exports.fetchState = fetchState
