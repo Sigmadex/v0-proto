@@ -6,3 +6,7 @@ Sigmadex awards users who successfully complete their staking period without wit
 
 Which NFT rewards that are minted upon completion depends on the Token staked, each one on the platform has a list of Valid NFTs.  In V0: the one that is determined is picked by a *pseudorandom* generator, though future plans entail delegating this out to [Chainlink VRF](https://docs.chain.link/docs/chainlink-vrf/). So until than, savvy users will be able to techniqually choose which NFT if they so decide.
 
+## Rewards
+
+### [Reduced Penalty](./Reduced%20Penalty)
+In the event of a premature withdraw, the penalty is lessened up to the `reductionAmount`, depletes as used, good as insurance
