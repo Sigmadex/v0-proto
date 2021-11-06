@@ -106,8 +106,13 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
   }
   returnObj['pool'] = poolInfo
   returnObj['rewardGlobals'] = tokenGlobals
+  returnObj['blockNumber'] = await web3.eth.getBlockNumber()
   return returnObj
 
+}
+
+function BN(number) {
+  return new web3.utils.BN(number)
 }
 exports.calcSdexReward = calcSdexReward
 exports.unity = unity
@@ -115,3 +120,4 @@ exports.calcPenalty = calcPenalty
 exports.calcNFTRewardAmount = calcNFTRewardAmount
 exports.calcSdexNFTRewardAmount = calcSdexNFTRewardAmount
 exports.fetchState = fetchState
+exports.BN = BN

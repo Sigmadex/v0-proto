@@ -2,7 +2,7 @@ const fromExponential = require('from-exponential')
 const { deployDiamond } = require('../../scripts/deploy.js')
 const { deploy } = require('../../scripts/libraries/diamond.js')
 const { ADDRESSZERO, advanceChain, advanceTime } = require('../utilities.js')
-const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount, fetchState } = require('./helpers.js')
+const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount, fetchState, BN } = require('./helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
 
@@ -142,41 +142,6 @@ contract("TokenFarmFacet", (accounts) => {
     //PoolInfo
     //vUserInfo
     //Reward Globals
-    /*
-    assert.equal(
-      new web3.utils.BN(aliceSdex1).sub(new web3.utils.BN(aliceSdex2)).toString(), stakeAmount)
-    assert.equal(
-      new web3.utils.BN(diamondSdex1).add(new web3.utils.BN(stakeAmount)).toString(), diamondSdex2)
-    assert.equal(vSdex1, 0)    
-    assert.equal(vSdex2, 0)    
-    // alice  VaultUserInfo
-    assert.equal(vUserInfo2.shares, stakeAmount)
-    assert.equal(vUserInfo2.sdexAtLastUserAction, stakeAmount)
-    assert.equal(vUserInfo2.positions[0].timeEnd - vUserInfo2.positions[0].timeStart, hourInSeconds);
-    assert.equal(vUserInfo2.positions[0].amounts[0], stakeAmount)
-    assert.equal(vUserInfo2.positions[0].nftReward, ADDRESSZERO)
-    assert.equal(vUserInfo2.positions[0].nftid, 0)
-
-    // Vault UserInfo
-    assert.equal(userInfo2.tokenData[0].amount, stakeAmount)
-    assert.equal(userInfo2.tokenData[0].rewardDebt, 0)
-    assert.equal(userInfo2.lastRewardBlock, 0)
-
-    // Vault Shares
-    assert.equal(vSharesDiamond, stakeAmount);
-    assert.equal(vSharesAlice, 0);
-
-    //Pool
-    assert.equal(poolInfo2.tokenData[0].token, diamondAddress)
-    assert.equal(poolInfo2.tokenData[0].supply, stakeAmount)
-    assert.equal(poolInfo2.allocPoint, 1000)
-    assert.equal(poolInfo2.lastRewardBlock, blockNumber)
-
-    //Token Globals
-    assert.equal(tokenGlobal2.timeAmountGlobal, hourInSeconds*stakeAmount)
-    assert.equal(tokenGlobal2.rewarded, 0)
-    assert.equal(tokenGlobal2.penalties, 0)
-    */
   })
 
   it("users withdraw", async () => {
@@ -234,8 +199,128 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2.rewardGlobals[0].penalties, 0)
 
     assert.equal(state2.pool.tokenData[0].supply, 0)
-    
   })
 
+  it("4 users stake twice", async () => {
 
+    const sdexPerBlock = await toolShedFacet.methods.sdexPerBlock().call()
+
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountA).send({from:alice})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountB).send({from:bob})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountC).send({from:carol})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountD).send({from:dan})
+
+    const blockNumber1 = await web3.eth.getBlockNumber()
+    console.log('blocknum1', blockNumber1)
+    const state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, [alice, bob, carol, dan], 0)
+    // Alice Stake A
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountA, hourInSeconds, ADDRESSZERO, 0).send({from:alice})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountA).send({from:alice})
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountA, hourInSeconds, ADDRESSZERO, 0).send({from:alice})
+
+    console.log('initial sdex diamond', state1[diamondAddress].sdex)
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountB, hourInSeconds, ADDRESSZERO, 0).send({from:bob})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountB).send({from:bob})
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountB, hourInSeconds, ADDRESSZERO, 0).send({from:bob})
+
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountC, hourInSeconds, ADDRESSZERO, 0).send({from:carol})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountC).send({from:carol})
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountC, hourInSeconds, ADDRESSZERO, 0).send({from:carol})
+
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountD, hourInSeconds, ADDRESSZERO, 0).send({from:dan})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountD).send({from:dan})
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountD, hourInSeconds, ADDRESSZERO, 0).send({from:dan})
+
+    const state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, [alice, bob, carol, dan], 0)
+    assert.equal(state2[alice].vUserInfo.positions[1].amount, stakeAmountA)
+    assert.equal(state2[alice].vUserInfo.positions[2].amount, stakeAmountA)
+    assert.equal(state2[bob].vUserInfo.positions[1].amount, stakeAmountB)
+    assert.equal(state2[bob].vUserInfo.positions[2].amount, stakeAmountB)
+    assert.equal(state2[carol].vUserInfo.positions[1].amount, stakeAmountC)
+    assert.equal(state2[carol].vUserInfo.positions[2].amount, stakeAmountC)
+    assert.equal(state2[dan].vUserInfo.positions[1].amount, stakeAmountD)
+    assert.equal(state2[dan].vUserInfo.positions[2].amount, stakeAmountD)
+
+  })
+
+  it("Each withdraws 1 early", async () => {
+
+    const state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, [alice, bob, carol, dan], 0)
+    await advanceTime(1800)
+    await sdexVaultFacet.methods.withdrawVault(1).send({from: alice})
+    await sdexVaultFacet.methods.withdrawVault(1).send({from: bob})
+    await sdexVaultFacet.methods.withdrawVault(1).send({from: carol})
+    await sdexVaultFacet.methods.withdrawVault(1).send({from: dan})
+
+    const state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, [alice, bob, carol, dan], 0)
+
+    await advanceTime(1800)
+    await sdexVaultFacet.methods.withdrawVault(2).send({from: alice})
+    await sdexVaultFacet.methods.withdrawVault(2).send({from: bob})
+    await sdexVaultFacet.methods.withdrawVault(2).send({from: carol})
+    await sdexVaultFacet.methods.withdrawVault(2).send({from: dan})
+
+    const blockNumber2 = await web3.eth.getBlockNumber()
+    console.log('blocknum2', blockNumber2)
+    const state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, [alice, bob, carol, dan], 0)
+      /*
+    console.log(state1[alice].sdex, state2[alice].sdex, state3[alice].sdex)
+    console.log(state1[bob].sdex, state2[bob].sdex, state3[bob].sdex)
+    console.log(state1[carol].sdex, state2[carol].sdex, state3[carol].sdex)
+    console.log(state1[dan].sdex, state2[dan].sdex, state3[dan].sdex)
+    */
+    console.log()
+    assert.equal(state1[alice].vUserInfo.shares, BN(state1[alice].vUserInfo.positions[1].shares).add(BN(state1[alice].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state2[alice].vUserInfo.shares, BN(state2[alice].vUserInfo.positions[1].shares).add(BN(state2[alice].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state3[alice].vUserInfo.shares, BN(state3[alice].vUserInfo.positions[1].shares).add(BN(state3[alice].vUserInfo.positions[2].shares)).toString())
+    
+    assert.equal(state1[bob].vUserInfo.shares, BN(state1[bob].vUserInfo.positions[1].shares).add(BN(state1[bob].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state2[bob].vUserInfo.shares, BN(state2[bob].vUserInfo.positions[1].shares).add(BN(state2[bob].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state3[bob].vUserInfo.shares, BN(state3[bob].vUserInfo.positions[1].shares).add(BN(state3[bob].vUserInfo.positions[2].shares)).toString())
+    
+    assert.equal(state1[carol].vUserInfo.shares, BN(state1[carol].vUserInfo.positions[1].shares).add(BN(state1[carol].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state2[carol].vUserInfo.shares, BN(state2[carol].vUserInfo.positions[1].shares).add(BN(state2[carol].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state3[carol].vUserInfo.shares, BN(state3[carol].vUserInfo.positions[1].shares).add(BN(state3[carol].vUserInfo.positions[2].shares)).toString())
+    
+    assert.equal(state1[dan].vUserInfo.shares, BN(state1[dan].vUserInfo.positions[1].shares).add(BN(state1[dan].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state2[dan].vUserInfo.shares, BN(state2[dan].vUserInfo.positions[1].shares).add(BN(state2[dan].vUserInfo.positions[2].shares)).toString())
+    assert.equal(state3[dan].vUserInfo.shares, BN(state3[dan].vUserInfo.positions[1].shares).add(BN(state3[dan].vUserInfo.positions[2].shares)).toString())
+
+    console.log(state1[diamondAddress].userInfo.tokenData[0].amount, state2[diamondAddress].userInfo.tokenData[0].amount ,state3[diamondAddress].userInfo.tokenData[0].amount)
+    console.log(state1.vault.vSdex, state2.vault.vSdex, state3.vault.vSdex)
+    console.log(BN(state1.vault.vSdex).add(BN(state1[diamondAddress].userInfo.tokenData[0].amount)).toString())
+    console.log(BN(state2.vault.vSdex).add(BN(state2[diamondAddress].userInfo.tokenData[0].amount)).toString())
+    console.log(BN(state3.vault.vSdex).add(BN(state3[diamondAddress].userInfo.tokenData[0].amount)).toString())
+    console.log(state1[diamondAddress].sdex, state2[diamondAddress].sdex, state3[diamondAddress].sdex)
+    //console.log(BN(state1.vault.vSdex).add(BN(state1[diamondAddress].userInfo.tokenData[0].amount)).toString(), BN(state1[diamondAddress].sdex).toString())
+    //
+    // Persistent 1 wei per block rounding error
+    assert.equal(BN(state1[diamondAddress].sdex).sub(BN(state1.vault.vSdex).add(BN(state1[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(13)).toString(), 0)
+    assert.equal(BN(state2[diamondAddress].sdex).sub(BN(state2.vault.vSdex).add(BN(state2[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(17)).toString(), 0)
+    assert.equal(BN(state3[diamondAddress].sdex).sub(BN(state3.vault.vSdex).add(BN(state3[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(20)).toString(), 0)
+    //console.log(state1.vault.vTotalShares, state2.vault.vTotalShares, state3.vault.vTotalShares)
+    //
+    // Reward Stuff
+    //
+    assert.equal(BN(stakeAmountA).add(BN(stakeAmountB)).add(BN(stakeAmountC)).add(BN(stakeAmountD)).mul(BN(2)).mul(BN(hourInSeconds)).toString(), state1.rewardGlobals[0].timeAmountGlobal)
+    assert.equal(BN(stakeAmountA).add(BN(stakeAmountB)).add(BN(stakeAmountC)).add(BN(stakeAmountD)).mul(BN(hourInSeconds)).toString(), state2.rewardGlobals[0].timeAmountGlobal)
+    assert.equal(0, state3.rewardGlobals[0].timeAmountGlobal)
+
+    assert.equal(state1.rewardGlobals[0].rewarded, 0)
+    assert.equal(state2.rewardGlobals[0].rewarded, 0)
+    assert.equal(state1.rewardGlobals[0].penalties, 0)
+    assert.equal(state3.rewardGlobals[0].penalties, 0)
+    assert.equal(state2.rewardGlobals[0].penalties, state3.rewardGlobals[0].rewarded)
+
+
+
+  })
 }) 

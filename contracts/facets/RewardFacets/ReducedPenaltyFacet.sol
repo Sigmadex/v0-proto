@@ -100,6 +100,7 @@ contract ReducedPenaltyFacet is  Modifiers {
             );
             penalty -=  bonus;
             rPAmount.amount = 0;
+            // s.tokenRewardData[address(token)].rewarded -= bonus;
           } else {
             // partial refund
             token.transfer(
@@ -107,6 +108,7 @@ contract ReducedPenaltyFacet is  Modifiers {
               penalty
             );
             rPAmount.amount -= penalty;
+            // s.tokenRewardData[address(token)].rewarded -= penalty;
             penalty = 0;
           }
         }
@@ -210,6 +212,7 @@ contract ReducedPenaltyFacet is  Modifiers {
           s.vSdex -= bonus;
           penalty -=  bonus;
           rPAmount.amount = 0;
+          s.tokenRewardData[address(this)].rewarded -= bonus;
         } else {
           // partial refund
           SdexFacet(address(this)).transfer(
@@ -218,6 +221,7 @@ contract ReducedPenaltyFacet is  Modifiers {
           );
           s.vSdex -= penalty;
           rPAmount.amount -= penalty;
+          s.tokenRewardData[address(this)].rewarded -= penalty;
           penalty = 0;
         }
 
