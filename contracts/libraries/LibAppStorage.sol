@@ -40,13 +40,22 @@ struct UserPosition {
   uint256 nftid;
 }
 
+struct VaultUserPosition {
+  uint256 timeStart;
+  uint256 timeEnd;
+  uint256 startBlock;
+  uint256 amount;
+  uint256 shares;
+  address nftReward;
+  uint256 nftid;
+}
 
 struct VaultUserInfo {
   uint256 shares; // number of shares for a user
   uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
   uint256 sdexAtLastUserAction; // keeps track of cake deposited at the last user action
   uint256 lastUserActionTime; // keeps track of the last user action time
-  UserPosition[] positions; // tracks users staked for a time period
+  VaultUserPosition[] positions; // tracks users staked for a time period
 }
 
 struct RPAmount {

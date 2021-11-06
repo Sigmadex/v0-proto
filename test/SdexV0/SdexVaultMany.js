@@ -213,10 +213,15 @@ contract("TokenFarmFacet", (accounts) => {
     const blockReward = 8 - 1 - 1 
     assert.equal(Number(totalStaked) + Number(web3.utils.toWei(String(blockReward)), 'ether'), rewardSum)
 
-    assert.equal(state2[alice].vUserInfo.positions[0].amounts[0], 0)
-    assert.equal(state2[bob].vUserInfo.positions[0].amounts[0], 0)
-    assert.equal(state2[carol].vUserInfo.positions[0].amounts[0], 0)
-    assert.equal(state2[dan].vUserInfo.positions[0].amounts[0], 0)
+    assert.equal(state2[alice].vUserInfo.positions[0].amount, 0)
+    assert.equal(state2[bob].vUserInfo.positions[0].amount, 0)
+    assert.equal(state2[carol].vUserInfo.positions[0].amount, 0)
+    assert.equal(state2[dan].vUserInfo.positions[0].amount, 0)
+    
+    assert.equal(state2[alice].vUserInfo.positions[0].shares, 0)
+    assert.equal(state2[bob].vUserInfo.positions[0].shares, 0)
+    assert.equal(state2[carol].vUserInfo.positions[0].shares, 0)
+    assert.equal(state2[dan].vUserInfo.positions[0].shares, 0)
 
     assert.equal(Number(state2[diamondAddress].sdex), sdexPerBlock)
     // one wei rounding error when one vault exists with 100% of alloc points

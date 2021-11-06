@@ -144,8 +144,8 @@ contract ReducedPenaltyFacet is  Modifiers {
   function rPWithdrawVault(uint256 positionid) external  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
-    UserPosition storage position = vUser.positions[positionid];
-    uint256 shares = position.amounts[0];
+    VaultUserPosition storage position = vUser.positions[positionid];
+    uint256 shares = position.shares;
     require(shares > 0, "Nothing to withdraw");
     uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
     uint256 currentAmount = shares * vaultBalance / s.vTotalShares;
@@ -183,12 +183,18 @@ contract ReducedPenaltyFacet is  Modifiers {
         s.vSdex -= currentAmount;
         //request nft Reward
         uint256 rewardAmount = RewardFacet(address(this)).requestReward(
-          msg.sender, address(this), position.amounts[0]*stakeTime
+          msg.sender, address(this), position.amount*stakeTime
         );
 
-        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
         s.tokenRewardData[address(this)].rewarded += rewardAmount;
         s.tokenRewardData[address(this)].penalties -= rewardAmount;
+
+        uint256 accruedSdex = currentAmount - position.amount;
+        // experimental
+        RewardFacet(address(this)).requestSdexReward(
+          msg.sender, position.startBlock, s.poolInfo[0].allocPoint, accruedSdex
+        );
     } else {
 
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
@@ -221,11 +227,12 @@ contract ReducedPenaltyFacet is  Modifiers {
         );
 
         s.vSdex -= refund;
-        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
         s.tokenRewardData[address(this)].penalties += penalty;
 
     }
-    position.amounts[0] = 0;
+    position.amount = 0;
+    position.shares = 0;
   }
 }
 

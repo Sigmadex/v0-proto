@@ -98,7 +98,8 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(vUserInfo2.shares, stakeAmount)
     assert.equal(vUserInfo2.sdexAtLastUserAction, stakeAmount)
     assert.equal(vUserInfo2.positions[0].timeEnd - vUserInfo2.positions[0].timeStart, hourInSeconds);
-    assert.equal(vUserInfo2.positions[0].amounts[0], stakeAmount)
+    assert.equal(vUserInfo2.positions[0].amount, stakeAmount)
+    assert.equal(vUserInfo2.positions[0].shares, stakeAmount)
     assert.equal(vUserInfo2.positions[0].nftReward, ADDRESSZERO)
     assert.equal(vUserInfo2.positions[0].nftid, 0)
 
@@ -217,7 +218,8 @@ contract("SdexVaultFacet", (accounts) => {
     const position1 = vUserInfo1.positions[0]
     assert.equal(position1.timeEnd - position1.timeStart, hourInSeconds)
     assert.equal(position1.startBlock, blockNumber - 2)
-    assert.equal(position1.amounts[0], stakeAmount)
+    assert.equal(position1.amount, stakeAmount)
+    assert.equal(position1.shares, stakeAmount)
     assert.equal(position1.nftReward, ADDRESSZERO)
     assert.equal(position1.nftid, 0)
 
@@ -228,7 +230,8 @@ contract("SdexVaultFacet", (accounts) => {
     const position2 = vUserInfo2.positions[0]
     assert.equal(position2.timeEnd - position2.timeStart, hourInSeconds)
     assert.equal(position2.startBlock, blockNumber - 2)
-    assert.equal(position2.amounts[0], 0)
+    assert.equal(position2.amount, 0)
+    assert.equal(position2.shares, 0)
     assert.equal(position2.nftReward, ADDRESSZERO)
     assert.equal(position2.nftid, 0)
     // Vault Sdex
@@ -385,7 +388,8 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(new web3.utils.BN(diamondSdex2).sub(refund).sub(reduction2BN).add(sdexReward).toString(), diamondSdex3)
     //VUser Info
     assert.equal(vUserInfo3.shares, 0)
-    assert.equal(vUserInfo3.positions[positionid].amounts[0], 0)
+    assert.equal(vUserInfo3.positions[positionid].amount, 0)
+    assert.equal(vUserInfo3.positions[positionid].shares, 0)
     //Pool Info
     assert.equal(poolInfo3.tokenData[0].supply, 0)
     assert.equal(poolInfo3.lastRewardBlock, blockNumber)

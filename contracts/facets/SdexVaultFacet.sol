@@ -1,6 +1,6 @@
 pragma solidity 0.8.9;
 
-import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserTokenData, UserInfo, Reward, VaultUserInfo, UserPosition } from '../libraries/LibAppStorage.sol';
+import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserTokenData, UserInfo, Reward, VaultUserInfo, VaultUserPosition } from '../libraries/LibAppStorage.sol';
 import '../interfaces/IERC1155.sol';
 import './AutoSdexFarmFacet.sol';
 import './SdexFacet.sol';
@@ -53,14 +53,15 @@ contract SdexVaultFacet {
     vUser.lastUserActionTime = block.timestamp;
 
 
-    s.tokenRewardData[address(this)].timeAmountGlobal += currentShares*timeStake;
+    s.tokenRewardData[address(this)].timeAmountGlobal += amount*timeStake;
     
     uint256[] memory amountArray = new uint256[](1);
     amountArray[0] =  currentShares;
-    UserPosition memory newPosition = UserPosition({
+    VaultUserPosition memory newPosition = VaultUserPosition({
       timeStart: block.timestamp,
       timeEnd: block.timestamp + timeStake,
-      amounts: amountArray,
+      amount: amount,
+      shares: currentShares,
       startBlock: block.number,
       nftReward: address(0),
       nftid: 0
@@ -107,7 +108,7 @@ contract SdexVaultFacet {
   function withdrawVault(uint256 positionid) public  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
-    UserPosition storage position = vUser.positions[positionid];
+    VaultUserPosition storage position = vUser.positions[positionid];
     if (position.nftReward != address(0)) {
      Reward memory reward = s.rewards[position.nftReward];
      bytes memory fnCall = abi.encodeWithSelector(
@@ -119,7 +120,7 @@ contract SdexVaultFacet {
       require(success, "withdraw failed");
       
     } else {
-      uint256 shares = position.amounts[0];
+      uint256 shares = position.shares;
       require(shares > 0, "Nothing to withdraw");
       uint256 currentAmount = shares * vaultBalance() / s.vTotalShares;
       vUser.shares -= shares;
@@ -155,11 +156,17 @@ contract SdexVaultFacet {
           s.vSdex -= currentAmount;
           //request nft Reward
           uint256 rewardAmount = RewardFacet(address(this)).requestReward(
-            msg.sender, address(this), position.amounts[0]*stakeTime
+            msg.sender, address(this), position.amount*stakeTime
           );
-          s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+          s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
           s.tokenRewardData[address(this)].rewarded += rewardAmount;
           s.tokenRewardData[address(this)].penalties -= rewardAmount;
+          uint256 accruedSdex = currentAmount - position.amount;
+          // experimental
+          RewardFacet(address(this)).requestSdexReward(
+            msg.sender, position.startBlock, s.poolInfo[0].allocPoint, accruedSdex
+          );
+
       } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.timeStart, position.timeEnd, currentAmount
@@ -171,10 +178,11 @@ contract SdexVaultFacet {
           );
 
           s.vSdex -= refund;
-          s.tokenRewardData[address(this)].timeAmountGlobal -= position.amounts[0] * stakeTime;
+          s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
           s.tokenRewardData[address(this)].penalties += penalty;
       }
-      position.amounts[0] = 0;
+      position.amount = 0;
+      position.shares = 0;
       emit Withdraw(msg.sender, currentAmount, shares);
     }
   }
