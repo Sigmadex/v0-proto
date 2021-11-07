@@ -19,7 +19,7 @@ depositVault deposits ones funds in the SDEX vault, that auto restakes ones earn
 ```solidity
   function depositVault(
     uint256 amount,
-    uint256 timeStake,
+    uint256 blocksAhead,
     address nftReward,
     uint256 nftid
   ) external
@@ -32,7 +32,7 @@ No modifiers
 | Arg | Type | Description |
 | --- | --- | --- |
 |`amount` | uint256 | amount of SDEX to stake in vault
-|`timeStake` | uint256 | amount of time, in seconds, to stake the tokens
+|`blocksAhead` | uint256 | the amount of blocks in the future a user wants to commit 
 |`nftReward` | address | address of NFT reward to apply to position, address(0) for no NFT
 |`nftid` | uint256 | id of NFT reward to apply, 0 for no NFT
 

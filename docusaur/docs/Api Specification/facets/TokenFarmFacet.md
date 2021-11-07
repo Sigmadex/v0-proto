@@ -46,7 +46,7 @@ Used to deposit a users tokens in a pool for a specific time. Opens up a positio
   function deposit(
     uint256 pid,
     uint256[] amounts,
-    uint256 timeStake,
+    uint256 blocksAhead,
     address nftReward,
     uint256 nftid
   ) public
@@ -60,7 +60,7 @@ No modifiers
 | --- | --- | --- |
 |`pid` | uint256 | Pool Id
 |`amounts` | uint256[] | Array of amounts of each token, consult pool at pid for order and number
-|`timeStake` | uint256 | amount of time in seconds to stake amounts in protocol
+|`blocksAhead` | uint256 | the number of blocks in the future one wants to commit
 |`nftReward` | address | address of nft reward token, address(0) for no NFT
 |`nftid` | uint256 | The id of the nft at the nft address, 0 for noNFT
 

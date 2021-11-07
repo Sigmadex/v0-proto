@@ -152,16 +152,54 @@ No modifiers
 | Type | Description |
 | --- | --- |
 |`TokenRewardData` | see {TokenRewardData} for more info
+### accSdexPenaltyPool
+accumulated Sdex Penalty pool returns the amount of SDEX currently inside the special additionaly penalty pool for SDex that is accumulated by positions from block rewards that are withdrawn early
+
+
+
+#### Declaration
+```solidity
+  function accSdexPenaltyPool(
+  ) public returns (uint256)
+```
+
+#### Modifiers:
+No modifiers
+
+
+#### Returns:
+| Type | Description |
+| --- | --- |
+|`uint256` | the amount in the the accumulated Sdex Penalty Pool
+### accSdexRewardPool
+accumulated Sdex Reward pool returns the amount of SDEX currently allotted for Sdex rewards derived from the  accumulated Sdex Penalty Pool.
+
+
+
+#### Declaration
+```solidity
+  function accSdexRewardPool(
+  ) public returns (uint256)
+```
+
+#### Modifiers:
+No modifiers
+
+
+#### Returns:
+| Type | Description |
+| --- | --- |
+|`uint256` | the amount of Sdex placed aside for rewards
 ### calcRefund
-calcRefund returns the refund and penalty of an amount of a token given a timeStart (often the current Time) and the timeEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
+calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
 
 
 
 #### Declaration
 ```solidity
   function calcRefund(
-    uint256 timeStart,
-    uint256 timeEnd,
+    uint256 startBlock,
+    uint256 blockEnd,
     uint256 amount
   ) public returns (uint256 refund, uint256 penalty)
 ```
@@ -172,8 +210,8 @@ No modifiers
 #### Args:
 | Arg | Type | Description |
 | --- | --- | --- |
-|`timeStart` | uint256 | the time, in seconds one wishes to calculate
-|`timeEnd` | uint256 | the time, in seconds one wishes to end
+|`startBlock` | uint256 | the block where this position started
+|`blockEnd` | uint256 |  the block where this position is no longer penalized for withdrawing
 |`amount` | uint256 | the amount of a token in question
 
 #### Returns:

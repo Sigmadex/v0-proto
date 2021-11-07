@@ -6,7 +6,7 @@ For example, a Deposit in a USDT ETH Pool looks like
 | Input | Input  | Description |
 | --- | --- | --- |
 | Amounts | [Amount USD, Amount ETH] | The list of amounts of various tokens, can be any amounts of either, though rewards are split between amounts, making the optimal allocation an equal value of the tokens
-| stakeTime | Time in seconds  | The amount of time you are willing to stake the tokens for, can be any amount of time. Withdrawing before this timer is up costs a proportion of the tokens stake to be penalized.  Withdrawing after receives an NFT Reard
+| blocks to Stake  | blocksAhead | The amount of time you are willing to stake the tokens for, can be any amount of time. Withdrawing before this timer is up costs a proportion of the tokens stake to be penalized.  Withdrawing after receives an NFT Reard.  Time in seconds is inferred from the current rate of block emission
 | nftReward | address of NFT | The address of the NFT one wants to use that grants specific bonuses.  For example, the {ReducedPenaltyReward} lessens the penalty in the event of a premature stake, it makes good insurance.  Use address(0) for no NFT.
 | nftId | id of NFT | The id of the NFT to use at the above address, use 0 for no NFT |
 
@@ -48,8 +48,8 @@ While most farms allow for the arbitrary withdrawal of funds, V0 of sigmadex onl
 When the withdraw function is called on a position that has not yet passed its stake time.  Each token staked in the pool in this position is subject to a penalty function, that determines how much of this token is returned to the user, and how much is place in the penalty pool for another users future NFT reward. For V0 this function is linear, progressing from 100% penalty at the beginning to 0% at the time end, specifically
 
 $$
-  refund_j =stake_j \times \%timeElapsed \\ \\
-  penalty_j = stake_j \times (100 - \%timeElapsed)
+  refund_j =stake_j \times \%blocksElapsed \\ \\
+  penalty_j = stake_j \times (100 - \%blocksElapsed)
 $$
 
 :::note
@@ -61,14 +61,14 @@ In all instances, 100% of any accrued SDEX is sent to the $AccruedSdexPenaltyPoo
 When the withdraw function is called after a position has passed.  2 things happen.  First Each token staked in the pool has a NFT Reward prepared for it. For V0, exactly which NFT is determined by a pseudorandom selector from a list of Valid NFT's for that token.  For example is USDT is staked, the user will receive a USDT flavoured reward.  Each Reward has an underlying value in that token, this is a real claim on the funds from the penalty pool. Specifically the value of this reward is given by
 
 $$
-  NFTRewardAmount_j = \frac{stakeTime \times stakeAmount_j}{\sum_{i=1}^m stakeTime_{ji} \times  stakeAmount_{ji}} \times PenaltyPoolAmount_j
+  NFTRewardAmount_j = \frac{blocksStaked \times stakeAmount_j}{\sum_{i=1}^m blocksStaked_{ji} \times  stakeAmount_{ji}} \times PenaltyPoolAmount_j
 $$   
 
 
 | variable | symbol | description |
 | --- | --- | --- |
 | Token | j | The token whose reward is being prepared, such as USDT |
-|time Staked For User | $stakeTime$ | The amount of time this position was staked for |
+|time Staked For User | $blocksStaked$ | The amount of time this position was staked for |
 | Amount Staked | $stakeAmount_j$ | The amount of token j staked by user |
 | Amount Staked | $stakeAmount_{ji}$ | The amount of token j staked by another user |
 | numer of positions in pool | m | The total number of positions that involve this token as well, this user is included here as well |
@@ -86,7 +86,7 @@ $$
 $$
 
 :::note
-  Since Sdex is printed by block, and stakeTimes are calculated by second, A user will find the value of this reward increase by a small amount even as the stakeTime has passed
+  Since Sdex is printed by block, and blocksStakeds are calculated by second, A user will find the value of this reward increase by a small amount even as the blocksStaked has passed
 :::
 
 ### NFT

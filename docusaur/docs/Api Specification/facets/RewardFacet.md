@@ -70,7 +70,7 @@ requestReward is called by the {TokenFarmFacet} and {SdexVaultFacet} upon the wi
   function requestReward(
     address to,
     address token,
-    uint256 timeAmount
+    uint256 blockAmount
   ) public onlyDiamond returns (uint256)
 ```
 
@@ -84,7 +84,7 @@ requestReward is called by the {TokenFarmFacet} and {SdexVaultFacet} upon the wi
 | --- | --- | --- |
 |`to` | address | the address of the future Reward NFT holder
 |`token` | address | the address of the token being withdrawed (such as USDT)
-|`timeAmount` | uint256 | (timeStaked*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool 
+|`blockAmount` | uint256 | (blocksAhead*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool 
 
 #### Returns:
 | Type | Description |
@@ -99,9 +99,10 @@ Internally two penalty pools for Sdex are kept, one for penalties lost on stakin
 ```solidity
   function requestSdexReward(
     address to,
-    uint256 positionStartBlock,
+    uint256 startBlock,
+    uint256 endBlock,
     uint256 poolAllocPoint,
-    uint256 totalAmountShares
+    uint256 amountAccumulated
   ) public onlyDiamond
 ```
 
@@ -114,9 +115,10 @@ Internally two penalty pools for Sdex are kept, one for penalties lost on stakin
 | Arg | Type | Description |
 | --- | --- | --- |
 |`to` | address | the address of the user receiving the reward
-|`positionStartBlock` | uint256 | the block the position started accruing sdex block rewards
+|`startBlock` | uint256 | the block the position started accruing sdex block rewards
+|`endBlock` | uint256 | the block the position was commited to
 |`poolAllocPoint` | uint256 | the allocation points of the specific pool. Divided by the totalAllocPoint of the farm to determine which proportion of the block rewards go to that pool
-|`totalAmountShares` | uint256 | the amount of Sdex this position accrued as block rewards. Divided by the total amound of block rewards for the pool in the same time frame to determine what proportion of the SDEX block rewards pool is given
+|`amountAccumulated` | uint256 | the amount of Sdex this position accrued as block rewards. Divided by the total amound of block rewards for the pool in the same time frame to determine what proportion of the SDEX block rewards pool is given
 
 ### getValidRewardsForToken
 Returns a list of addresses belong to the valid NFT's for a specific token
