@@ -73,9 +73,9 @@ contract ReducedPenaltyFacet is  Modifiers {
     //Manage Tokens 
     for (uint j=0; j < user.tokenData.length; j++) {
       IERC20 token = pool.tokenData[j].token;
-      uint256 stakeTime = position.timeEnd - position.timeStart;
+      uint256 blocksAhead = position.endBlock - position.startBlock;
       totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
-      if (position.timeEnd < block.timestamp) {
+      if (position.endBlock < block.number) {
         //past expiry date
         //return tokens
         token.transfer(
@@ -84,11 +84,11 @@ contract ReducedPenaltyFacet is  Modifiers {
         );
         //request nft Reward
         RewardFacet(address(this)).requestReward(
-          msg.sender, address(token), stakeTime*position.amounts[j]
+          msg.sender, address(token), blocksAhead*position.amounts[j]
         );
       } else {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.timeStart, position.timeEnd, position.amounts[j]
+          position.startBlock, position.endBlock, position.amounts[j]
         );
         RPAmount storage rPAmount = s.rPAmounts[position.nftid];
         if (address(token) == rPAmount.token) {
@@ -100,7 +100,7 @@ contract ReducedPenaltyFacet is  Modifiers {
             );
             penalty -=  bonus;
             rPAmount.amount = 0;
-            // s.tokenRewardData[address(token)].rewarded -= bonus;
+            s.tokenRewardData[address(token)].rewarded -= bonus;
           } else {
             // partial refund
             token.transfer(
@@ -108,7 +108,7 @@ contract ReducedPenaltyFacet is  Modifiers {
               penalty
             );
             rPAmount.amount -= penalty;
-            // s.tokenRewardData[address(token)].rewarded -= penalty;
+            s.tokenRewardData[address(token)].rewarded -= penalty;
             penalty = 0;
           }
         }
@@ -116,7 +116,7 @@ contract ReducedPenaltyFacet is  Modifiers {
           msg.sender,
           refund
         );
-        s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
+        s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
         s.tokenRewardData[address(token)].penalties += penalty;
       }
       user.tokenData[j].amount -= position.amounts[j];
@@ -128,13 +128,15 @@ contract ReducedPenaltyFacet is  Modifiers {
     //Manage SDEX
     uint256 pending = totalAmountShares / s.unity;
     if (pending >0) {
-      if (position.timeEnd < block.timestamp) {
+      if (position.endBlock < block.number) {
         //Past Expiry Date
         SdexFacet(address(this)).transfer(msg.sender, pending);
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, pool.allocPoint, totalAmountShares
+          msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
         );
-      } 
+      } else {
+        s.accSdexPenaltyPool += pending;
+      }
     }
   }
 
@@ -176,8 +178,8 @@ contract ReducedPenaltyFacet is  Modifiers {
     }
     vUser.lastUserActionTime = block.timestamp;
     
-    uint256 stakeTime = position.timeEnd - position.timeStart;
-    if (position.timeEnd < block.timestamp) {
+    uint256 blocksAhead = position.endBlock - position.startBlock;
+    if (position.endBlock < block.number) {
         SdexFacet(address(this)).transfer(
           msg.sender,
           currentAmount
@@ -185,22 +187,23 @@ contract ReducedPenaltyFacet is  Modifiers {
         s.vSdex -= currentAmount;
         //request nft Reward
         uint256 rewardAmount = RewardFacet(address(this)).requestReward(
-          msg.sender, address(this), position.amount*stakeTime
+          msg.sender, address(this), position.amount*blocksAhead
         );
 
-        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
+        s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
         s.tokenRewardData[address(this)].rewarded += rewardAmount;
         s.tokenRewardData[address(this)].penalties -= rewardAmount;
 
         uint256 accruedSdex = currentAmount - position.amount;
         // experimental
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, s.poolInfo[0].allocPoint, accruedSdex
+          msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
         );
+
     } else {
 
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.timeStart, position.timeEnd, currentAmount
+          position.startBlock, position.endBlock, currentAmount
         );
         RPAmount storage rPAmount = s.rPAmounts[position.nftid];
         uint256 bonus = rPAmount.amount;
@@ -209,7 +212,7 @@ contract ReducedPenaltyFacet is  Modifiers {
             msg.sender,
             bonus
           );
-          s.vSdex -= bonus;
+          //s.vSdex -= bonus;
           penalty -=  bonus;
           rPAmount.amount = 0;
           s.tokenRewardData[address(this)].rewarded -= bonus;
@@ -219,7 +222,7 @@ contract ReducedPenaltyFacet is  Modifiers {
             msg.sender,
             penalty
           );
-          s.vSdex -= penalty;
+          //s.vSdex -= penalty;
           rPAmount.amount -= penalty;
           s.tokenRewardData[address(this)].rewarded -= penalty;
           penalty = 0;
@@ -229,9 +232,10 @@ contract ReducedPenaltyFacet is  Modifiers {
           msg.sender,
           refund
         );
-
-        s.vSdex -= refund;
-        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
+        //s.vSdex -= refund;
+        s.vSdex -= currentAmount;
+        s.accSdexPenaltyPool += penalty;
+        s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
         s.tokenRewardData[address(this)].penalties += penalty;
 
     }

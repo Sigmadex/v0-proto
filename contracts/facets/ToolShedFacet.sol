@@ -105,21 +105,38 @@ contract ToolShedFacet is Modifiers{
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.tokenRewardData[token];
   }
+  
+  /**
+  * accumulated Sdex Penalty pool returns the amount of SDEX currently inside the special additionaly penalty pool for SDex that is accumulated by positions from block rewards that are withdrawn early
+  * @return uint256 the amount in the the accumulated Sdex Penalty Pool
+  */
+  function accSdexPenaltyPool() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.accSdexPenaltyPool;
+  }
+
+  /**
+  * accumulated Sdex Reward pool returns the amount of SDEX currently allotted for Sdex rewards derived from the  accumulated Sdex Penalty Pool.
+  * @return uint256 the amount of Sdex placed aside for rewards
+  */
+  function accSdexRewardPool() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.accSdexRewardPool;
+  }
  
   /**
-   * calcRefund returns the refund and penalty of an amount of a token given a timeStart (often the current Time) and the timeEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
-   * @param timeStart the time, in seconds one wishes to calculate
-   * @param timeEnd the time, in seconds one wishes to end
+   * calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
+   * @param startBlock the block where this position started
+   * @param blockEnd  the block where this position is no longer penalized for withdrawing
    * @param amount the amount of a token in question
    * @return refund how much is refunded if withdrawing at start time given endTime and how much is penalized
    * @return penalty how much one is penalized
   */ 
-	function calcRefund(uint256 timeStart, uint256 timeEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
+	function calcRefund(uint256 startBlock, uint256 blockEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-		uint256 timeElapsed = block.timestamp - timeStart;
-    //console.log('timeElapsed', timeElapsed);
-		uint256 timeTotal = timeEnd - timeStart;
-		uint256 proportion = timeElapsed * s.unity / timeTotal;
+		uint256 blocksElapsed = block.number - startBlock;
+		uint256 blockTotal = blockEnd - startBlock;
+		uint256 proportion = blocksElapsed * s.unity / blockTotal;
 		uint256 refund = amount * proportion / s.unity;
 		uint256 penalty = amount - refund;
 		require(amount == penalty + refund, 'calc fund is leaking rounding errors');

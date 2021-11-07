@@ -3,11 +3,11 @@ pragma solidity 0.8.9;
 import { LibDiamond } from "../libraries/LibDiamond.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 struct TokenRewardData {
-  uint256 timeAmountGlobal;
+  //uint256 timeAmountGlobal;
+  uint256 blockAmountGlobal;
   uint256 rewarded;
   uint256 penalties;
 }
-
 
 struct PoolTokenData {
   IERC20 token;
@@ -32,18 +32,20 @@ struct UserTokenData {
   uint256 rewardDebt;
 }
 struct UserPosition {
-  uint256 timeStart;
-  uint256 timeEnd;
+  //uint256 timeStart;
+  //uint256 timeEnd;
   uint256 startBlock;
+  uint256 endBlock;
   uint256[] amounts;
   address nftReward;
   uint256 nftid;
 }
 
 struct VaultUserPosition {
-  uint256 timeStart;
-  uint256 timeEnd;
+  //uint256 timeStart;
+  //uint256 timeEnd;
   uint256 startBlock;
+  uint256 endBlock;
   uint256 amount;
   uint256 shares;
   address nftReward;
@@ -80,6 +82,8 @@ struct AppStorage {
   //Farm
   uint256 unity;
   mapping (address => TokenRewardData) tokenRewardData;
+  uint256 accSdexPenaltyPool;
+  uint256 accSdexRewardPool;
   mapping (uint256 => mapping (address => UserInfo)) userInfo; 
   uint256 poolLength;
   mapping(uint256 => PoolInfo) poolInfo;

@@ -8,24 +8,25 @@ async function calcSdexReward(toolShedFacet, tokenFarmFacet, blocksAhead, poolid
   const poolAllocPoints = (await tokenFarmFacet.methods.poolInfo(poolid).call()).allocPoint
   // only one block ahead, advance time doesn't jump block like one would think
   let numer = (blocksAhead)*sdexPerBlock*poolAllocPoints
-  const numerator = new web3.utils.BN(fromExponential(numer))
-  const denominator = new web3.utils.BN(totalAllocPoints)
+  const numerator = BN(fromExponential(numer))
+  const denominator = BN(totalAllocPoints)
   const sdexReward = numerator.div(denominator)
   return sdexReward
 }
-function calcPenalty(elapsedTime, stakeTime, stakeAmount) {
-  stakeAmount = new web3.utils.BN(stakeAmount)
-  const proportion = unity.mul(new web3.utils.BN(elapsedTime)).div(new web3.utils.BN(stakeTime))
-  const refund = (new web3.utils.BN(stakeAmount)).mul(proportion).div(unity)
-  const penalty = (new web3.utils.BN(stakeAmount)).sub(refund)
+function calcPenalty(elapsedTime, blocksToStake, stakeAmount) {
+  stakeAmount = BN(stakeAmount)
+  const proportion = unity.mul(BN(elapsedTime)).div(BN(blocksToStake))
+  const refund = (BN(stakeAmount)).mul(proportion).div(unity)
+  const penalty = (BN(stakeAmount)).sub(refund)
   return {refund, penalty}
 }
 
-async function calcNFTRewardAmount(token, toolShed, diamondAddress,  stakeTime, stakeAmount) {
+async function calcNFTRewardAmount(token, toolShed, diamondAddress,  blocksToStake, stakeAmount) {
   const rewardData = await toolShed.methods.tokenRewardData(token._address).call()
-  const penalties = new web3.utils.BN(rewardData.penalties);
-  const gtaToken =  new web3.utils.BN(rewardData.timeAmountGlobal)
-  const ltaToken =  new web3.utils.BN(fromExponential(new web3.utils.BN(stakeTime)*stakeAmount))
+  const penalties = BN(rewardData.penalties);
+  const gtaToken =  BN(rewardData.blockAmountGlobal)
+  const ltaToken = BN(blocksToStake).mul(BN(stakeAmount))
+  console.log(ltaToken.toString())
   return ltaToken.mul(penalties).div(gtaToken)
 }
 
@@ -34,24 +35,24 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
   const userInfo = await tokenFarmFacet.methods.userInfo(poolid, user ).call()
   const position = userInfo.positions[positionid]
 
-  const poolAllocPoints = new web3.utils.BN(poolInfo.allocPoint)
-  const totalAllocPoints = new web3.utils.BN(await toolShedFacet.methods.totalAllocPoint().call())
-  const sdexPerBlock = new web3.utils.BN(await toolShedFacet.methods.sdexPerBlock().call())
+  const poolAllocPoints = BN(poolInfo.allocPoint)
+  const totalAllocPoints = BN(await toolShedFacet.methods.totalAllocPoint().call())
+  const sdexPerBlock = BN(await toolShedFacet.methods.sdexPerBlock().call())
 
 
   //Update Pool""
-  const sdexReward = new web3.utils.BN(blocksAhead+1).mul(sdexPerBlock).mul(poolAllocPoints).div(totalAllocPoints)
+  const sdexReward = BN(blocksAhead+1).mul(sdexPerBlock).mul(poolAllocPoints).div(totalAllocPoints)
   let tAShares = [];
   for (let i=0; i < poolInfo.tokenData.length; i++) {
-    const accZeroInit = new web3.utils.BN(poolInfo.tokenData[i].accSdexPerShare)
+    const accZeroInit = BN(poolInfo.tokenData[i].accSdexPerShare)
     const additionNumer = sdexReward.mul(unity)
-    const supply = new web3.utils.BN(poolInfo.tokenData[i].supply)
-    const length = new web3.utils.BN(poolInfo.tokenData.length)
+    const supply = BN(poolInfo.tokenData[i].supply)
+    const length = BN(poolInfo.tokenData.length)
     const additionDenominator = supply.mul(length)
     const newAddition = additionNumer.div(additionDenominator)
     const accSdex0 = accZeroInit.add(newAddition);
-    const amount = new web3.utils.BN(position.amounts[i])
-    const rewardDebt = new web3.utils.BN(userInfo.tokenData[i].rewardDebt)
+    const amount = BN(position.amounts[i])
+    const rewardDebt = BN(userInfo.tokenData[i].rewardDebt)
     const timeAmountShares = amount.mul(accSdex0).sub(rewardDebt)
     tAShares.push(timeAmountShares)
   }
@@ -60,15 +61,15 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
 
   const tokenRewardData = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
   const diamondSdex  = await sdexFacet.methods.balanceOf(diamondAddress).call()
-  const sdexBalance = new web3.utils.BN(diamondSdex).sub(new web3.utils.BN(tokenRewardData.penalties))
+  const sdexBalance = BN(diamondSdex).sub(BN(tokenRewardData.penalties))
 
-  const proportion = new web3.utils.BN(totalAmountShares).div(sdexReward)
+  const proportion = BN(totalAmountShares).div(sdexReward)
   const reward = sdexBalance.mul(proportion).div(unity)
   return reward
 }
 
 
-async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, pool) {
+async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, pool, tokens) {
   const returnObj = {}
   for (const user of users) {
     returnObj[user] = { 
@@ -76,6 +77,12 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
       'userInfo': await tokenFarmFacet.methods.userInfo(pool, user).call(),
       'vUserInfo': await sdexVaultFacet.methods.vUserInfo(user).call(),
       'vShares': await sdexVaultFacet.methods.vShares(user).call()
+    }
+
+    if (tokens) {
+      for (const token of tokens) {
+        returnObj[user][token._address] = await token.methods.balanceOf(user).call()
+      }
     }
   }
   const diamondSdex = await sdexFacet.methods.balanceOf(diamondAddress).call()
@@ -86,26 +93,36 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
 
   const poolInfo = await tokenFarmFacet.methods.poolInfo(pool).call()
   const userInfo = await tokenFarmFacet.methods.userInfo(pool, diamondAddress).call()
-  const tokenGlobals = await Promise.all(
-    poolInfo.tokenData.map(async(tokenData) => {
-      return await toolShedFacet.methods.tokenRewardData(tokenData.token).call()
-    })
-  )
-  
+
+  const tokenGlobals = {}
   const tokenGlobalSdex = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
-  tokenGlobals.push(tokenGlobalSdex)
+  tokenGlobals[diamondAddress] = tokenGlobalSdex
+  if (tokens) {
+    for (const token of tokens) {
+      const rewardData = await toolShedFacet.methods.tokenRewardData(token._address).call()
+      tokenGlobals[token._address] = rewardData
+    }
+  }
 
   returnObj[diamondAddress] = {
     'sdex': diamondSdex,
     'userInfo': userInfo,
     'vShares': vSharesDiamond
   }
+  if (tokens) {
+    for (const token of tokens) {
+      returnObj[diamondAddress][token._address] = await token.methods.balanceOf(diamondAddress).call()
+    }
+  }
   returnObj['vault'] = {
-      'vSdex': vSdex,
-      'vTotalShares': vTotalShares
+    'vSdex': vSdex,
+    'vTotalShares': vTotalShares,
+    'vTreasury': await sdexVaultFacet.methods.vTreasury().call()
   }
   returnObj['pool'] = poolInfo
   returnObj['rewardGlobals'] = tokenGlobals
+  returnObj['accSdexPenaltyPool'] = await toolShedFacet.methods.accSdexPenaltyPool().call()
+  returnObj['accSdexRewardPool'] = await toolShedFacet.methods.accSdexRewardPool().call()
   returnObj['blockNumber'] = await web3.eth.getBlockNumber()
   return returnObj
 
