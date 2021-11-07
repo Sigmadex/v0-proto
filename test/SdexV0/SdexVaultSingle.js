@@ -137,7 +137,14 @@ contract("SdexVaultFacet", (accounts) => {
     const currPerFee = sdexReward.mul(BN(vPerformanceFee)).div(BN(10000))
     const currCallFee = sdexReward.mul(BN(vCallFee)).div(BN(10000))
     const bnStakeAmount = BN(stakeAmount)
-    const {refund, penalty} = calcPenalty(2, blocksToStake, bnStakeAmount.add(sdexReward).sub(currCallFee).sub(currPerFee))
+    const positionAmount = BN(state1[alice].vUserInfo.positions[0].amount)
+    console.log(positionAmount.toString())
+    const currentAmount = bnStakeAmount.add(sdexReward).sub(currCallFee).sub(currPerFee)
+    const accruedSdex = currentAmount.sub(positionAmount)
+    console.log(accruedSdex.toString(), 'hi')
+    const {refund, penalty} = calcPenalty(2, blocksToStake, positionAmount)
+    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(2, blocksToStake, accruedSdex) 
+    console.log('refundAcc', refundAcc)
     
     await sdexVaultFacet.methods.withdrawVault(0).send({from: alice})
 
@@ -146,9 +153,9 @@ contract("SdexVaultFacet", (accounts) => {
     // Alice Sdex
     const bnAliceSdex1 = BN(state1[alice].sdex)
     const bnAliceSdex2 = BN(state2[alice].sdex)
-    assert.equal(BN(state1[alice].sdex).add(refund).toString(), state2[alice].sdex)
+    assert.equal(BN(state1[alice].sdex).add(refund).add(refundAcc).toString(), state2[alice].sdex)
     // Diamond Sdex
-    assert.equal(BN(state1[diamondAddress].sdex).add(sdexReward).sub(refund).toString(), state2[diamondAddress].sdex)
+    assert.equal(BN(state1[diamondAddress].sdex).add(sdexReward).sub(refund).sub(refundAcc).toString(), state2[diamondAddress].sdex)
     // User Info 
     assert.equal(state2[diamondAddress].userInfo.tokenData[0].amount, 0)
     // Pool Info
@@ -243,6 +250,7 @@ contract("SdexVaultFacet", (accounts) => {
     
     await sdexVaultFacet.methods.depositVault(
       stakeAmount, blocksToStake, reducedPenaltyReward._address, 1).send({from:alice})
+    
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     const totalSdex2 = await sdexFacet.methods.totalSupply().call()
@@ -252,7 +260,10 @@ contract("SdexVaultFacet", (accounts) => {
     const currentAmount = BN(stakeAmount).mul(vaultBalance).div(BN(state2.vault.vTotalShares))
 
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
-    const {refund, penalty} = calcPenalty(blocksToStake/2 + 1, blocksToStake, currentAmount)
+    const positionAmount = BN(state2[alice].vUserInfo.positions[positionid].amount)
+    const {refund, penalty} = calcPenalty(blocksToStake/2 + 1, blocksToStake, positionAmount)
+    const accruedSdex = currentAmount.sub(positionAmount)
+    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(blocksToStake/2 + 1, blocksToStake, accruedSdex) 
 
     const reduction2 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
     const reduction2BN =  BN(reduction2.amount)
@@ -269,11 +280,11 @@ contract("SdexVaultFacet", (accounts) => {
     //Alice Sdex
     assert.equal(BN(state1[alice].sdex).sub(BN(stakeAmount)).toString(), state2[alice].sdex)
 
-    assert.equal(BN(state2[alice].sdex).add(refund).add(penalty).toString(), state3[alice].sdex)
+    assert.equal(BN(state2[alice].sdex).add(refund).add(penalty).add(refundAcc).add(penaltyAcc).toString(), state3[alice].sdex)
     //Diamond Sdex
     assert.equal(BN(state1[diamondAddress].sdex).add(BN(stakeAmount)).toString(), state2[diamondAddress].sdex)
     const reduction2BNDiff = reduction2BN.sub(penalty)
-    assert.equal(BN(state2[diamondAddress].sdex).sub(penalty).sub(refund).add(sdexReward.mul(BN(blocksToStake/2 + 1))).toString(), state3[diamondAddress].sdex)
+    assert.equal(BN(state2[diamondAddress].sdex).sub(penalty).sub(refund).sub(penaltyAcc).sub(refundAcc).add(sdexReward.mul(BN(blocksToStake/2 + 1))).toString(), state3[diamondAddress].sdex)
     //VUser Info
     assert.equal(state3[alice].vUserInfo.shares, 0)
     assert.equal(state3[alice].vUserInfo.positions[positionid].amount, 0)
@@ -290,9 +301,17 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, stakeAmount*blocksToStake)
     assert.equal(state2.rewardGlobals[diamondAddress].penalties, 0)
     assert.equal(state3.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
-    assert.equal(state3.rewardGlobals[diamondAddress].penalties, 0)
+
+
+    console.log(BN(state2.accSdexPenaltyPool).add(penaltyAcc).toString(), state3.accSdexPenaltyPool)
+
+    assert.equal(state2.accSdexRewardPool, state3.accSdexRewardPool)
+    console.log(state2.rewardGlobals[diamondAddress].penalties, state3.rewardGlobals[diamondAddress].penalties)
+    console.log(penalty.toString())
+    console.log(state2.rewardGlobals[diamondAddress].rewarded, state3.rewardGlobals[diamondAddress].rewarded)
+    assert.equal(state3.rewardGlobals[diamondAddress].penalties, penalty.toString())
     //Vault Params
     //NFT
-    assert.equal(reduction3.amount, BN(reduction2.amount).sub(penalty).toString())
+    assert.equal(reduction3.amount, BN(reduction2.amount).sub(penalty).sub(penaltyAcc).toString())
   })
 })

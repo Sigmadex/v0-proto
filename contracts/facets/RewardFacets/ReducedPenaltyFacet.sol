@@ -1,6 +1,6 @@
 pragma solidity 0.8.9;
 
-import { AppStorage, LibAppStorage, Modifiers, RPAmount, PoolInfo, UserInfo, UserPosition } from '../../libraries/LibAppStorage.sol';
+import { AppStorage, LibAppStorage, Modifiers, RPAmount, PoolInfo, UserInfo, UserPosition, REWARDPOOL } from '../../libraries/LibAppStorage.sol';
 import '../../interfaces/IERC1155.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
@@ -35,12 +35,15 @@ contract ReducedPenaltyFacet is  Modifiers {
   function rPReward(
     address to,
     address token,
-    uint256 amount
+    uint256 amount,
+    REWARDPOOL rewardPool
+    
   ) external onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     RPAmount memory reductionAmount = RPAmount({
       token: token,
-      amount: amount
+      amount: amount,
+      rewardPool: rewardPool 
     });
     s.rPAmounts[s.rPNextId] = reductionAmount;
     bytes memory data = 'data';
@@ -100,7 +103,9 @@ contract ReducedPenaltyFacet is  Modifiers {
             );
             penalty -=  bonus;
             rPAmount.amount = 0;
-            s.tokenRewardData[address(token)].rewarded -= bonus;
+            (rPAmount.rewardPool == REWARDPOOL.BASE) ?
+            s.tokenRewardData[address(token)].rewarded -= bonus :
+            s.accSdexRewardPool -= bonus;
           } else {
             // partial refund
             token.transfer(
@@ -108,7 +113,9 @@ contract ReducedPenaltyFacet is  Modifiers {
               penalty
             );
             rPAmount.amount -= penalty;
-            s.tokenRewardData[address(token)].rewarded -= penalty;
+            (rPAmount.rewardPool == REWARDPOOL.BASE) ?
+            s.tokenRewardData[address(token)].rewarded -= penalty :
+            s.accSdexRewardPool -= penalty;
             penalty = 0;
           }
         }
@@ -149,12 +156,11 @@ contract ReducedPenaltyFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
-    uint256 shares = position.shares;
-    require(shares > 0, "Nothing to withdraw");
+    require(position.shares > 0, "Nothing to withdraw");
     uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
-    uint256 currentAmount = shares * vaultBalance / s.vTotalShares;
-    vUser.shares -= shares;
-    s.vTotalShares -= shares;
+    uint256 currentAmount = position.shares * vaultBalance / s.vTotalShares;
+    vUser.shares -= position.shares;
+    s.vTotalShares -= position.shares;
     
     uint256 bal = s.vSdex;
     // Consider the edge case where not all funds are staked, kinda odd, but it was there
@@ -179,6 +185,7 @@ contract ReducedPenaltyFacet is  Modifiers {
     vUser.lastUserActionTime = block.timestamp;
     
     uint256 blocksAhead = position.endBlock - position.startBlock;
+    uint256 accruedSdex = currentAmount - position.amount;
     if (position.endBlock < block.number) {
         SdexFacet(address(this)).transfer(
           msg.sender,
@@ -194,49 +201,60 @@ contract ReducedPenaltyFacet is  Modifiers {
         s.tokenRewardData[address(this)].rewarded += rewardAmount;
         s.tokenRewardData[address(this)].penalties -= rewardAmount;
 
-        uint256 accruedSdex = currentAmount - position.amount;
         // experimental
         RewardFacet(address(this)).requestSdexReward(
           msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
         );
 
     } else {
-
+        console.log('hello ');
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, currentAmount
+          position.startBlock, position.endBlock, position.amount
         );
+        (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
+          position.startBlock, position.endBlock, accruedSdex
+        );
+        uint256 overallPenalty = penalty + penaltyAcc;
         RPAmount storage rPAmount = s.rPAmounts[position.nftid];
         uint256 bonus = rPAmount.amount;
-        if (bonus <= penalty) {
+        if (bonus <= overallPenalty) {
+          console.log('deplete nft');
           SdexFacet(address(this)).transfer(
             msg.sender,
             bonus
           );
-          //s.vSdex -= bonus;
-          penalty -=  bonus;
+          console.log('bonus amount::contract', bonus);
+          overallPenalty -=  bonus;
           rPAmount.amount = 0;
-          s.tokenRewardData[address(this)].rewarded -= bonus;
+          (rPAmount.rewardPool == REWARDPOOL.BASE) ?
+          s.tokenRewardData[address(this)].rewarded -= bonus :
+          s.accSdexRewardPool -= bonus;
         } else {
+          console.log('partial refund');
           // partial refund
           SdexFacet(address(this)).transfer(
             msg.sender,
-            penalty
+            overallPenalty
           );
+          console.log('overall penalty', overallPenalty);
           //s.vSdex -= penalty;
-          rPAmount.amount -= penalty;
-          s.tokenRewardData[address(this)].rewarded -= penalty;
-          penalty = 0;
+          rPAmount.amount -= overallPenalty;
+          (rPAmount.rewardPool == REWARDPOOL.BASE) ?
+          s.tokenRewardData[address(this)].rewarded -= overallPenalty :
+          s.accSdexRewardPool -= overallPenalty;
+          overallPenalty = 0;
         }
 
         SdexFacet(address(this)).transfer(
           msg.sender,
-          refund
+          refund + refundAcc
         );
         //s.vSdex -= refund;
         s.vSdex -= currentAmount;
-        s.accSdexPenaltyPool += penalty;
         s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
         s.tokenRewardData[address(this)].penalties += penalty;
+        s.accSdexPenaltyPool += penaltyAcc;
+        
 
     }
     position.amount = 0;

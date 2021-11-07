@@ -1,6 +1,6 @@
 pragma solidity 0.8.9;
 
-import { LibAppStorage, AppStorage, Modifiers, TokenRewardData, Reward } from '../libraries/LibAppStorage.sol';
+import { LibAppStorage, AppStorage, Modifiers, TokenRewardData, Reward, REWARDPOOL } from '../libraries/LibAppStorage.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './ToolShedFacet.sol';
 import 'hardhat/console.sol';
@@ -35,7 +35,8 @@ contract RewardFacet is Modifiers {
   function mintReward(
     address to,
     address token,
-    uint256 rewardAmount
+    uint256 rewardAmount,
+    REWARDPOOL rewardPool
   ) public  onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     uint256 kindaRandomId = uint256(keccak256(abi.encodePacked(blockhash(block.number - 1), to, s.seed))) % s.validRewards[token].length;
@@ -43,7 +44,7 @@ contract RewardFacet is Modifiers {
     Reward memory reward = s.rewards[nftAddr];
     bytes memory fnCall = abi.encodeWithSelector(
       reward.rewardSelector,
-      to, token, rewardAmount
+      to, token, rewardAmount, rewardPool
     );
     (bool success,) = address(this).delegatecall(fnCall);
     require(success, "reward NFT failed");
@@ -61,7 +62,7 @@ contract RewardFacet is Modifiers {
     TokenRewardData storage tokenRewardData = s.tokenRewardData[token];
     uint256 proportio = blockAmount * s.unity / tokenRewardData.blockAmountGlobal;
     uint rewardAmount = proportio * tokenRewardData.penalties / s.unity;
-    mintReward(to, token, rewardAmount);
+    mintReward(to, token, rewardAmount, REWARDPOOL.BASE);
     return rewardAmount;
   }
 
@@ -97,7 +98,7 @@ contract RewardFacet is Modifiers {
     uint256 reward = proportion * s.accSdexPenaltyPool / s.unity;
     s.accSdexPenaltyPool -= reward;
     s.accSdexRewardPool += reward;
-    mintReward(to, address(this), reward);
+    mintReward(to, address(this), reward, REWARDPOOL.ACC);
   }
 
   /** 

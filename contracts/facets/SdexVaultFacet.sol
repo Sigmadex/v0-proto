@@ -147,6 +147,7 @@ contract SdexVaultFacet {
       }
       vUser.lastUserActionTime = block.timestamp;
       uint256 blocksAhead = position.endBlock - position.startBlock;
+      uint256 accruedSdex = currentAmount - position.amount;
       if (position.endBlock < block.number) {
           SdexFacet(address(this)).transfer(
             msg.sender,
@@ -160,22 +161,26 @@ contract SdexVaultFacet {
           s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
           s.tokenRewardData[address(this)].rewarded += rewardAmount;
           s.tokenRewardData[address(this)].penalties -= rewardAmount;
-          uint256 accruedSdex = currentAmount - position.amount;
           RewardFacet(address(this)).requestSdexReward(
             msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
           );
 
       } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-            position.startBlock, position.endBlock, currentAmount
+            position.startBlock, position.endBlock, position.amount
+          );
+          console.log('accruedSdex', accruedSdex);
+          (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
+            position.startBlock, position.endBlock, accruedSdex
           );
 
           SdexFacet(address(this)).transfer(
             msg.sender,
-            refund
+            refund + refundAcc
           );
           s.vSdex -= currentAmount;
-          s.accSdexPenaltyPool += penalty;
+
+          s.accSdexPenaltyPool += penaltyAcc;
           s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
           s.tokenRewardData[address(this)].penalties += penalty;
       }

@@ -60,9 +60,12 @@ struct VaultUserInfo {
   VaultUserPosition[] positions; // tracks users staked for a time period
 }
 
+enum REWARDPOOL{BASE, ACC}
+
 struct RPAmount {
   address token;
   uint256 amount;
+  REWARDPOOL rewardPool;
 }
 
 struct Reward{
