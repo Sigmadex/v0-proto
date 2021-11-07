@@ -1,6 +1,6 @@
 const { deployDiamond } = require('../../scripts/deploy.js')
 const { deploy } = require('../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceChain } = require('../utilities.js')
+const { ADDRESSZERO, advanceBlocks } = require('../utilities.js')
 const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('./helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
@@ -78,7 +78,7 @@ contract("TokenFarmFacet", (accounts) => {
   let tokenC;
   let tokenD;
   let tokens;
-  const hourInSeconds = 3600
+  const blocksToStake = 10
   let diamondAddress
   let pool1Added;
   
@@ -218,8 +218,8 @@ contract("TokenFarmFacet", (accounts) => {
     const stakes = [...Array(users.length).keys()].map((i) => {
       const a = web3.utils.toWei((Math.floor((Math.random() * 20) + 1)).toString(), 'ether');
       const b = web3.utils.toWei((Math.floor((Math.random() * 20) + 1)).toString(), 'ether');
-      const time = Math.floor((Math.random() * 3*3600)+3600)
-      return { a,b, time }
+      const blocksAhead = Math.floor((Math.random() * 20)+10)
+      return { a,b, blocksAhead }
     })
 
     // Stake Pool 1
@@ -229,7 +229,7 @@ contract("TokenFarmFacet", (accounts) => {
       await tokenA.methods.approve(diamondAddress, stake.a).send({from:user.address})
       await tokenB.methods.approve(diamondAddress, stake.b).send({from:user.address})
       return deposit = await tokenFarmFacet.methods.deposit(
-        1, [stake.a, stake.b], stake.time, ADDRESSZERO, 0).send({from:user.address})
+        1, [stake.a, stake.b], stake.blocksAhead, ADDRESSZERO, 0).send({from:user.address})
     })
     )
     const globalTokenRewardData2 = await tokenRewardGlobals(toolShedFacet, tokens)
@@ -250,18 +250,18 @@ contract("TokenFarmFacet", (accounts) => {
 
     assert.equal(poolSupplyA.toString(), poolInfo2[0].tokenData[0].supply)
     assert.equal(poolSupplyB.toString(), poolInfo2[0].tokenData[1].supply)
-    const timeAmountGlobalA = stakes.reduce((prev,curr,i) => {
-      if (i == 1) prev = new web3.utils.BN(prev.a).mul(new web3.utils.BN(prev.time))
-      const nextTAG = new web3.utils.BN(curr.a).mul(new web3.utils.BN(curr.time))
+    const blockAmountGlobalA = stakes.reduce((prev,curr,i) => {
+      if (i == 1) prev = new web3.utils.BN(prev.a).mul(new web3.utils.BN(prev.blocksAhead))
+      const nextTAG = new web3.utils.BN(curr.a).mul(new web3.utils.BN(curr.blocksAhead))
       return prev.add(nextTAG)
     })
-    const timeAmountGlobalB = stakes.reduce((prev,curr,i) => {
-      if (i == 1) prev = new web3.utils.BN(prev.b).mul(new web3.utils.BN(prev.time))
-      const nextTAG = new web3.utils.BN(curr.b).mul(new web3.utils.BN(curr.time))
+    const blockAmountGlobalB = stakes.reduce((prev,curr,i) => {
+      if (i == 1) prev = new web3.utils.BN(prev.b).mul(new web3.utils.BN(prev.blocksAhead))
+      const nextTAG = new web3.utils.BN(curr.b).mul(new web3.utils.BN(curr.blocksAhead))
       return prev.add(nextTAG)
     })
-    assert.equal(globalTokenRewardData2[0].tokenA.timeAmountGlobal, timeAmountGlobalA.toString())
-    assert.equal(globalTokenRewardData2[1].tokenB.timeAmountGlobal, timeAmountGlobalB.toString())
+    assert.equal(globalTokenRewardData2[0].tokenA.blockAmountGlobal, blockAmountGlobalA.toString())
+    assert.equal(globalTokenRewardData2[1].tokenB.blockAmountGlobal, blockAmountGlobalB.toString())
   })
   it("Alice withdraws", async () => {
     const poolid = 1;
@@ -275,7 +275,7 @@ contract("TokenFarmFacet", (accounts) => {
     const userInfo1 = await tokenFarmFacet.methods.userInfo(poolid, alice).call()
     const poolInfo1 = await tokenFarmFacet.methods.poolInfo(poolid).call()
     const position1 = userInfo1.positions[positionid]
-    const stakeTime = position1.timeEnd - position1.timeStart
+    const stakeTime = position1.endBlock - position1.startBlock
     const {refund: refundA , penalty: penaltyA} = await calcPenalty(4, stakeTime, position1.amounts[0])
     const {refund: refundB, penalty: penaltyB} = await calcPenalty(4, stakeTime, position1.amounts[1])
 
@@ -317,11 +317,11 @@ contract("TokenFarmFacet", (accounts) => {
     let sdexRewardData2 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
     const timeAmountA = new web3.utils.BN(position1.amounts[0]).mul(new web3.utils.BN(stakeTime))
     const timeAmountB = new web3.utils.BN(position1.amounts[1]).mul(new web3.utils.BN(stakeTime))
-    const tard1AmountA =new web3.utils.BN(tokenARewardData1.timeAmountGlobal)
-    const tard2AmountA =new web3.utils.BN(tokenARewardData2.timeAmountGlobal)
+    const tard1AmountA =new web3.utils.BN(tokenARewardData1.blockAmountGlobal)
+    const tard2AmountA =new web3.utils.BN(tokenARewardData2.blockAmountGlobal)
     assert.equal(tard1AmountA.sub(tard2AmountA).toString(), timeAmountA.toString())
-    const tard1AmountB =new web3.utils.BN(tokenBRewardData1.timeAmountGlobal)
-    const tard2AmountB =new web3.utils.BN(tokenBRewardData2.timeAmountGlobal)
+    const tard1AmountB =new web3.utils.BN(tokenBRewardData1.blockAmountGlobal)
+    const tard2AmountB =new web3.utils.BN(tokenBRewardData2.blockAmountGlobal)
     assert.equal(tard1AmountB.sub(tard2AmountB).toString(), timeAmountB.toString())
     assert.equal(tokenARewardData2.penalties, penaltyA.toString())
     assert.equal(tokenBRewardData2.penalties, penaltyB.toString())
