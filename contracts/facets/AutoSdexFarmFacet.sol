@@ -38,7 +38,7 @@ contract AutoSdexFarmFacet is Modifiers {
     user.tokenData[0].amount += amount;
     pool.tokenData[0].supply += amount;
     user.tokenData[0].rewardDebt = user.tokenData[0].amount*pool.tokenData[0].accSdexPerShare;
-    s.vShares[address(this)] += amount;
+    //s.vShares[address(this)] += amount;
     emit Deposit(msg.sender, 0, amount);
   }
   
@@ -66,7 +66,7 @@ contract AutoSdexFarmFacet is Modifiers {
       s.vSdex += amount;
     }
     user.tokenData[0].rewardDebt = user.tokenData[0].amount*pool.tokenData[0].accSdexPerShare;
-    s.vShares[address(this)] -= amount;
+    //s.vShares[address(this)] -= amount;
     //syrup.burn(msg.sender, amount);
     emit Withdraw(msg.sender, 0);
   }

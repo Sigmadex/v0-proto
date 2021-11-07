@@ -3,7 +3,7 @@ const fromExponential = require('from-exponential')
 const { deployDiamond } = require('../../scripts/deploy.js')
 const { deploy } = require('../../scripts/libraries/diamond.js')
 const { ADDRESSZERO, advanceChain, advanceTime, advanceBlocks } = require('../utilities.js')
-const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('./helpers.js')
+const { fetchState, BN, calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('./helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
 
@@ -20,6 +20,7 @@ contract("SdexVaultFacet", (accounts) => {
   let owner = accounts[0]
   let alice = accounts[1]
   let bob = accounts[2]
+  let users = [alice, bob]
   let sdexFacet;
   let toolShedFacet;
   let tokenFarmFacet;
@@ -29,9 +30,10 @@ contract("SdexVaultFacet", (accounts) => {
   let reducedPenaltyReward;
   let tokenA;
   let tokenB;
-  const hourInSeconds = 3600
+  let poolid = 0
+  const blocksToStake = 10
   let diamondAddress
-  let stakeAmount = web3.utils.toWei('12', 'ether')
+  let stakeAmount = web3.utils.toWei('20', 'ether')
   before(async () => {
     diamondAddress = await deployDiamond()
 
@@ -60,188 +62,131 @@ contract("SdexVaultFacet", (accounts) => {
   })
 
   it("user can stake to vault", async () => {
-    
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
-    const aliceSdex1 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex1 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex1 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares1 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo1 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const poolInfo1 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo1 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal1 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, hourInSeconds, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
 
-    const aliceSdex2 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex2 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex2 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares2 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo2 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo2 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo2 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal2 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
-
-    const blockNumber = await web3.eth.getBlockNumber()
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     assert.equal(
-      new web3.utils.BN(aliceSdex1).sub(new web3.utils.BN(aliceSdex2)).toString(), stakeAmount)
+      BN(state1[alice].sdex).sub(BN(state2[alice].sdex)).toString(), stakeAmount)
     assert.equal(
-      new web3.utils.BN(diamondSdex1).add(new web3.utils.BN(stakeAmount)).toString(), diamondSdex2)
-    assert.equal(vSdex1, 0)    
-    assert.equal(vSdex2, 0)    
+      BN(state1[diamondAddress].sdex).add(BN(stakeAmount)).toString(), state2[diamondAddress].sdex)
+    assert.equal(state1.vault.vSdex, 0)    
+    assert.equal(state2.vault.vSdex, 0)    
     // alice  VaultUserInfo
-    assert.equal(vUserInfo2.shares, stakeAmount)
-    assert.equal(vUserInfo2.sdexAtLastUserAction, stakeAmount)
-    assert.equal(vUserInfo2.positions[0].timeEnd - vUserInfo2.positions[0].timeStart, hourInSeconds);
-    assert.equal(vUserInfo2.positions[0].amount, stakeAmount)
-    assert.equal(vUserInfo2.positions[0].shares, stakeAmount)
-    assert.equal(vUserInfo2.positions[0].nftReward, ADDRESSZERO)
-    assert.equal(vUserInfo2.positions[0].nftid, 0)
+    assert.equal(state2[alice].vUserInfo.shares, stakeAmount)
+    assert.equal(state2[alice].vUserInfo.sdexAtLastUserAction, stakeAmount)
+    assert.equal(state2[alice].vUserInfo.positions[0].endBlock - state2[alice].vUserInfo.positions[0].startBlock, blocksToStake);
+    assert.equal(state2[alice].vUserInfo.positions[0].amount, stakeAmount)
+    assert.equal(state2[alice].vUserInfo.positions[0].shares, stakeAmount)
+    assert.equal(state2[alice].vUserInfo.positions[0].nftReward, ADDRESSZERO)
+    assert.equal(state2[alice].vUserInfo.positions[0].nftid, 0)
 
     // Vault UserInfo
-    assert.equal(userInfo2.tokenData[0].amount, stakeAmount)
-    assert.equal(userInfo2.tokenData[0].rewardDebt, 0)
-    assert.equal(userInfo2.lastRewardBlock, 0)
+    assert.equal(state2[diamondAddress].userInfo.tokenData[0].amount, stakeAmount)
+    assert.equal(state2[diamondAddress].userInfo.tokenData[0].rewardDebt, 0)
+    assert.equal(state2[diamondAddress].userInfo.lastRewardBlock, 0)
 
     // Vault Shares
-    assert.equal(vSharesDiamond, stakeAmount);
-    assert.equal(vSharesAlice, 0);
+    //assert.equal(vSharesDiamond, stakeAmount);
 
     //Pool
-    assert.equal(poolInfo2.tokenData[0].token, diamondAddress)
-    assert.equal(poolInfo2.tokenData[0].supply, stakeAmount)
-    assert.equal(poolInfo2.allocPoint, 1000)
-    assert.equal(poolInfo2.lastRewardBlock, blockNumber)
+    assert.equal(state2.pool.tokenData[0].token, diamondAddress)
+    assert.equal(state2.pool.tokenData[0].supply, stakeAmount)
+    assert.equal(state2.pool.allocPoint, 1000)
+    assert.equal(state2.pool.lastRewardBlock, state2.blockNumber)
 
     //Token Globals
-    assert.equal(tokenGlobal2.timeAmountGlobal, hourInSeconds*stakeAmount)
-    assert.equal(tokenGlobal2.rewarded, 0)
-    assert.equal(tokenGlobal2.penalties, 0)
+    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, blocksToStake*stakeAmount)
+    assert.equal(state2.rewardGlobals[diamondAddress].rewarded, 0)
+    assert.equal(state2.rewardGlobals[diamondAddress].penalties, 0)
   })
 
   it("can harvest, autocompounding", async () => {
-    
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
     const vPerformanceFee = await sdexVaultFacet.methods.vPerformanceFee().call()
     const vCallFee = await sdexVaultFacet.methods.vCallFee().call()
-    const currPerFee = sdexReward.mul(new web3.utils.BN(vPerformanceFee)).div(new web3.utils.BN(10000))
-    const currCallFee = sdexReward.mul(new web3.utils.BN(vCallFee)).div(new web3.utils.BN(10000))
+    const currPerFee = sdexReward.mul(BN(vPerformanceFee)).div(BN(10000))
+    const currCallFee = sdexReward.mul(BN(vCallFee)).div(BN(10000))
 
-    const aliceSdex1 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex1 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex1 = await sdexVaultFacet.methods.vSdex().call()
-    const vTreasury1 = await sdexVaultFacet.methods.vTreasury().call()
-    const vTotalShares1 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo1 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const poolInfo1 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo1 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal1 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
 
     await sdexVaultFacet.methods.harvest().send({from:alice})
 
-    const aliceSdex2 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex2 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex2 = await sdexVaultFacet.methods.vSdex().call()
-    const vTreasury2 = await sdexVaultFacet.methods.vTreasury().call()
-    const vTotalShares2 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo2 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo2 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo2 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal2 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
-    assert.equal(vTreasury2, currPerFee.sub(new web3.utils.BN(1)).toString())
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
-    assert.equal(sdexReward.add(new web3.utils.BN(diamondSdex1)).sub(new web3.utils.BN(currCallFee)).add(new web3.utils.BN(1)).toString(), diamondSdex2)
-    //assert.equal(diamondSdex2, Number(vTreasury2) + Number(vSdex2) - Number(currCallFee))
+    assert.equal(state2.vault.vTreasury, currPerFee.toString())
+    
+    assert.equal(sdexReward.add(BN(state1[diamondAddress].sdex)).sub(BN(currCallFee)).toString(), state2[diamondAddress].sdex)
+    //assert.equal(state2[diamondAddress].sdex, Number(state2.vault.vTreasury) + Number(state2.vault.vSdex) - Number(currCallFee))
     //
     //
   })
 
   it("can withdraw position, (penalized)", async () => {
-    const aliceSdex1 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex1 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex1 = await sdexVaultFacet.methods.vSdex().call()
-    const vTreasury1 = await sdexVaultFacet.methods.vTreasury().call()
-    const vTotalShares1 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo1 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const poolInfo1 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo1 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal1 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
-    
+
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
     const vPerformanceFee = await sdexVaultFacet.methods.vPerformanceFee().call()
     const vCallFee = await sdexVaultFacet.methods.vCallFee().call()
-    const currPerFee = sdexReward.mul(new web3.utils.BN(vPerformanceFee)).div(new web3.utils.BN(10000))
-    const currCallFee = sdexReward.mul(new web3.utils.BN(vCallFee)).div(new web3.utils.BN(10000))
-    const bnStakeAmount = new web3.utils.BN(stakeAmount)
-    const {refund, penalty} = calcPenalty(2, hourInSeconds, bnStakeAmount.add(sdexReward).sub(currCallFee).sub(currPerFee))
+    const currPerFee = sdexReward.mul(BN(vPerformanceFee)).div(BN(10000))
+    const currCallFee = sdexReward.mul(BN(vCallFee)).div(BN(10000))
+    const bnStakeAmount = BN(stakeAmount)
+    const {refund, penalty} = calcPenalty(2, blocksToStake, bnStakeAmount.add(sdexReward).sub(currCallFee).sub(currPerFee))
     
     await sdexVaultFacet.methods.withdrawVault(0).send({from: alice})
 
-    const aliceSdex2 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex2 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex2 = await sdexVaultFacet.methods.vSdex().call()
-    const vTreasury2 = await sdexVaultFacet.methods.vTreasury().call()
-    const vTotalShares2 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo2 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo2 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo2 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal2 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
-
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     // Alice Sdex
-    const bnAliceSdex1 = new web3.utils.BN(aliceSdex1)
-    const bnAliceSdex2 = new web3.utils.BN(aliceSdex2)
-    assert.equal(new web3.utils.BN(aliceSdex1).add(refund).toString(), aliceSdex2)
+    const bnAliceSdex1 = BN(state1[alice].sdex)
+    const bnAliceSdex2 = BN(state2[alice].sdex)
+    assert.equal(BN(state1[alice].sdex).add(refund).toString(), state2[alice].sdex)
     // Diamond Sdex
-    assert.equal(new web3.utils.BN(diamondSdex1).add(sdexReward).sub(refund).toString(), diamondSdex2)
+    assert.equal(BN(state1[diamondAddress].sdex).add(sdexReward).sub(refund).toString(), state2[diamondAddress].sdex)
     // User Info 
-    assert.equal(userInfo2.tokenData[0].amount, 0)
+    assert.equal(state2[diamondAddress].userInfo.tokenData[0].amount, 0)
     // Pool Info
     const blockNumber = await web3.eth.getBlockNumber()
-    assert.equal(poolInfo2.tokenData[0].supply, 0)
-    assert.equal(poolInfo2.lastRewardBlock, blockNumber)
+    assert.equal(state2.pool.tokenData[0].supply, 0)
+    assert.equal(state2.pool.lastRewardBlock, blockNumber)
     // Vault User Info
-    assert.equal(vUserInfo1.shares, stakeAmount)
-    assert.equal(vUserInfo1.sdexAtLastUserAction, stakeAmount)
-    assert.equal(vUserInfo1.lastUserActionTime, vUserInfo1.lastDepositedTime)
+    assert.equal(state1[alice].vUserInfo.shares, stakeAmount)
+    assert.equal(state1[alice].vUserInfo.sdexAtLastUserAction, stakeAmount)
+    assert.equal(state1[alice].vUserInfo.lastUserActionTime, state1[alice].vUserInfo.lastDepositedTime)
 
-    const position1 = vUserInfo1.positions[0]
-    assert.equal(position1.timeEnd - position1.timeStart, hourInSeconds)
+    const position1 = state1[alice].vUserInfo.positions[0]
+    assert.equal(position1.endBlock - position1.startBlock, blocksToStake)
     assert.equal(position1.startBlock, blockNumber - 2)
     assert.equal(position1.amount, stakeAmount)
     assert.equal(position1.shares, stakeAmount)
     assert.equal(position1.nftReward, ADDRESSZERO)
     assert.equal(position1.nftid, 0)
 
-    assert.equal(vUserInfo2.shares, 0)
-    assert.equal(vUserInfo2.sdexAtLastUserAction, 0)
-    //assert.equal(vUserInfo2.lastUserActionTime, vUserInfo2.lastDepositedTime)
+    assert.equal(state2[alice].vUserInfo.shares, 0)
+    assert.equal(state2[alice].vUserInfo.sdexAtLastUserAction, 0)
+    //assert.equal(state2[alice].vUserInfo.lastUserActionTime, state2[alice].vUserInfo.lastDepositedTime)
 
-    const position2 = vUserInfo2.positions[0]
-    assert.equal(position2.timeEnd - position2.timeStart, hourInSeconds)
+    const position2 = state2[alice].vUserInfo.positions[0]
+    assert.equal(position2.endBlock - position2.startBlock, blocksToStake)
     assert.equal(position2.startBlock, blockNumber - 2)
     assert.equal(position2.amount, 0)
     assert.equal(position2.shares, 0)
     assert.equal(position2.nftReward, ADDRESSZERO)
     assert.equal(position2.nftid, 0)
     // Vault Sdex
-    assert.equal(vSdex2, penalty.add(sdexReward).toString())
-    //assert.equal(vSdex2, penalty.add(sdexReward).sub(new web3.utils.BN(1)).toString())
+    //assert.equal(state2.vault.vSdex, penalty.add(sdexReward).add(BN(1)).toString())
+    assert.equal(state2.vault.vSdex, (sdexReward).sub(BN(1)).toString())
     
     // Token Globals
-    assert.equal(tokenGlobal2.timeAmountGlobal, 0 )
-    assert.equal(tokenGlobal2.rewarded, 0)
-    assert.equal(tokenGlobal2.penalties, penalty.add(new web3.utils.BN(1)).toString())
+    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, 0 )
+    assert.equal(state2.rewardGlobals[diamondAddress].rewarded, 0)
+    assert.equal(state2.rewardGlobals[diamondAddress].penalties, penalty.toString())
 
   })
 
@@ -249,74 +194,43 @@ contract("SdexVaultFacet", (accounts) => {
     let positionid = 1
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
-    const totalSdex1 = await sdexFacet.methods.totalSupply().call()
-    const aliceSdex1 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex1 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex1 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares1 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo1 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const poolInfo1 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo1 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal1 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, hourInSeconds, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
 
-    const totalSdex2 = await sdexFacet.methods.totalSupply().call()
-    const aliceSdex2 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex2 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex2 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares2 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo2 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo2 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo2 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal2 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
-    const vaultBalance = new web3.utils.BN(await sdexVaultFacet.methods.vaultBalance().call())
-    const currentAmount = new web3.utils.BN(stakeAmount).mul(vaultBalance).div(new web3.utils.BN(vTotalShares2))
-    await advanceTime(3601) // 3601 seconds, 0 block
+    const vaultBalance = BN(await sdexVaultFacet.methods.vaultBalance().call())
+    const currentAmount = BN(stakeAmount).mul(vaultBalance).div(BN(state2.vault.vTotalShares))
+    await advanceBlocks(blocksToStake+1) // 3601 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
-    const totalSdex3 = await sdexFacet.methods.totalSupply().call()
-    const aliceSdex3 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex3 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex3 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares3 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo3 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond3 = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice3 = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo3 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo3 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal3 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
+    let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     //Alice Sdex
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
-    const bnStakeAmount = new web3.utils.BN(stakeAmount)
+    const bnStakeAmount = BN(stakeAmount)
     const diff = sdexReward.add(bnStakeAmount)
     
     // Diamond Sdex
     assert.equal(
-      new web3.utils.BN(diamondSdex1).add(bnStakeAmount).toString(),
-      diamondSdex2
+      BN(state1[diamondAddress].sdex).add(bnStakeAmount).toString(),
+      state2[diamondAddress].sdex
     )
-    assert.equal(new web3.utils.BN(diamondSdex2).add(sdexReward).sub(currentAmount).toString(), diamondSdex3)
+    assert.equal(BN(state2[diamondAddress].sdex).add(sdexReward.mul(BN(blocksToStake+2))).sub(currentAmount).toString(), state3[diamondAddress].sdex)
 
 
-    assert.equal(new web3.utils.BN(aliceSdex1).sub(bnStakeAmount).toString(), aliceSdex2 )
-    assert.equal(new web3.utils.BN(aliceSdex2).add(currentAmount).toString(), aliceSdex3 )
+    assert.equal(BN(state1[alice].sdex).sub(bnStakeAmount).toString(), state2[alice].sdex )
+    assert.equal(BN(state2[alice].sdex).add(currentAmount).toString(), state3[alice].sdex )
     // Why gaining reward?
     //
-    
-
-
     
     // NFT
     assert.equal(await reducedPenaltyReward.methods.balanceOf(alice, 1).call(), 1)
     const reduction = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
-    assert.equal(reduction.amount, tokenGlobal3.rewarded);
-    assert.equal(reduction.amount, tokenGlobal2.penalties);
+    assert.equal(reduction.amount, state3.rewardGlobals[diamondAddress].rewarded);
+    assert.equal(reduction.amount, state2.rewardGlobals[diamondAddress].penalties);
   })
 
   it("can deposit with an NFT", async () => {
@@ -324,87 +238,61 @@ contract("SdexVaultFacet", (accounts) => {
     let positionid = 2
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     const totalSdex1 = await sdexFacet.methods.totalSupply().call()
-    const aliceSdex1 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex1 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex1 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares1 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo1 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const poolInfo1 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo1 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal1 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
-
+    
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, hourInSeconds, reducedPenaltyReward._address, 1).send({from:alice})
+      stakeAmount, blocksToStake, reducedPenaltyReward._address, 1).send({from:alice})
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     const totalSdex2 = await sdexFacet.methods.totalSupply().call()
-    const aliceSdex2 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex2 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex2 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares2 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo2 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond2 = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice2 = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo2 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo2 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal2 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
 
-
-    const bnStakeAmount = new web3.utils.BN(stakeAmount)
-    const vaultBalance = new web3.utils.BN(await sdexVaultFacet.methods.vaultBalance().call())
-    const currentAmount = new web3.utils.BN(stakeAmount).mul(vaultBalance).div(new web3.utils.BN(vTotalShares2))
+    const bnStakeAmount = BN(stakeAmount)
+    const vaultBalance = BN(await sdexVaultFacet.methods.vaultBalance().call())
+    const currentAmount = BN(stakeAmount).mul(vaultBalance).div(BN(state2.vault.vTotalShares))
 
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
-    const {refund, penalty} = calcPenalty(1800, hourInSeconds, currentAmount)
+    const {refund, penalty} = calcPenalty(blocksToStake/2 + 1, blocksToStake, currentAmount)
 
     const reduction2 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
-    const reduction2BN =  new web3.utils.BN(reduction2.amount)
+    const reduction2BN =  BN(reduction2.amount)
 
-    await advanceTime(1800) // 1800 seconds, 0 block
+    await advanceBlocks(blocksToStake/2) // 1800 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
-    const blockNumber = await web3.eth.getBlockNumber()
+    let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     const totalSdex3 = await sdexFacet.methods.totalSupply().call()
-    const aliceSdex3 = await sdexFacet.methods.balanceOf(alice).call()
-    const diamondSdex3 = await sdexFacet.methods.balanceOf(diamondAddress).call()
-    const vSdex3 = await sdexVaultFacet.methods.vSdex().call()
-    const vTotalShares3 = await sdexVaultFacet.methods.vTotalShares().call()
-    const vUserInfo3 = await sdexVaultFacet.methods.vUserInfo(alice).call()
-    const vSharesDiamond3 = await sdexVaultFacet.methods.vShares(diamondAddress).call()
-    const vSharesAlice3 = await sdexVaultFacet.methods.vShares(alice).call()
-    const poolInfo3 = await tokenFarmFacet.methods.poolInfo(0).call()
-    const userInfo3 = await tokenFarmFacet.methods.userInfo(0, diamondAddress).call()
-    const tokenGlobal3 = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
 
     const reduction3 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
-    const reduction3BN =  new web3.utils.BN(reduction3.amount)
+    const reduction3BN =  BN(reduction3.amount)
     //Alice Sdex
-    assert.equal(new web3.utils.BN(aliceSdex1).sub(new web3.utils.BN(stakeAmount)).toString(), aliceSdex2)
-    
-    assert.equal(new web3.utils.BN(aliceSdex2).add(refund).add(reduction2BN).toString(), aliceSdex3)
+    assert.equal(BN(state1[alice].sdex).sub(BN(stakeAmount)).toString(), state2[alice].sdex)
+
+    assert.equal(BN(state2[alice].sdex).add(refund).add(penalty).toString(), state3[alice].sdex)
     //Diamond Sdex
-    assert.equal(new web3.utils.BN(diamondSdex1).add(new web3.utils.BN(stakeAmount)).add(sdexReward).add(sdexReward).toString(), diamondSdex2)
-    assert.equal(new web3.utils.BN(diamondSdex2).sub(refund).sub(reduction2BN).add(sdexReward).toString(), diamondSdex3)
+    assert.equal(BN(state1[diamondAddress].sdex).add(BN(stakeAmount)).toString(), state2[diamondAddress].sdex)
+    const reduction2BNDiff = reduction2BN.sub(penalty)
+    assert.equal(BN(state2[diamondAddress].sdex).sub(penalty).sub(refund).add(sdexReward.mul(BN(blocksToStake/2 + 1))).toString(), state3[diamondAddress].sdex)
     //VUser Info
-    assert.equal(vUserInfo3.shares, 0)
-    assert.equal(vUserInfo3.positions[positionid].amount, 0)
-    assert.equal(vUserInfo3.positions[positionid].shares, 0)
+    assert.equal(state3[alice].vUserInfo.shares, 0)
+    assert.equal(state3[alice].vUserInfo.positions[positionid].amount, 0)
+    assert.equal(state3[alice].vUserInfo.positions[positionid].shares, 0)
     //Pool Info
-    assert.equal(poolInfo3.tokenData[0].supply, 0)
-    assert.equal(poolInfo3.lastRewardBlock, blockNumber)
+    assert.equal(state3.pool.tokenData[0].supply, 0)
+    assert.equal(state3.pool.lastRewardBlock, state3.blockNumber)
     //UserInfo
-    assert.equal(userInfo3.tokenData[0].amount, 0)
-    assert.equal(userInfo3.tokenData[0].rewardDebt, 0)
+    assert.equal(state3[diamondAddress].userInfo.tokenData[0].amount, 0)
+    assert.equal(state3[diamondAddress].userInfo.tokenData[0].rewardDebt, 0)
     //Token Globals
-    assert.equal(tokenGlobal1.penalties, 0)
-    assert.equal(tokenGlobal1.timeAmountGlobal, 0)
-    assert.equal(tokenGlobal2.timeAmountGlobal, stakeAmount*hourInSeconds)
-    assert.equal(tokenGlobal2.penalties, 0)
-    assert.equal(tokenGlobal3.timeAmountGlobal, 0)
-    assert.equal(tokenGlobal3.penalties, penalty.sub(reduction2BN).toString())
+    assert.equal(state1.rewardGlobals[diamondAddress].penalties, 0)
+    assert.equal(state1.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
+    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, stakeAmount*blocksToStake)
+    assert.equal(state2.rewardGlobals[diamondAddress].penalties, 0)
+    assert.equal(state3.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
+    assert.equal(state3.rewardGlobals[diamondAddress].penalties, 0)
     //Vault Params
     //NFT
-    assert.equal(reduction3.amount, 0)
+    assert.equal(reduction3.amount, BN(reduction2.amount).sub(penalty).toString())
   })
 })

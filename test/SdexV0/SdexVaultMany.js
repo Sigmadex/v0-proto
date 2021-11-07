@@ -303,9 +303,14 @@ contract("TokenFarmFacet", (accounts) => {
     //console.log(BN(state1.vault.vSdex).add(BN(state1[diamondAddress].userInfo.tokenData[0].amount)).toString(), BN(state1[diamondAddress].sdex).toString())
     //
     // Persistent 1 wei per block rounding error
-    assert.equal(BN(state1[diamondAddress].sdex).sub(BN(state1.vault.vSdex).add(BN(state1[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(13)).toString(), 0)
-    assert.equal(BN(state2[diamondAddress].sdex).sub(BN(state2.vault.vSdex).add(BN(state2[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(17)).toString(), 0)
-    assert.equal(BN(state3[diamondAddress].sdex).sub(BN(state3.vault.vSdex).add(BN(state3[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(20)).toString(), 0)
+    console.log(state1.accSdexPenaltyPool, state2.accSdexPenaltyPool, state3.accSdexPenaltyPool)
+    //assert.equal(BN(state1[diamondAddress].sdex).sub(BN(state1.rewardGlobals[0].penalties)).sub(BN(state1.rewardGlobals[0].rewarded)).sub(BN(state1.vault.vSdex).sub(BN(state1[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(state1.accSdexPenaltyPool)).sub(BN(state1.accSdexRewardPool)).sub(BN(13)).toString(), 0)
+    //assert.equal(BN(state2[diamondAddress].sdex).sub(BN(state2.rewardGlobals[0].penalties)).sub(BN(state2.rewardGlobals[0].rewarded)).sub(BN(state2.vault.vSdex).sub(BN(state2[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(state1.accSdexPenaltyPool)).sub(BN(17)).toString(), 0)
+    console.log(state3[diamondAddress].sdex)
+    console.log(state3.rewardGlobals[0].penalties)
+    console.log(state3.rewardGlobals[0].rewarded)
+    
+    assert.equal(BN(state3[diamondAddress].sdex).sub(BN(state3.rewardGlobals[0].penalties)).sub(BN(state3.rewardGlobals[0].rewarded)).sub(BN(state3.vault.vSdex).sub(BN(state3[diamondAddress].userInfo.tokenData[0].amount))).sub(BN(state1.accSdexPenaltyPool)).sub(BN(state3.accSdexRewardPool)).sub(BN(20)).toString(), 0)
     //console.log(state1.vault.vTotalShares, state2.vault.vTotalShares, state3.vault.vTotalShares)
     //
     // Reward Stuff

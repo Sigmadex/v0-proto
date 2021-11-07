@@ -48,14 +48,14 @@ contract TokenFarmFacet is Modifiers {
     * Used to deposit a users tokens in a pool for a specific time. Opens up a position in the pool for the amounts given for the time staked.  Users with NFT rewards attach here.
     * @param pid Pool Id
     * @param amounts Array of amounts of each token, consult pool at pid for order and number
-    * @param timeStake amount of time in seconds to stake amounts in protocol
+    * @param blocksAhead the number of blocks in the future one wants to commit
     * @param nftReward address of nft reward token, address(0) for no NFT
     * @param nftid The id of the nft at the nft address, 0 for noNFT
   */
   function deposit(
     uint256 pid,
     uint256[] memory amounts,
-    uint256 timeStake,
+    uint256 blocksAhead,
     address nftReward,
     uint256 nftid
   ) public {
@@ -63,10 +63,9 @@ contract TokenFarmFacet is Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     ToolShedFacet(address(this)).updatePool(pid);
     UserPosition memory newPosition  = UserPosition({
-      timeStart: block.timestamp,
-      timeEnd: block.timestamp + timeStake,
       amounts: amounts,
       startBlock: block.number,
+      endBlock: block.number + blocksAhead,
       nftReward: address(0),
       nftid: 0
     });
@@ -95,12 +94,12 @@ contract TokenFarmFacet is Modifiers {
       user.tokenData[j].amount += amounts[j];
       user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
       pool.tokenData[j].supply += amounts[j];
-      s.tokenRewardData[address(pool.tokenData[j].token)].timeAmountGlobal += amounts[j]*timeStake;
+      s.tokenRewardData[address(pool.tokenData[j].token)].blockAmountGlobal += amounts[j]*blocksAhead;
 
     }
     user.positions.push(newPosition);
     if (pid == 0) {
-      s.vShares[msg.sender] += newPosition.amounts[0];
+      //s.vShares[msg.sender] += newPosition.amounts[0];
     }
     emit Deposit(msg.sender, pid, amounts);
   }
@@ -137,9 +136,10 @@ contract TokenFarmFacet is Modifiers {
       //Manage Tokens 
       for (uint j=0; j < user.tokenData.length; j++) {
         IERC20 token = pool.tokenData[j].token;
-        uint256 stakeTime = position.timeEnd - position.timeStart;
+        //uint256 stakeTime = position.timeEnd - position.timeStart;
+        uint256 blocksAhead = position.endBlock - position.startBlock;
         totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
-        if (position.timeEnd < block.timestamp) {
+        if (position.endBlock < block.number) {
           //past expiry date
           //return tokens
           token.transfer(
@@ -148,21 +148,21 @@ contract TokenFarmFacet is Modifiers {
           );
           //request nft Reward
           uint256 rewardAmount = RewardFacet(address(this)).requestReward(
-            msg.sender, address(token), stakeTime*position.amounts[j]
+            msg.sender, address(token), blocksAhead*position.amounts[j]
           );
 
-          s.tokenRewardData[address(token)].timeAmountGlobal -= stakeTime*position.amounts[j];
+          s.tokenRewardData[address(token)].blockAmountGlobal -= blocksAhead*position.amounts[j];
           s.tokenRewardData[address(token)].rewarded += rewardAmount;
           s.tokenRewardData[address(token)].penalties -= rewardAmount;
         } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-            position.timeStart, position.timeEnd, position.amounts[j]
+            position.startBlock, position.endBlock, position.amounts[j]
           );
           token.transfer(
             msg.sender,
             refund
           );
-          s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
+          s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
           s.tokenRewardData[address(token)].penalties += penalty;
         }
         user.tokenData[j].amount -= position.amounts[j];
@@ -174,17 +174,19 @@ contract TokenFarmFacet is Modifiers {
       //Manage SDEX
       uint256 pending = totalAmountShares / s.unity;
       if (pending >0) {
-        if (position.timeEnd < block.timestamp) {
+        if (position.endBlock < block.number) {
           //Past Expiry Date
           SdexFacet(address(this)).transfer(msg.sender, pending);
           RewardFacet(address(this)).requestSdexReward(
-            msg.sender, position.startBlock, pool.allocPoint, totalAmountShares
+            msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
           );
-        } 
+        } else {
+          s.accSdexPenaltyPool += pending;
+        }
       }
     }
     if (pid == 0) {
-      s.vShares[msg.sender] -= position.amounts[0];
+      //s.vShares[msg.sender] -= position.amounts[0];
     }
   }
   /**
