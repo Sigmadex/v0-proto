@@ -147,7 +147,6 @@ contract SdexVaultFacet {
       }
       vUser.lastUserActionTime = block.timestamp;
       uint256 blocksAhead = position.endBlock - position.startBlock;
-      //uint256 timeAmount = (currentAmount*stakeTime);
       if (position.endBlock < block.number) {
           SdexFacet(address(this)).transfer(
             msg.sender,
@@ -162,7 +161,6 @@ contract SdexVaultFacet {
           s.tokenRewardData[address(this)].rewarded += rewardAmount;
           s.tokenRewardData[address(this)].penalties -= rewardAmount;
           uint256 accruedSdex = currentAmount - position.amount;
-          // experimental
           RewardFacet(address(this)).requestSdexReward(
             msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
           );

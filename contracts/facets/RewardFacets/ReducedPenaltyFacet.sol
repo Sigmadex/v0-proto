@@ -212,7 +212,7 @@ contract ReducedPenaltyFacet is  Modifiers {
             msg.sender,
             bonus
           );
-          s.vSdex -= bonus;
+          //s.vSdex -= bonus;
           penalty -=  bonus;
           rPAmount.amount = 0;
           s.tokenRewardData[address(this)].rewarded -= bonus;
@@ -222,7 +222,7 @@ contract ReducedPenaltyFacet is  Modifiers {
             msg.sender,
             penalty
           );
-          s.vSdex -= penalty;
+          //s.vSdex -= penalty;
           rPAmount.amount -= penalty;
           s.tokenRewardData[address(this)].rewarded -= penalty;
           penalty = 0;
@@ -232,7 +232,8 @@ contract ReducedPenaltyFacet is  Modifiers {
           msg.sender,
           refund
         );
-        s.vSdex -= refund;
+        //s.vSdex -= refund;
+        s.vSdex -= currentAmount;
         s.accSdexPenaltyPool += penalty;
         s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
         s.tokenRewardData[address(this)].penalties += penalty;
