@@ -487,7 +487,7 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
       BN(state5.accSdexRewardPool))).toString(), 2
     )
 
-    assert.equal('difff', BN(state5[bob].sdex).sub(BN(state4[bob].sdex)).toString(), stakeAmountA)
+    assert.equal(BN(state5[bob].sdex).sub(BN(state4[bob].sdex)).toString(), stakeAmountA)
     
     const reductionAmount1 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
     console.log(reductionAmount1)
