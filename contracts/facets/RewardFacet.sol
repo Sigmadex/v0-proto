@@ -55,15 +55,16 @@ contract RewardFacet is Modifiers {
     * @param to the address of the future Reward NFT holder
     * @param token the address of the token being withdrawed (such as USDT)
     * @param blockAmount (blocksAhead*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool 
-    * @return rewardAmount amount rewarded to the user as an NFT reward, used by {TokenFarmFacet} and {SdexVaultFacet} in updating the state of the smart contract
   */
-  function requestReward(address to, address token, uint256 blockAmount) public onlyDiamond returns (uint256){
+  function requestReward(address to, address token, uint256 blockAmount) public onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData storage tokenRewardData = s.tokenRewardData[token];
     uint256 proportio = blockAmount * s.unity / tokenRewardData.blockAmountGlobal;
-    uint rewardAmount = proportio * tokenRewardData.penalties / s.unity;
+    uint256 rewardAmount = proportio * tokenRewardData.penalties / s.unity;
+    s.tokenRewardData[address(token)].blockAmountGlobal -= blockAmount;
+    s.tokenRewardData[address(token)].rewarded += rewardAmount;
+    s.tokenRewardData[address(token)].penalties -= rewardAmount;
     mintReward(to, token, rewardAmount, REWARDPOOL.BASE);
-    return rewardAmount;
   }
 
   /**
@@ -85,16 +86,12 @@ contract RewardFacet is Modifiers {
     TokenRewardData memory tokenRewardData = s.tokenRewardData[address(this)];
      
     // totalSdexEmission
-    uint256 blocksAhead = endBlock - startBlock ;
+    //uint256 blocksAhead = endBlock - startBlock;
     // sdex emission
-    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startBlock-1, endBlock+1);
+    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startBlock, block.number);
     uint256 totalSdexEmission = (multiplier * s.sdexPerBlock);
-    console.log('totalemission', totalSdexEmission);
     uint256 sdexEmittedForPool = totalSdexEmission * poolAllocPoint / s.totalAllocPoint;
-    console.log('sdexEmittedForPool:', sdexEmittedForPool );
-    console.log('amountAccumulated ', amountAccumulated );
     uint256 proportion = amountAccumulated * s.unity / sdexEmittedForPool;
-    console.log('proportion ', proportion );
     uint256 reward = proportion * s.accSdexPenaltyPool / s.unity;
     s.accSdexPenaltyPool -= reward;
     s.accSdexRewardPool += reward;

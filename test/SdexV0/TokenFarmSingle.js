@@ -281,7 +281,8 @@ contract("TokenFarmFacet", (accounts) => {
       await calcNFTRewardAmount(tokenA, toolShedFacet, diamondAddress, blocksToStake, stakeAmount)
     const tokenBRewardAmount = 
       await calcNFTRewardAmount(tokenB, toolShedFacet, diamondAddress, blocksToStake, stakeAmount)
-    const sdexNFTReward = await calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, diamondAddress, poolid, blocksToStake + 1, alice, positionid)
+
+    const sdexNFTReward = await calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, diamondAddress, poolid, blocksToStake +2, alice, positionid)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
@@ -468,6 +469,8 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(sdexRewardData.rewarded, 0)
     assert.equal(sdexRewardData.blockAmountGlobal, 0)
 
+    assert.equal(state3.accSdexPenaltyPool, sdexReward.toString())
+    assert.equal(state2.accSdexRewardPool, state3.accSdexRewardPool)
 
   //Reduced Penalty Rewards
     assert.equal(aliceRPRA, 1)

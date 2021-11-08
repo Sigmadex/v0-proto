@@ -147,13 +147,9 @@ contract TokenFarmFacet is Modifiers {
             position.amounts[j]
           );
           //request nft Reward
-          uint256 rewardAmount = RewardFacet(address(this)).requestReward(
+          RewardFacet(address(this)).requestReward(
             msg.sender, address(token), blocksAhead*position.amounts[j]
           );
-
-          s.tokenRewardData[address(token)].blockAmountGlobal -= blocksAhead*position.amounts[j];
-          s.tokenRewardData[address(token)].rewarded += rewardAmount;
-          s.tokenRewardData[address(token)].penalties -= rewardAmount;
         } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.startBlock, position.endBlock, position.amounts[j]

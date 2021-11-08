@@ -193,13 +193,9 @@ contract ReducedPenaltyFacet is  Modifiers {
         );
         s.vSdex -= currentAmount;
         //request nft Reward
-        uint256 rewardAmount = RewardFacet(address(this)).requestReward(
+        RewardFacet(address(this)).requestReward(
           msg.sender, address(this), position.amount*blocksAhead
         );
-
-        s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
-        s.tokenRewardData[address(this)].rewarded += rewardAmount;
-        s.tokenRewardData[address(this)].penalties -= rewardAmount;
 
         // experimental
         RewardFacet(address(this)).requestSdexReward(
@@ -207,7 +203,6 @@ contract ReducedPenaltyFacet is  Modifiers {
         );
 
     } else {
-        console.log('hello ');
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
           position.startBlock, position.endBlock, position.amount
         );
@@ -218,25 +213,21 @@ contract ReducedPenaltyFacet is  Modifiers {
         RPAmount storage rPAmount = s.rPAmounts[position.nftid];
         uint256 bonus = rPAmount.amount;
         if (bonus <= overallPenalty) {
-          console.log('deplete nft');
           SdexFacet(address(this)).transfer(
             msg.sender,
             bonus
           );
-          console.log('bonus amount::contract', bonus);
           overallPenalty -=  bonus;
           rPAmount.amount = 0;
           (rPAmount.rewardPool == REWARDPOOL.BASE) ?
           s.tokenRewardData[address(this)].rewarded -= bonus :
           s.accSdexRewardPool -= bonus;
         } else {
-          console.log('partial refund');
           // partial refund
           SdexFacet(address(this)).transfer(
             msg.sender,
             overallPenalty
           );
-          console.log('overall penalty', overallPenalty);
           //s.vSdex -= penalty;
           rPAmount.amount -= overallPenalty;
           (rPAmount.rewardPool == REWARDPOOL.BASE) ?

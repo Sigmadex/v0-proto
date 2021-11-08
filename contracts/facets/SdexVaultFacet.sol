@@ -155,16 +155,12 @@ contract SdexVaultFacet {
           );
           s.vSdex -= currentAmount;
           //request nft Reward
-          uint256 rewardAmount = RewardFacet(address(this)).requestReward(
+          RewardFacet(address(this)).requestReward(
             msg.sender, address(this), position.amount*blocksAhead
           );
-          s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
-          s.tokenRewardData[address(this)].rewarded += rewardAmount;
-          s.tokenRewardData[address(this)].penalties -= rewardAmount;
           RewardFacet(address(this)).requestSdexReward(
             msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
           );
-
       } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.startBlock, position.endBlock, position.amount
