@@ -364,21 +364,25 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
     console.log('pool', state1.pool.tokenData[0].supply)
     console.log('poolPen', state1.rewardGlobals[diamondAddress].penalties)
     console.log('poolRew', state1.rewardGlobals[diamondAddress].rewarded)
+    console.log('poolPay', state1.rewardGlobals[diamondAddress].paidOut)
     console.log('accPen', state1.accSdexPenaltyPool)
     console.log('accRew', state1.accSdexRewardPool)
+    console.log('accPay', state1.accSdexPaidOut)
     console.log('---')
-    console.log(BN(state1[diamondAddress].sdex).sub(
+    console.log('Sdex Accounting', BN(state1[diamondAddress].sdex).sub(
       BN(state1.vault.vSdex).add(
       BN(state1.pool.tokenData[0].supply)).add(
       BN(state1.rewardGlobals[diamondAddress].penalties)).add(
       BN(state1.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state1.rewardGlobals[diamondAddress].paidOut)).add(
       BN(state1.accSdexPenaltyPool)).add(
-      BN(state1.accSdexRewardPool))).toString()
+      BN(state1.accSdexPaidOut)).add(
+      BN(state1.accSdexRewardPool))).toString(), 1
     )
-
     await sdexVaultFacet.methods.depositVault(
       stakeAmountA, blocksToStake, reducedPenaltyReward._address, 1).send({from:alice})
 
+    const state2ReductionAmount1 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
     const state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
     console.log('===========alice: 1/10, bob: 0/10==========')
     console.log('alice ', state2[alice].sdex)
@@ -392,13 +396,15 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
     console.log('accPen', state2.accSdexPenaltyPool)
     console.log('accRew', state2.accSdexRewardPool)
     console.log('---')
-    console.log(BN(state2[diamondAddress].sdex).sub(
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
       BN(state2.vault.vSdex).add(
       BN(state2.pool.tokenData[0].supply)).add(
       BN(state2.rewardGlobals[diamondAddress].penalties)).add(
       BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.rewardGlobals[diamondAddress].paidOut)).add(
       BN(state2.accSdexPenaltyPool)).add(
-      BN(state2.accSdexRewardPool))).toString()
+      BN(state2.accSdexPaidOut)).add(
+      BN(state2.accSdexRewardPool))).toString(), 2
     )
 
     await tokenFarmFacet.methods.deposit(
@@ -418,13 +424,15 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
     console.log('accPen', state3.accSdexPenaltyPool)
     console.log('accRew', state3.accSdexRewardPool)
     console.log('---')
-    console.log(BN(state3[diamondAddress].sdex).sub(
+    console.log('Sdex Accounting', BN(state3[diamondAddress].sdex).sub(
       BN(state3.vault.vSdex).add(
       BN(state3.pool.tokenData[0].supply)).add(
       BN(state3.rewardGlobals[diamondAddress].penalties)).add(
       BN(state3.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state3.rewardGlobals[diamondAddress].paidOut)).add(
       BN(state3.accSdexPenaltyPool)).add(
-      BN(state3.accSdexRewardPool))).toString()
+      BN(state3.accSdexPaidOut)).add(
+      BN(state3.accSdexRewardPool))).toString(), 2
     )
     console.log('---')
     console.log(BN(state3[bob].userInfo.tokenData[0].rewardDebt).div(unity).toString())
@@ -433,34 +441,33 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
 
     await advanceBlocks(blocksToStake / 2) //180 blocks, 10 sec per block
 
-
-    console.log('positionid================', state3[alice].vUserInfo.positions.length -1)
     await sdexVaultFacet.methods.withdrawVault(state3[alice].vUserInfo.positions.length-1).send({from: alice})
 
     const state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
     console.log('===========alice: 7/10, bob: 6/10==========')
     console.log('alice ', state4[alice].sdex)
     console.log('bob ', state4[bob].sdex)
-    console.log('diamond ', state4[diamondAddress].sdex)
+    console.log('diamond', state4[diamondAddress].sdex)
     console.log('---')
-    console.log('vSdex', state4.vault.vSdex)
-    console.log('pool', state4.pool.tokenData[0].supply)
+    console.log('vSdex  ', state4.vault.vSdex)
+    console.log('pool   ', state4.pool.tokenData[0].supply)
     console.log('poolPen', state4.rewardGlobals[diamondAddress].penalties)
     console.log('poolRew', state4.rewardGlobals[diamondAddress].rewarded)
-    console.log('accPen', state4.accSdexPenaltyPool)
-    console.log('accRew', state4.accSdexRewardPool)
+    console.log('accPen ', state4.accSdexPenaltyPool)
+    console.log('accRew ', state4.accSdexRewardPool)
     console.log('---')
-    console.log(BN(state4[diamondAddress].sdex).sub(
+    console.log('Sdex Accounting', BN(state4[diamondAddress].sdex).sub(
       BN(state4.vault.vSdex).add(
       BN(state4.pool.tokenData[0].supply)).add(
       BN(state4.rewardGlobals[diamondAddress].penalties)).add(
       BN(state4.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state4.rewardGlobals[diamondAddress].paidOut)).add(
       BN(state4.accSdexPenaltyPool)).add(
-      BN(state4.accSdexRewardPool))).toString()
+      BN(state4.accSdexPaidOut)).add(
+      BN(state4.accSdexRewardPool))).toString(), 2
     )
     console.log('---')
-    console.log(state4[diamondAddress].userInfo.tokenData[0].rewardDebt)
-    console.log(state4[bob].userInfo.tokenData[0].rewardDebt / unity)
+    
     await tokenFarmFacet.methods.withdraw(0, state3[bob].userInfo.positions.length - 1).send({from: bob})
 
     const state5 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
@@ -478,29 +485,153 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
     console.log('accRew', state5.accSdexRewardPool)
     console.log('---')
     // 2 wei rounding err for this, looks like its compounding lol
-    console.log(BN(state5[diamondAddress].sdex).sub(
+    console.log('Sdex Accounting', BN(state5[diamondAddress].sdex).sub(
       BN(state5.vault.vSdex).add(
       BN(state5.pool.tokenData[0].supply)).add(
       BN(state5.rewardGlobals[diamondAddress].penalties)).add(
       BN(state5.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state5.rewardGlobals[diamondAddress].paidOut)).add(
       BN(state5.accSdexPenaltyPool)).add(
+      BN(state5.accSdexPaidOut)).add(
       BN(state5.accSdexRewardPool))).toString(), 2
     )
-
     assert.equal(BN(state5[bob].sdex).sub(BN(state4[bob].sdex)).toString(), stakeAmountA)
-    
-    const reductionAmount1 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
-    console.log(reductionAmount1)
-    
-    const reductionAmount2 = await reducedPenaltyFacet.methods.rPReductionAmount(2).call()
-    console.log(reductionAmount2)
-    const reductionAmount3 = await reducedPenaltyFacet.methods.rPReductionAmount(3).call()
-    console.log(reductionAmount3)
-    const reductionAmount4 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
-    console.log(reductionAmount4)
+    assert.equal(BN(state4[alice].sdex).sub(BN(state3[alice].sdex)).toString(), stakeAmountA)
 
-    console.log(BN(reductionAmount2.amount).add(BN(reductionAmount4.amount)).toString(), state5.accSdexRewardPool)
-    console.log(BN(reductionAmount1.amount).add(BN(reductionAmount3.amount)).toString(), state5.rewardGlobals[diamondAddress].rewarded)
+    let reductionAmount1 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
+    let reductionAmount2 = await reducedPenaltyFacet.methods.rPReductionAmount(2).call()
+    let reductionAmount3 = await reducedPenaltyFacet.methods.rPReductionAmount(3).call()
+    let reductionAmount4 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+
+
+    assert.equal(BN(reductionAmount2.amount).add(BN(reductionAmount4.amount)).toString(), state5.accSdexRewardPool)
+    assert.equal(BN(reductionAmount1.amount).add(BN(reductionAmount3.amount)).toString(), state5.rewardGlobals[diamondAddress].rewarded)
+
+
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountA).send({from:alice})
+    await sdexFacet.methods.approve(diamondAddress, stakeAmountB).send({from:bob})
+
+
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmountA, blocksToStake, reducedPenaltyReward._address, 2).send({from:alice})
+
+    const state6 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
+
+    console.log('alice ', state6[alice].sdex)
+    console.log('bob ', state6[bob].sdex)
+    console.log('diamond ', state6[diamondAddress].sdex)
+    console.log('---')
+    console.log('vSdex', state6.vault.vSdex)
+    console.log('pool', state6.pool.tokenData[0].supply)
+    console.log('poolPen', state6.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew', state6.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen', state6.accSdexPenaltyPool)
+    console.log('accRew', state6.accSdexRewardPool)
+    console.log('---')
+    // 2 wei rounding err for this, looks like its compounding lol
+    console.log('Sdex Accounting', BN(state6[diamondAddress].sdex).sub(
+      BN(state6.vault.vSdex).add(
+      BN(state6.pool.tokenData[0].supply)).add(
+      BN(state6.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state6.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state6.rewardGlobals[diamondAddress].paidOut)).add(
+      BN(state6.accSdexPenaltyPool)).add(
+      BN(state6.accSdexPaidOut)).add(
+      BN(state6.accSdexRewardPool))).toString(), 2
+    )
+
+    await tokenFarmFacet.methods.deposit(
+      0, [stakeAmountB], blocksToStake, reducedPenaltyReward._address, 4).send({from:bob})
+
+    const state7 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
+
+    console.log('alice ', state7[alice].sdex)
+    console.log('bob ', state7[bob].sdex)
+    console.log('diamond ', state7[diamondAddress].sdex)
+    console.log('---')
+    console.log('vSdex', state7.vault.vSdex)
+    console.log('pool', state7.pool.tokenData[0].supply)
+    console.log('poolPen', state7.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew', state7.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen', state7.accSdexPenaltyPool)
+    console.log('accRew', state7.accSdexRewardPool)
+    console.log('---')
+    // 2 wei rounding err for this, looks like its compounding lol
+    console.log('Sdex Accounting', BN(state7[diamondAddress].sdex).sub(
+      BN(state7.vault.vSdex).add(
+      BN(state7.pool.tokenData[0].supply)).add(
+      BN(state7.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state7.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state7.rewardGlobals[diamondAddress].paidOut)).add(
+      BN(state7.accSdexPenaltyPool)).add(
+      BN(state7.accSdexPaidOut)).add(
+      BN(state7.accSdexRewardPool))).toString(), 2
+    )
+    
+
+    await sdexVaultFacet.methods.withdrawVault(state7[alice].vUserInfo.positions.length-1).send({from: alice})
+ 
+
+    const state8 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
+
+    console.log('alice ', state8[alice].sdex)
+    console.log('bob ', state8[bob].sdex)
+    console.log('diamond ', state8[diamondAddress].sdex)
+    console.log('---')
+    console.log('vSdex', state8.vault.vSdex)
+    console.log('pool', state8.pool.tokenData[0].supply)
+    console.log('poolPen', state8.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew', state8.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen', state8.accSdexPenaltyPool)
+    console.log('accRew', state8.accSdexRewardPool)
+    console.log('---')
+    // 2 wei rounding err for this, looks like its compounding lol
+    console.log('Sdex Accounting', BN(state8[diamondAddress].sdex).sub(
+      BN(state8.vault.vSdex).add(
+      BN(state8.pool.tokenData[0].supply)).add(
+      BN(state8.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state8.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state8.rewardGlobals[diamondAddress].paidOut)).add(
+      BN(state8.accSdexPenaltyPool)).add(
+      BN(state8.accSdexPaidOut)).add(
+      BN(state8.accSdexRewardPool))).toString(), 2
+    )
+    await tokenFarmFacet.methods.withdraw(0, state8[bob].userInfo.positions.length - 1).send({from: bob})
+
+    const state9 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
+
+    console.log('alice ', state9[alice].sdex)
+    console.log('bob ', state9[bob].sdex)
+    console.log('diamond ', state9[diamondAddress].sdex)
+    console.log('---')
+    console.log('vSdex', state9.vault.vSdex)
+    console.log('pool', state9.pool.tokenData[0].supply)
+    console.log('poolPen', state9.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew', state9.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen', state9.accSdexPenaltyPool)
+    console.log('accRew', state9.accSdexRewardPool)
+    console.log('---')
+    // 2 wei rounding err for this, looks like its compounding lol
+    console.log('Sdex Accounting:', BN(state9[diamondAddress].sdex).sub(
+      BN(state9.vault.vSdex).add(
+      BN(state9.pool.tokenData[0].supply)).add(
+      BN(state9.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state9.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state9.rewardGlobals[diamondAddress].paidOut)).add(
+      BN(state9.accSdexPenaltyPool)).add(
+      BN(state9.accSdexPaidOut)).add(
+      BN(state9.accSdexRewardPool))).toString(), 2
+    )
+    reductionAmount1 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
+    reductionAmount2 = await reducedPenaltyFacet.methods.rPReductionAmount(2).call()
+    reductionAmount3 = await reducedPenaltyFacet.methods.rPReductionAmount(3).call()
+    reductionAmount4 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+
+
+    assert.equal(BN(reductionAmount2.amount).add(BN(reductionAmount4.amount)).toString(), state9.accSdexRewardPool)
+    assert.equal(BN(reductionAmount1.amount).add(BN(reductionAmount3.amount)).toString(), state9.rewardGlobals[diamondAddress].rewarded)
+
+
+
   })
-  
 })

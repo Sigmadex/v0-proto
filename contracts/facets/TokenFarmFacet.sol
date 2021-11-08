@@ -181,9 +181,6 @@ contract TokenFarmFacet is Modifiers {
         }
       }
     }
-    if (pid == 0) {
-      //s.vShares[msg.sender] -= position.amounts[0];
-    }
   }
   /**
     * Getter function for the amount of pools in the protocol

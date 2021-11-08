@@ -123,6 +123,15 @@ contract ToolShedFacet is Modifiers{
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.accSdexRewardPool;
   }
+  
+  /**
+  * accumulated Sdex Paid Out returns the amount of SDEX that has been paid out from the rewards pool over all time.
+  * @return uint256 the amount of Sdex paid out from NFT rewards
+  */
+  function accSdexPaidOut() public view returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.accSdexPaidOut;
+  }
  
   /**
    * calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens

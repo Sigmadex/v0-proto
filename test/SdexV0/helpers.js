@@ -123,6 +123,7 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
   returnObj['rewardGlobals'] = tokenGlobals
   returnObj['accSdexPenaltyPool'] = await toolShedFacet.methods.accSdexPenaltyPool().call()
   returnObj['accSdexRewardPool'] = await toolShedFacet.methods.accSdexRewardPool().call()
+  returnObj['accSdexPaidOut'] = await toolShedFacet.methods.accSdexPaidOut().call()
   returnObj['blockNumber'] = await web3.eth.getBlockNumber()
   return returnObj
 

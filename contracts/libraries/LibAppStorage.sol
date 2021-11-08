@@ -7,6 +7,7 @@ struct TokenRewardData {
   uint256 blockAmountGlobal;
   uint256 rewarded;
   uint256 penalties;
+  uint256 paidOut;
 }
 
 struct PoolTokenData {
@@ -87,6 +88,7 @@ struct AppStorage {
   mapping (address => TokenRewardData) tokenRewardData;
   uint256 accSdexPenaltyPool;
   uint256 accSdexRewardPool;
+  uint256 accSdexPaidOut;
   mapping (uint256 => mapping (address => UserInfo)) userInfo; 
   uint256 poolLength;
   mapping(uint256 => PoolInfo) poolInfo;

@@ -78,6 +78,7 @@ contract ReducedPenaltyFacet is  Modifiers {
       IERC20 token = pool.tokenData[j].token;
       uint256 blocksAhead = position.endBlock - position.startBlock;
       totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
+      
       if (position.endBlock < block.number) {
         //past expiry date
         //return tokens
@@ -97,15 +98,20 @@ contract ReducedPenaltyFacet is  Modifiers {
         if (address(token) == rPAmount.token) {
           uint256 bonus = rPAmount.amount;
           if (bonus <= penalty) {
+            console.log('hi');
             token.transfer(
               msg.sender,
               bonus
             );
             penalty -=  bonus;
             rPAmount.amount = 0;
-            (rPAmount.rewardPool == REWARDPOOL.BASE) ?
-            s.tokenRewardData[address(token)].rewarded -= bonus :
-            s.accSdexRewardPool -= bonus;
+            if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+              s.tokenRewardData[address(token)].paidOut += bonus;
+              s.tokenRewardData[address(token)].rewarded -= bonus;
+            } else {
+              s.accSdexRewardPool -= bonus;
+              s.accSdexPaidOut += bonus;
+            }
           } else {
             // partial refund
             token.transfer(
@@ -113,9 +119,14 @@ contract ReducedPenaltyFacet is  Modifiers {
               penalty
             );
             rPAmount.amount -= penalty;
-            (rPAmount.rewardPool == REWARDPOOL.BASE) ?
-            s.tokenRewardData[address(token)].rewarded -= penalty :
-            s.accSdexRewardPool -= penalty;
+
+            if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+              s.tokenRewardData[address(token)].rewarded -= penalty;
+              s.tokenRewardData[address(token)].paidOut += penalty;
+            } else {
+              s.accSdexRewardPool -= penalty;
+              s.accSdexPaidOut += penalty;
+            }
             penalty = 0;
           }
         }
@@ -209,42 +220,53 @@ contract ReducedPenaltyFacet is  Modifiers {
         (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
           position.startBlock, position.endBlock, accruedSdex
         );
-        uint256 overallPenalty = penalty + penaltyAcc;
+        // Perhaps it should be lose all Acc
         RPAmount storage rPAmount = s.rPAmounts[position.nftid];
         uint256 bonus = rPAmount.amount;
-        if (bonus <= overallPenalty) {
+        if (bonus <= penalty) {
+          console.log('=======bonus rPVault======');
           SdexFacet(address(this)).transfer(
             msg.sender,
             bonus
           );
-          overallPenalty -=  bonus;
+          penalty -=  bonus;
           rPAmount.amount = 0;
-          (rPAmount.rewardPool == REWARDPOOL.BASE) ?
-          s.tokenRewardData[address(this)].rewarded -= bonus :
-          s.accSdexRewardPool -= bonus;
+          if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+            s.tokenRewardData[address(this)].rewarded -= bonus;
+            s.tokenRewardData[address(this)].paidOut += bonus;
+          } else {
+            s.accSdexRewardPool -= bonus;
+            s.accSdexPaidOut += bonus;
+          }
         } else {
           // partial refund
           SdexFacet(address(this)).transfer(
             msg.sender,
-            overallPenalty
+            penalty
           );
           //s.vSdex -= penalty;
-          rPAmount.amount -= overallPenalty;
-          (rPAmount.rewardPool == REWARDPOOL.BASE) ?
-          s.tokenRewardData[address(this)].rewarded -= overallPenalty :
-          s.accSdexRewardPool -= overallPenalty;
-          overallPenalty = 0;
+          rPAmount.amount -= penalty;
+
+          if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+            s.tokenRewardData[address(this)].rewarded -= penalty;
+            s.tokenRewardData[address(this)].paidOut += penalty;
+          } else {
+            s.accSdexRewardPool -= penalty;
+            s.accSdexPaidOut += penalty;
+          }
+          penalty = 0;
         }
 
         SdexFacet(address(this)).transfer(
           msg.sender,
-          refund + refundAcc
+          refund
         );
         //s.vSdex -= refund;
         s.vSdex -= currentAmount;
         s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
+        console.log('scope test2', penalty);
         s.tokenRewardData[address(this)].penalties += penalty;
-        s.accSdexPenaltyPool += penaltyAcc;
+        s.accSdexPenaltyPool += penaltyAcc + refundAcc;
         
 
     }

@@ -13,7 +13,6 @@
 ``npx hardhat test``
 
 ### Build Docs
-``npm install -g doctoc``
 ``npm run docgen``
 
 ### Serve Docs
