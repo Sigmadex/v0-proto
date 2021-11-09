@@ -131,7 +131,6 @@ contract SdexVaultFacet {
       if (bal < currentAmount) {
         uint256 balWithdraw = currentAmount - bal;
         AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
-
         uint256 balAfter = s.vSdex;
         //theoretical
         uint256 diff = balAfter - bal;
@@ -165,18 +164,17 @@ contract SdexVaultFacet {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
             position.startBlock, position.endBlock, position.amount
           );
-          console.log('accruedSdex', accruedSdex);
           (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
             position.startBlock, position.endBlock, accruedSdex
           );
 
           SdexFacet(address(this)).transfer(
             msg.sender,
-            refund + refundAcc
+            refund
           );
           s.vSdex -= currentAmount;
 
-          s.accSdexPenaltyPool += penaltyAcc;
+          s.accSdexPenaltyPool += penaltyAcc + refundAcc;
           s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
           s.tokenRewardData[address(this)].penalties += penalty;
       }

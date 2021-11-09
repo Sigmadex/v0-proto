@@ -98,7 +98,6 @@ contract ReducedPenaltyFacet is  Modifiers {
         if (address(token) == rPAmount.token) {
           uint256 bonus = rPAmount.amount;
           if (bonus <= penalty) {
-            console.log('hi');
             token.transfer(
               msg.sender,
               bonus
@@ -106,8 +105,8 @@ contract ReducedPenaltyFacet is  Modifiers {
             penalty -=  bonus;
             rPAmount.amount = 0;
             if (rPAmount.rewardPool == REWARDPOOL.BASE) {
-              s.tokenRewardData[address(token)].paidOut += bonus;
               s.tokenRewardData[address(token)].rewarded -= bonus;
+              s.tokenRewardData[address(token)].paidOut += bonus;
             } else {
               s.accSdexRewardPool -= bonus;
               s.accSdexPaidOut += bonus;
@@ -224,7 +223,6 @@ contract ReducedPenaltyFacet is  Modifiers {
         RPAmount storage rPAmount = s.rPAmounts[position.nftid];
         uint256 bonus = rPAmount.amount;
         if (bonus <= penalty) {
-          console.log('=======bonus rPVault======');
           SdexFacet(address(this)).transfer(
             msg.sender,
             bonus
@@ -244,9 +242,8 @@ contract ReducedPenaltyFacet is  Modifiers {
             msg.sender,
             penalty
           );
-          //s.vSdex -= penalty;
           rPAmount.amount -= penalty;
-
+          bonus = penalty;
           if (rPAmount.rewardPool == REWARDPOOL.BASE) {
             s.tokenRewardData[address(this)].rewarded -= penalty;
             s.tokenRewardData[address(this)].paidOut += penalty;
@@ -262,9 +259,8 @@ contract ReducedPenaltyFacet is  Modifiers {
           refund
         );
         //s.vSdex -= refund;
-        s.vSdex -= currentAmount;
+        s.vSdex -= currentAmount - bonus;
         s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
-        console.log('scope test2', penalty);
         s.tokenRewardData[address(this)].penalties += penalty;
         s.accSdexPenaltyPool += penaltyAcc + refundAcc;
         

@@ -71,6 +71,27 @@ contract("SdexVaultFacet", (accounts) => {
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
+    console.log('===========deposit==========')
+    console.log('alice   ', state2[alice].sdex)
+    console.log('diamond ', state2[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state2.vault.vSdex)
+    console.log('pool    ', state2.pool.tokenData[0].supply)
+    console.log('poolPen ', state2.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state2.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state2.accSdexPenaltyPool)
+    console.log('accRew  ', state2.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
+      BN(state2.vault.vSdex).add(
+      BN(state2.pool.tokenData[0].supply)).add(
+      BN(state2.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.accSdexPenaltyPool)).add(
+      BN(state2.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
+
     assert.equal(
       BN(state1[alice].sdex).sub(BN(state2[alice].sdex)).toString(), stakeAmount)
     assert.equal(
@@ -107,6 +128,7 @@ contract("SdexVaultFacet", (accounts) => {
   })
 
   it("can harvest, autocompounding", async () => {
+    /*
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
     const vPerformanceFee = await sdexVaultFacet.methods.vPerformanceFee().call()
@@ -125,6 +147,7 @@ contract("SdexVaultFacet", (accounts) => {
     //assert.equal(state2[diamondAddress].sdex, Number(state2.vault.vTreasury) + Number(state2.vault.vSdex) - Number(currCallFee))
     //
     //
+    */
   })
 
   it("can withdraw position, (penalized)", async () => {
@@ -138,24 +161,41 @@ contract("SdexVaultFacet", (accounts) => {
     const currCallFee = sdexReward.mul(BN(vCallFee)).div(BN(10000))
     const bnStakeAmount = BN(stakeAmount)
     const positionAmount = BN(state1[alice].vUserInfo.positions[0].amount)
-    console.log(positionAmount.toString())
     const currentAmount = bnStakeAmount.add(sdexReward).sub(currCallFee).sub(currPerFee)
     const accruedSdex = currentAmount.sub(positionAmount)
-    console.log(accruedSdex.toString(), 'hi')
-    const {refund, penalty} = calcPenalty(2, blocksToStake, positionAmount)
-    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(2, blocksToStake, accruedSdex) 
-    console.log('refundAcc', refundAcc)
+    const {refund, penalty} = calcPenalty(1, blocksToStake, positionAmount)
+    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(1, blocksToStake, accruedSdex) 
     
     await sdexVaultFacet.methods.withdrawVault(0).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
+    console.log('===========withdrawVault==========')
+    console.log('alice   ', state2[alice].sdex)
+    console.log('diamond ', state2[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state2.vault.vSdex)
+    console.log('pool    ', state2.pool.tokenData[0].supply)
+    console.log('poolPen ', state2.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state2.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state2.accSdexPenaltyPool)
+    console.log('accRew  ', state2.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
+      BN(state2.vault.vSdex).add(
+      BN(state2.pool.tokenData[0].supply)).add(
+      BN(state2.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.accSdexPenaltyPool)).add(
+      BN(state2.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
     // Alice Sdex
     const bnAliceSdex1 = BN(state1[alice].sdex)
     const bnAliceSdex2 = BN(state2[alice].sdex)
-    assert.equal(BN(state1[alice].sdex).add(refund).add(refundAcc).toString(), state2[alice].sdex)
+    assert.equal(BN(state1[alice].sdex).add(refund).toString(), state2[alice].sdex)
     // Diamond Sdex
-    assert.equal(BN(state1[diamondAddress].sdex).add(sdexReward).sub(refund).sub(refundAcc).toString(), state2[diamondAddress].sdex)
+    assert.equal(BN(state1[diamondAddress].sdex).add(sdexReward).sub(refund).toString(), state2[diamondAddress].sdex)
     // User Info 
     assert.equal(state2[diamondAddress].userInfo.tokenData[0].amount, 0)
     // Pool Info
@@ -169,7 +209,7 @@ contract("SdexVaultFacet", (accounts) => {
 
     const position1 = state1[alice].vUserInfo.positions[0]
     assert.equal(position1.endBlock - position1.startBlock, blocksToStake)
-    assert.equal(position1.startBlock, blockNumber - 2)
+    assert.equal(position1.startBlock, blockNumber - 1)
     assert.equal(position1.amount, stakeAmount)
     assert.equal(position1.shares, stakeAmount)
     assert.equal(position1.nftReward, ADDRESSZERO)
@@ -181,14 +221,14 @@ contract("SdexVaultFacet", (accounts) => {
 
     const position2 = state2[alice].vUserInfo.positions[0]
     assert.equal(position2.endBlock - position2.startBlock, blocksToStake)
-    assert.equal(position2.startBlock, blockNumber - 2)
+    assert.equal(position2.startBlock, blockNumber - 1)
     assert.equal(position2.amount, 0)
     assert.equal(position2.shares, 0)
     assert.equal(position2.nftReward, ADDRESSZERO)
     assert.equal(position2.nftid, 0)
     // Vault Sdex
     //assert.equal(state2.vault.vSdex, penalty.add(sdexReward).add(BN(1)).toString())
-    assert.equal(state2.vault.vSdex, (sdexReward).sub(BN(1)).toString())
+    assert.equal(state2.vault.vSdex, (sdexReward).sub(BN(0)).toString())
     
     // Token Globals
     assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, 0 )
@@ -207,6 +247,26 @@ contract("SdexVaultFacet", (accounts) => {
       stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    console.log('===========depositVault==========')
+    console.log('alice   ', state2[alice].sdex)
+    console.log('diamond ', state2[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state2.vault.vSdex)
+    console.log('pool    ', state2.pool.tokenData[0].supply)
+    console.log('poolPen ', state2.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state2.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state2.accSdexPenaltyPool)
+    console.log('accRew  ', state2.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
+      BN(state2.vault.vSdex).add(
+      BN(state2.pool.tokenData[0].supply)).add(
+      BN(state2.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.accSdexPenaltyPool)).add(
+      BN(state2.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
 
     const vaultBalance = BN(await sdexVaultFacet.methods.vaultBalance().call())
     const currentAmount = BN(stakeAmount).mul(vaultBalance).div(BN(state2.vault.vTotalShares))
@@ -214,6 +274,26 @@ contract("SdexVaultFacet", (accounts) => {
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    console.log('===========withdrawVault==========')
+    console.log('alice   ', state3[alice].sdex)
+    console.log('diamond ', state3[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state3.vault.vSdex)
+    console.log('pool    ', state3.pool.tokenData[0].supply)
+    console.log('poolPen ', state3.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state3.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state3.accSdexPenaltyPool)
+    console.log('accRew  ', state3.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state3[diamondAddress].sdex).sub(
+      BN(state3.vault.vSdex).add(
+      BN(state3.pool.tokenData[0].supply)).add(
+      BN(state3.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state3.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state3.accSdexPenaltyPool)).add(
+      BN(state3.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
 
     //Alice Sdex
     const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
@@ -253,6 +333,26 @@ contract("SdexVaultFacet", (accounts) => {
     
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
+    console.log('===========depositVault==========')
+    console.log('alice   ', state2[alice].sdex)
+    console.log('diamond ', state2[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state2.vault.vSdex)
+    console.log('pool    ', state2.pool.tokenData[0].supply)
+    console.log('poolPen ', state2.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state2.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state2.accSdexPenaltyPool)
+    console.log('accRew  ', state2.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
+      BN(state2.vault.vSdex).add(
+      BN(state2.pool.tokenData[0].supply)).add(
+      BN(state2.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.accSdexPenaltyPool)).add(
+      BN(state2.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
     const totalSdex2 = await sdexFacet.methods.totalSupply().call()
 
     const bnStakeAmount = BN(stakeAmount)
@@ -272,6 +372,26 @@ contract("SdexVaultFacet", (accounts) => {
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    console.log('===========withdrawVault==========')
+    console.log('alice   ', state3[alice].sdex)
+    console.log('diamond ', state3[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state3.vault.vSdex)
+    console.log('pool    ', state3.pool.tokenData[0].supply)
+    console.log('poolPen ', state3.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state3.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state3.accSdexPenaltyPool)
+    console.log('accRew  ', state3.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state3[diamondAddress].sdex).sub(
+      BN(state3.vault.vSdex).add(
+      BN(state3.pool.tokenData[0].supply)).add(
+      BN(state3.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state3.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state3.accSdexPenaltyPool)).add(
+      BN(state3.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
 
     const totalSdex3 = await sdexFacet.methods.totalSupply().call()
 
@@ -303,15 +423,173 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(state3.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
 
 
-    console.log(BN(state2.accSdexPenaltyPool).add(penaltyAcc).toString(), state3.accSdexPenaltyPool)
 
     assert.equal(state2.accSdexRewardPool, state3.accSdexRewardPool)
-    console.log(state2.rewardGlobals[diamondAddress].penalties, state3.rewardGlobals[diamondAddress].penalties)
-    console.log(penalty.toString())
-    console.log(state2.rewardGlobals[diamondAddress].rewarded, state3.rewardGlobals[diamondAddress].rewarded)
     assert.equal(state3.rewardGlobals[diamondAddress].penalties, 0)
     //Vault Params
     //NFT
     assert.equal(reduction3.amount, BN(reduction2.amount).sub(penalty).toString())
+  })
+
+
+  it("no NFT, gets reward", async () => {
+    let positionid = 3
+    await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+
+    console.log('===========depositVault==========')
+    console.log('alice   ', state2[alice].sdex)
+    console.log('diamond ', state2[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state2.vault.vSdex)
+    console.log('pool    ', state2.pool.tokenData[0].supply)
+    console.log('poolPen ', state2.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state2.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state2.accSdexPenaltyPool)
+    console.log('accRew  ', state2.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
+      BN(state2.vault.vSdex).add(
+      BN(state2.pool.tokenData[0].supply)).add(
+      BN(state2.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.accSdexPenaltyPool)).add(
+      BN(state2.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
+
+    await advanceBlocks(blocksToStake) // 1800 seconds, 0 block
+    await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
+
+    let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    console.log('===========withdrawVault==========')
+    console.log('alice   ', state3[alice].sdex)
+    console.log('diamond ', state3[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state3.vault.vSdex)
+    console.log('pool    ', state3.pool.tokenData[0].supply)
+    console.log('poolPen ', state3.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state3.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state3.accSdexPenaltyPool)
+    console.log('accRew  ', state3.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state3[diamondAddress].sdex).sub(
+      BN(state3.vault.vSdex).add(
+      BN(state3.pool.tokenData[0].supply)).add(
+      BN(state3.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state3.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state3.accSdexPenaltyPool)).add(
+      BN(state3.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
+  })
+
+  it("deposits with an AccNFT", async () => {
+    let positionid = 4
+    await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmount, blocksToStake, reducedPenaltyReward._address, 4).send({from:alice})
+    
+    const reduction = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+    console.log(reduction)
+    console.log(reduction.amount.toString())
+
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+
+    console.log('===========depositVault==========')
+    console.log('alice   ', state2[alice].sdex)
+    console.log('diamond ', state2[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state2.vault.vSdex)
+    console.log('pool    ', state2.pool.tokenData[0].supply)
+    console.log('poolPen ', state2.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state2.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state2.accSdexPenaltyPool)
+    console.log('accRew  ', state2.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state2[diamondAddress].sdex).sub(
+      BN(state2.vault.vSdex).add(
+      BN(state2.pool.tokenData[0].supply)).add(
+      BN(state2.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state2.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state2.accSdexPenaltyPool)).add(
+      BN(state2.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
+
+    await advanceBlocks(blocksToStake/2 ) // 1800 seconds, 0 block
+    await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
+
+    let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    console.log('===========withdrawVault==========')
+    console.log('alice   ', state3[alice].sdex)
+    console.log('diamond ', state3[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state3.vault.vSdex)
+    console.log('pool    ', state3.pool.tokenData[0].supply)
+    console.log('poolPen ', state3.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state3.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state3.accSdexPenaltyPool)
+    console.log('accRew  ', state3.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state3[diamondAddress].sdex).sub(
+      BN(state3.vault.vSdex).add(
+      BN(state3.pool.tokenData[0].supply)).add(
+      BN(state3.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state3.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state3.accSdexPenaltyPool)).add(
+      BN(state3.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
+
+    const reduction2 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+    console.log(reduction2)
+
+    positionid = 5
+    await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+    
+    await sdexVaultFacet.methods.depositVault(
+      stakeAmount, blocksToStake, reducedPenaltyReward._address, 4).send({from:alice})
+    
+    let state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+
+    await advanceBlocks(blocksToStake/2 ) // 1800 seconds, 0 block
+    await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
+
+    let state5 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    console.log('===========withdrawVault==========')
+    console.log('alice   ', state5[alice].sdex)
+    console.log('diamond ', state5[diamondAddress].sdex)
+    console.log('--------')
+    console.log('vSdex   ', state5.vault.vSdex)
+    console.log('pool    ', state5.pool.tokenData[0].supply)
+    console.log('poolPen ', state5.rewardGlobals[diamondAddress].penalties)
+    console.log('poolRew ', state5.rewardGlobals[diamondAddress].rewarded)
+    console.log('accPen  ', state5.accSdexPenaltyPool)
+    console.log('accRew  ', state5.accSdexRewardPool)
+    console.log('--------')
+    console.log('Sdex Accounting', BN(state5[diamondAddress].sdex).sub(
+      BN(state5.vault.vSdex).add(
+      BN(state5.pool.tokenData[0].supply)).add(
+      BN(state5.rewardGlobals[diamondAddress].penalties)).add(
+      BN(state5.rewardGlobals[diamondAddress].rewarded)).add(
+      BN(state5.accSdexPenaltyPool)).add(
+      BN(state5.accSdexRewardPool))).toString(), 1
+    )
+    console.log('============================')
+
+
+    const reduction3 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+    console.log(reduction3)
+
   })
 })

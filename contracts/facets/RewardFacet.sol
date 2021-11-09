@@ -84,7 +84,7 @@ contract RewardFacet is Modifiers {
   ) public onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData memory tokenRewardData = s.tokenRewardData[address(this)];
-     
+
     // totalSdexEmission
     //uint256 blocksAhead = endBlock - startBlock;
     // sdex emission
@@ -92,6 +92,10 @@ contract RewardFacet is Modifiers {
     uint256 totalSdexEmission = (multiplier * s.sdexPerBlock);
     uint256 sdexEmittedForPool = totalSdexEmission * poolAllocPoint / s.totalAllocPoint;
     uint256 proportion = amountAccumulated * s.unity / sdexEmittedForPool;
+    if (amountAccumulated > sdexEmittedForPool) {
+      // odd edge case bug when single user is 100 percent of pool withdrawing between 1-3 blocks after endBlock
+      proportion = s.unity;
+    }
     uint256 reward = proportion * s.accSdexPenaltyPool / s.unity;
     s.accSdexPenaltyPool -= reward;
     s.accSdexRewardPool += reward;
