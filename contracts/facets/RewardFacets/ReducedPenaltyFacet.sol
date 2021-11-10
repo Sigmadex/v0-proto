@@ -79,7 +79,7 @@ contract ReducedPenaltyFacet is  Modifiers {
       uint256 blocksAhead = position.endBlock - position.startBlock;
       totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j];
       
-      if (position.endBlock < block.number) {
+      if (position.endBlock <= block.number) {
         //past expiry date
         //return tokens
         token.transfer(
@@ -146,7 +146,7 @@ contract ReducedPenaltyFacet is  Modifiers {
     //Manage SDEX
     uint256 pending = totalAmountShares / s.unity;
     if (pending >0) {
-      if (position.endBlock < block.number) {
+      if (position.endBlock <= block.number) {
         //Past Expiry Date
         SdexFacet(address(this)).transfer(msg.sender, pending);
         RewardFacet(address(this)).requestSdexReward(
@@ -175,7 +175,7 @@ contract ReducedPenaltyFacet is  Modifiers {
     
     uint256 bal = s.vSdex;
     // Consider the edge case where not all funds are staked, kinda odd, but it was there
-    if (bal < currentAmount) {
+    if (bal <= currentAmount) {
       uint256 balWithdraw = currentAmount - bal;
       AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
 
@@ -197,7 +197,7 @@ contract ReducedPenaltyFacet is  Modifiers {
     
     uint256 blocksAhead = position.endBlock - position.startBlock;
     uint256 accruedSdex = currentAmount - position.amount;
-    if (position.endBlock < block.number) {
+    if (position.endBlock <= block.number) {
         SdexFacet(address(this)).transfer(
           msg.sender,
           currentAmount

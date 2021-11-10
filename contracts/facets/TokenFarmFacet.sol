@@ -142,7 +142,7 @@ contract TokenFarmFacet is Modifiers {
         //uint256 stakeTime = position.timeEnd - position.timeStart;
         uint256 blocksAhead = position.endBlock - position.startBlock;
         totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
-        if (position.endBlock < block.number) {
+        if (position.endBlock <= block.number) {
           //past expiry date
           //return tokens
           token.transfer(
@@ -174,7 +174,7 @@ contract TokenFarmFacet is Modifiers {
       //Manage SDEX
       uint256 pending = totalAmountShares / s.unity;
       if (pending >0) {
-        if (position.endBlock < block.number) {
+        if (position.endBlock <= block.number) {
           //Past Expiry Date
           SdexFacet(address(this)).transfer(msg.sender, pending);
           RewardFacet(address(this)).requestSdexReward(

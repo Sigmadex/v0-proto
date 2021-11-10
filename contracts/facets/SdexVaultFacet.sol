@@ -147,7 +147,7 @@ contract SdexVaultFacet {
       vUser.lastUserActionTime = block.timestamp;
       uint256 blocksAhead = position.endBlock - position.startBlock;
       uint256 accruedSdex = currentAmount - position.amount;
-      if (position.endBlock < block.number) {
+      if (position.endBlock <= block.number) {
         SdexFacet(address(this)).transfer(
           msg.sender,
           currentAmount
@@ -197,7 +197,7 @@ contract SdexVaultFacet {
     */
   function vaultBalance() public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.vSdex + s.userInfo[0][address(this)].tokenData[0].amount; //- s.tokenRewardData[address(this)].penalties; //probable need an indicator for other sdex pool here as well
+    return s.vSdex + s.userInfo[0][address(this)].tokenData[0].amount; 
   }
 
   /**
