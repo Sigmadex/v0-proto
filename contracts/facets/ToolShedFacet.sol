@@ -134,12 +134,12 @@ contract ToolShedFacet is Modifiers{
   }
  
   /**
-   * calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
-   * @param startBlock the block where this position started
-   * @param blockEnd  the block where this position is no longer penalized for withdrawing
-   * @param amount the amount of a token in question
-   * @return refund how much is refunded if withdrawing at start time given endTime and how much is penalized
-   * @return penalty how much one is penalized
+     * calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
+     * @param startBlock the block where this position started
+     * @param blockEnd  the block where this position is no longer penalized for withdrawing
+     * @param amount the amount of a token in question
+     * @return refund how much is refunded if withdrawing at start time given endTime and how much is penalized
+     * @return penalty how much one is penalized
   */ 
 	function calcRefund(uint256 startBlock, uint256 blockEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -150,7 +150,8 @@ contract ToolShedFacet is Modifiers{
 		uint256 penalty = amount - refund;
 		require(amount == penalty + refund, 'calc fund is leaking rounding errors');
 		return (refund, penalty);
-
 	}
+
+
 }
 

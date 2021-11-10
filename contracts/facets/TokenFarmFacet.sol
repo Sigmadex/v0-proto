@@ -62,8 +62,10 @@ contract TokenFarmFacet is Modifiers {
     //require(pid != 0, "Please use the SdexVault or ManualSdexFarm Facets for this token please");
     AppStorage storage s = LibAppStorage.diamondStorage();
     ToolShedFacet(address(this)).updatePool(pid);
+
     UserPosition memory newPosition  = UserPosition({
       amounts: amounts,
+      rewardDebts: new uint256[](2),
       startBlock: block.number,
       endBlock: block.number + blocksAhead,
       nftReward: address(0),
@@ -83,19 +85,20 @@ contract TokenFarmFacet is Modifiers {
         //first deposit
         user.tokenData.push(UserTokenData({
           amount: 0,
-          rewardDebt: 0
+          totalRewardDebt: 0
         }));
       }
+
       pool.tokenData[j].token.transferFrom(
         address(msg.sender),
         address(this),
         amounts[j]
       );
       user.tokenData[j].amount += amounts[j];
-      user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
       pool.tokenData[j].supply += amounts[j];
       s.tokenRewardData[address(pool.tokenData[j].token)].blockAmountGlobal += amounts[j]*blocksAhead;
-
+      newPosition.rewardDebts[j] = newPosition.amounts[j]*pool.tokenData[j].accSdexPerShare; 
+      user.tokenData[j].totalRewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
     }
     user.positions.push(newPosition);
     if (pid == 0) {
@@ -138,7 +141,7 @@ contract TokenFarmFacet is Modifiers {
         IERC20 token = pool.tokenData[j].token;
         //uint256 stakeTime = position.timeEnd - position.timeStart;
         uint256 blocksAhead = position.endBlock - position.startBlock;
-        totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
+        totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
         if (position.endBlock < block.number) {
           //past expiry date
           //return tokens
@@ -162,9 +165,10 @@ contract TokenFarmFacet is Modifiers {
           s.tokenRewardData[address(token)].penalties += penalty;
         }
         user.tokenData[j].amount -= position.amounts[j];
-        user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
+        user.tokenData[j].totalRewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
         pool.tokenData[j].supply -= position.amounts[j];
         position.amounts[j] = 0;
+        position.rewardDebts[j] = 0;
       }
 
       //Manage SDEX

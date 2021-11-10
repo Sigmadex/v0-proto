@@ -8,11 +8,11 @@ import 'hardhat/console.sol';
 * @title ReducedPenaltyReward NFT
 * @dev the Reduced Penalty Reward NFT provides the user a reduced penalty in the event of a premature withdraw on the position in question.  It comes with a reductionAmount for a specific token (such as USDT), and when applied to a pool containing that token, will provide an increased refund, up to that reduction amount.  Is only consumed in the event of a premature withdraw, so it can make a good insurance policy on that token
 */
-contract ReducedPenaltyReward is ERC1155PresetMinterPauser {
+contract Multiplier is ERC1155PresetMinterPauser {
   address diamond;
   constructor(
     address _diamond
-  ) ERC1155PresetMinterPauser("https://nft.sigmadex.org/api/rewards/reduced-penalty/{id}.json") {
+  ) ERC1155PresetMinterPauser("https://nft.sigmadex.org/api/rewards/multiplier/{id}.json") {
    diamond = _diamond; 
   }
 

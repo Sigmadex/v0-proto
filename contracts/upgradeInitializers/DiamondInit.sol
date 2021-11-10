@@ -74,7 +74,7 @@ contract DiamondInit {
     s.userInfo[0][address(this)].tokenData.push(
       UserTokenData({
         amount:0,
-        rewardDebt:0
+        totalRewardDebt:0
       }) 
     );
     s.poolLength = 1;

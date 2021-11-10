@@ -109,7 +109,7 @@ contract("SdexVaultFacet", (accounts) => {
 
     // Vault UserInfo
     assert.equal(state2[diamondAddress].userInfo.tokenData[0].amount, stakeAmount)
-    assert.equal(state2[diamondAddress].userInfo.tokenData[0].rewardDebt, 0)
+    assert.equal(state2[diamondAddress].userInfo.tokenData[0].totalRewardDebt, 0)
     assert.equal(state2[diamondAddress].userInfo.lastRewardBlock, 0)
 
     // Vault Shares
@@ -414,7 +414,7 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(state3.pool.lastRewardBlock, state3.blockNumber)
     //UserInfo
     assert.equal(state3[diamondAddress].userInfo.tokenData[0].amount, 0)
-    assert.equal(state3[diamondAddress].userInfo.tokenData[0].rewardDebt, 0)
+    assert.equal(state3[diamondAddress].userInfo.tokenData[0].totalRewardDebt, 0)
     //Token Globals
     assert.equal(state1.rewardGlobals[diamondAddress].penalties, 0)
     assert.equal(state1.rewardGlobals[diamondAddress].blockAmountGlobal, 0)

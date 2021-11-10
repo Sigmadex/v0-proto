@@ -77,7 +77,7 @@ contract ReducedPenaltyFacet is  Modifiers {
     for (uint j=0; j < user.tokenData.length; j++) {
       IERC20 token = pool.tokenData[j].token;
       uint256 blocksAhead = position.endBlock - position.startBlock;
-      totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - user.tokenData[j].rewardDebt;
+      totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j];
       
       if (position.endBlock < block.number) {
         //past expiry date
@@ -137,9 +137,10 @@ contract ReducedPenaltyFacet is  Modifiers {
         s.tokenRewardData[address(token)].penalties += penalty;
       }
       user.tokenData[j].amount -= position.amounts[j];
-      user.tokenData[j].rewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
+      user.tokenData[j].totalRewardDebt -= position.rewardDebts[j];
       pool.tokenData[j].supply -= position.amounts[j];
       position.amounts[j] = 0;
+      position.rewardDebts[j] = 0;
     }
 
     //Manage SDEX

@@ -30,7 +30,7 @@ struct UserInfo {
 
 struct UserTokenData {
   uint256 amount;
-  uint256 rewardDebt;
+  uint256 totalRewardDebt;
 }
 struct UserPosition {
   //uint256 timeStart;
@@ -38,6 +38,7 @@ struct UserPosition {
   uint256 startBlock;
   uint256 endBlock;
   uint256[] amounts;
+  uint256[] rewardDebts;
   address nftReward;
   uint256 nftid;
 }

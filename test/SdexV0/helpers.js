@@ -39,8 +39,6 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
   const totalAllocPoints = BN(await toolShedFacet.methods.totalAllocPoint().call())
   const sdexPerBlock = BN(await toolShedFacet.methods.sdexPerBlock().call())
 
-
-  //Update Pool""
   const sdexReward = BN(blocksAhead+1).mul(sdexPerBlock).mul(poolAllocPoints).div(totalAllocPoints)
   let tAShares = [];
   for (let i=0; i < poolInfo.tokenData.length; i++) {
@@ -52,7 +50,7 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
     const newAddition = additionNumer.div(additionDenominator)
     const accSdex0 = accZeroInit.add(newAddition);
     const amount = BN(position.amounts[i])
-    const rewardDebt = BN(userInfo.tokenData[i].rewardDebt)
+    const rewardDebt = BN(position.rewardDebts[i])
     const timeAmountShares = amount.mul(accSdex0).sub(rewardDebt)
     tAShares.push(timeAmountShares)
   }

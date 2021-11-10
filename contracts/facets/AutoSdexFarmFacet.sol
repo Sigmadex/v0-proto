@@ -27,7 +27,7 @@ contract AutoSdexFarmFacet is Modifiers {
     PoolInfo storage pool = s.poolInfo[0];
     UserInfo storage user = s.userInfo[0][address(this)];
     if (user.tokenData[0].amount > 0) {
-      uint256 pending = (user.tokenData[0].amount * pool.tokenData[0].accSdexPerShare - user.tokenData[0].rewardDebt) / s.unity;
+      uint256 pending = (user.tokenData[0].amount * pool.tokenData[0].accSdexPerShare - user.tokenData[0].totalRewardDebt) / s.unity;
       if(pending > 0) {
         s.vSdex += pending;
       }
@@ -37,7 +37,7 @@ contract AutoSdexFarmFacet is Modifiers {
     }
     user.tokenData[0].amount += amount;
     pool.tokenData[0].supply += amount;
-    user.tokenData[0].rewardDebt = user.tokenData[0].amount*pool.tokenData[0].accSdexPerShare;
+    user.tokenData[0].totalRewardDebt = user.tokenData[0].amount*pool.tokenData[0].accSdexPerShare;
     //s.vShares[address(this)] += amount;
     emit Deposit(msg.sender, 0, amount);
   }
@@ -56,7 +56,7 @@ contract AutoSdexFarmFacet is Modifiers {
 
 
     require(user.tokenData[0].amount >= amount, "withdraw: not good");
-    uint256 pending = (user.tokenData[0].amount * pool.tokenData[0].accSdexPerShare - user.tokenData[0].rewardDebt) / s.unity;
+    uint256 pending = (user.tokenData[0].amount * pool.tokenData[0].accSdexPerShare - user.tokenData[0].totalRewardDebt) / s.unity;
     if(pending > 0) {
       s.vSdex += pending;
     }
@@ -65,7 +65,7 @@ contract AutoSdexFarmFacet is Modifiers {
       pool.tokenData[0].supply -= amount;
       s.vSdex += amount;
     }
-    user.tokenData[0].rewardDebt = user.tokenData[0].amount*pool.tokenData[0].accSdexPerShare;
+    user.tokenData[0].totalRewardDebt = user.tokenData[0].amount*pool.tokenData[0].accSdexPerShare;
     //s.vShares[address(this)] -= amount;
     //syrup.burn(msg.sender, amount);
     emit Withdraw(msg.sender, 0);

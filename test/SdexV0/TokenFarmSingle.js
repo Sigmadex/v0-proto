@@ -158,8 +158,8 @@ contract("TokenFarmFacet", (accounts) => {
     //User
     assert.equal(state2[alice].userInfo.tokenData[0].amount, stakeAmount)
     assert.equal(state2[alice].userInfo.tokenData[1].amount, stakeAmount)
-    assert.equal(state2[alice].userInfo.tokenData[0].rewardDebt, 0)
-    assert.equal(state2[alice].userInfo.tokenData[1].rewardDebt, 0)
+    assert.equal(state2[alice].userInfo.tokenData[0].totalRewardDebt, 0)
+    assert.equal(state2[alice].userInfo.tokenData[1].totalRewardDebt, 0)
     assert.equal(state2[alice].userInfo.positions[0].endBlock - state2[alice].userInfo.positions[0].startBlock, blocksToStake)
     assert.equal(state2[alice].userInfo.positions[0].amounts[0], stakeAmount)
     assert.equal(state2[alice].userInfo.positions[0].amounts[1], stakeAmount)
@@ -216,8 +216,8 @@ contract("TokenFarmFacet", (accounts) => {
 
     assert.equal(state2[alice].userInfo.tokenData[0].amount, 0)
     assert.equal(state2[alice].userInfo.tokenData[1].amount, 0)
-    assert.equal(state2[alice].userInfo.tokenData[0].rewardDebt, 0)
-    assert.equal(state2[alice].userInfo.tokenData[1].rewardDebt, 0)
+    assert.equal(state2[alice].userInfo.tokenData[0].totalRewardDebt, 0)
+    assert.equal(state2[alice].userInfo.tokenData[1].totalRewardDebt, 0)
     assert.equal(state2[alice].userInfo.positions[0].endBlock - state2[alice].userInfo.positions[0].startBlock, blocksToStake)
     assert.equal(state2[alice].userInfo.positions[0].amounts[0], 0)
     assert.equal(state2[alice].userInfo.positions[0].amounts[1], 0)
@@ -311,8 +311,8 @@ contract("TokenFarmFacet", (accounts) => {
     // User
     assert.equal(state3[alice].userInfo.tokenData[0].amount, 0)
     assert.equal(state3[alice].userInfo.tokenData[1].amount, 0)
-    //assert.equal(state3[alice].userInfo.tokenData[0].rewardDebt, 0)
-    //assert.equal(state3[alice].userInfo.tokenData[1].rewardDebt, 0)
+    //assert.equal(state3[alice].userInfo.tokenData[0].totalRewardDebt, 0)
+    //assert.equal(state3[alice].userInfo.tokenData[1].totalRewardDebt, 0)
     assert.equal(state3[alice].userInfo.positions[positionid].endBlock - state3[alice].userInfo.positions[positionid].startBlock, blocksToStake)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[0], 0)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[1], 0)
@@ -346,6 +346,7 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state3.rewardGlobals[diamondAddress].blockAmountGlobal, 0) 
 
     assert.equal(state3.accSdexPenaltyPool, 0)
+    console.log('rewardpoolamount', state3.accSdexRewardPool)
     assert.equal(state3.accSdexRewardPool, sdexNFTReward.toString())
 
     //Reduced Penalty Rewards
@@ -419,8 +420,8 @@ contract("TokenFarmFacet", (accounts) => {
   // User
     assert.equal(state3[alice].userInfo.tokenData[0].amount, 0)
     assert.equal(state3[alice].userInfo.tokenData[1].amount, 0)
-  //assert.equal(state3[alice].userInfo.tokenData[0].rewardDebt, 0)
-  //assert.equal(state3[alice].userInfo.tokenData[1].rewardDebt, 0)
+  //assert.equal(state3[alice].userInfo.tokenData[0].totalRewardDebt, 0)
+  //assert.equal(state3[alice].userInfo.tokenData[1].totalRewardDebt, 0)
     assert.equal(state3[alice].userInfo.positions[positionid].endBlock - state3[alice].userInfo.positions[positionid].startBlock, blocksToStake)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[0], 0)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[1], 0)
