@@ -8,7 +8,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Smart Contracts',
-  tagline: 'documentation',
+  tagline: 'Documentation',
   url: 'https://your-docusaurus-test-site.com',
   trailingSlash: false,
   onBrokenLinks: 'throw',
@@ -55,7 +55,7 @@ const config = {
         title: '',
         logo: {
           alt: 'Sigmadex',
-          src: '/img/sigmadex-logo.png',
+          src: 'https://i.imgur.com/L7rAsEe.png',
         },
         items: [
           {
@@ -92,7 +92,7 @@ const config = {
               },
               {
                 label: 'Twitter',
-                href: 'https://twitter.com/sigmadex',
+                href: 'https://twitter.com/Sigmadex',
               },
               {
                 label: 'Github',
@@ -114,7 +114,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Sigmadex, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Sigmadex Foundation.`
       },
       prism: {
         theme: lightCodeTheme,
