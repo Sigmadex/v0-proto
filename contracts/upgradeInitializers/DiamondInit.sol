@@ -30,17 +30,17 @@ contract DiamondInit {
   // data to set your own state variables
 
   /**
-  * called during deployment to intialize SDEX variables for the {SdexFacet} native governance token, the {TokenFarmFacet} yield farm, the {SdexVaultFacet}
- * @param reducedPenaltyReward address, will be array of GEN0 NFT soon 
- * @param _withdrawSelector function signature of the reduced penalty withdraw function.  will be array of GEN0 NFT withdraw function selectors soon
- * @param _vaultWithdrawSelector fn selectors for vault withdraw
- * @param _rewardSelector fn selectors for reward function
+     * called during deployment to intialize SDEX variables for the {SdexFacet} native governance token, the {TokenFarmFacet} yield farm, the {SdexVaultFacet}
+     * @param nftAddresses address[], array of GEN0 NFTs
+     * @param _withdrawSelectors bytes4[]  array of GEN0 NFT withdraw function selectors
+     * @param _vaultWithdrawSelectors bytes4[] fn selectors for vault withdraw
+     * @param _rewardSelectors bytes4[] fn selectors for reward function
   */
   function init(
-    address reducedPenaltyReward,
-    bytes4 _withdrawSelector,
-    bytes4 _vaultWithdrawSelector,
-    bytes4 _rewardSelector
+    address[] calldata nftAddresses,
+    bytes4[] calldata _withdrawSelectors,
+    bytes4[] calldata _vaultWithdrawSelectors,
+    bytes4[] calldata _rewardSelectors
   ) external {
     // adding ERC165 data
     LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
@@ -102,13 +102,21 @@ contract DiamondInit {
     s.seed = 11111460156937785151929026842503960837766832936;
 
     //Reduced Penalty Rewards
-    s.reducedPenaltyReward = reducedPenaltyReward;
-    s.rewards[reducedPenaltyReward] = Reward({
-      withdrawSelector: _withdrawSelector,
-      vaultWithdrawSelector: _vaultWithdrawSelector,
-      rewardSelector: _rewardSelector
+    s.reducedPenaltyReward = nftAddresses[0];
+    s.rewards[nftAddresses[0]] = Reward({
+      withdrawSelector: _withdrawSelectors[0],
+      vaultWithdrawSelector: _vaultWithdrawSelectors[0],
+      rewardSelector: _rewardSelectors[0]
     });
-    s.rPNextId = 1;
+    s.rPRNextId = 1;
+
+    s.increasedBlockReward  = nftAddresses[1];
+    s.rewards[nftAddresses[1]]= Reward({
+      withdrawSelector: _withdrawSelectors[1],
+      vaultWithdrawSelector: _vaultWithdrawSelectors[1],
+      rewardSelector: _rewardSelectors[1]
+    });
+    s.iBRNextId = 1;
 
 
   }

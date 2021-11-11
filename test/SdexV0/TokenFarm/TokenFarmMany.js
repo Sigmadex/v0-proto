@@ -1,7 +1,7 @@
-const { deployDiamond } = require('../../scripts/deploy.js')
-const { deploy } = require('../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceBlocks } = require('../utilities.js')
-const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('./helpers.js')
+const { deployDiamond } = require('../../../scripts/deploy.js')
+const { deploy } = require('../../../scripts/libraries/diamond.js')
+const { ADDRESSZERO, advanceBlocks } = require('../../utilities.js')
+const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('../helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
 
@@ -9,7 +9,7 @@ const SdexFacet = artifacts.require('SdexFacet')
 const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
 const RewardFacet = artifacts.require('RewardFacet')
-const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 
 
@@ -71,7 +71,7 @@ contract("TokenFarmFacet", (accounts) => {
   let toolShedFacet;
   let tokenFarmFacet;
   let rewardFacet;
-  let reducedPenaltyFacet;
+  let reducedPenaltyRewardFacet;
   let reducedPenaltyReward;
   let tokenA;
   let tokenB;
@@ -89,9 +89,9 @@ contract("TokenFarmFacet", (accounts) => {
     toolShedFacet = new web3.eth.Contract(ToolShedFacet.abi, diamondAddress)
     tokenFarmFacet = new web3.eth.Contract(TokenFarmFacet.abi, diamondAddress)
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
-    reducedPenaltyFacet = new web3.eth.Contract(ReducedPenaltyFacet.abi, diamondAddress)
+    reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
 
-    const rPRAddress = await reducedPenaltyFacet.methods.rPAddress().call()
+    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     reducedPenaltyReward = new web3.eth.Contract(ReducedPenaltyReward.abi, rPRAddress)
     
 
@@ -133,7 +133,7 @@ contract("TokenFarmFacet", (accounts) => {
   })
 
   it("adds reduced penalty reward to tokensA, B, C, and sdex (omits D)", async () => {
-    const rPRAddress = await reducedPenaltyFacet.methods.rPAddress().call()
+    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     await rewardFacet.methods.addReward(tokenA._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenB._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenC._address, rPRAddress).send({from:owner})

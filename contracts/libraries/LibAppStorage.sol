@@ -64,7 +64,13 @@ struct VaultUserInfo {
 
 enum REWARDPOOL{BASE, ACC}
 
-struct RPAmount {
+struct RPRAmount {
+  address token;
+  uint256 amount;
+  REWARDPOOL rewardPool;
+}
+
+struct IBRAmount {
   address token;
   uint256 amount;
   REWARDPOOL rewardPool;
@@ -142,8 +148,13 @@ struct AppStorage {
   //Reduced Penalty Reward
   address reducedPenaltyReward;
   // ?
-  mapping(uint256 => RPAmount)  rPAmounts;
-  uint256 rPNextId;
+  mapping(uint256 => RPRAmount)  rPRAmounts;
+  uint256 rPRNextId;
+
+  //Increased Block Reward
+  address increasedBlockReward;
+  mapping (uint256 => IBRAmount) iBRAmounts;
+  uint256 iBRNextId;
 
 }
 

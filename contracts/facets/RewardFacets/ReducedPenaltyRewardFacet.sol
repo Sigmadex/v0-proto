@@ -1,6 +1,6 @@
 pragma solidity 0.8.9;
 
-import { AppStorage, LibAppStorage, Modifiers, RPAmount, PoolInfo, UserInfo, UserPosition, REWARDPOOL } from '../../libraries/LibAppStorage.sol';
+import { AppStorage, LibAppStorage, Modifiers, RPRAmount, PoolInfo, UserInfo, UserPosition, REWARDPOOL } from '../../libraries/LibAppStorage.sol';
 import '../../interfaces/IERC1155.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
@@ -10,10 +10,10 @@ import '../SdexVaultFacet.sol';
 import '../SdexFacet.sol';
 
 /**
-  * @title ReducedPenaltyFacet
-  * @dev The {ReducedPenaltyFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {ReducedPenaltyReward} NFT.    
+  * @title ReducedPenaltyRewardFacet
+  * @dev The {ReducedPenaltyRewardFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {ReducedPenaltyReward} NFT.    
 */
-contract ReducedPenaltyFacet is  Modifiers {
+contract ReducedPenaltyRewardFacet is  Modifiers {
 
   constructor() {
   }
@@ -21,7 +21,7 @@ contract ReducedPenaltyFacet is  Modifiers {
     * the reduced Penalty Address is the address of the NFT
     * @return address location of NFT on blockchain
   */
-  function rPAddress() public returns (address) {
+  function rPRAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.reducedPenaltyReward;
   }
@@ -32,7 +32,7 @@ contract ReducedPenaltyFacet is  Modifiers {
   * @param token the underlying asset the reduced penalty provides (eg USDT)
   * @param amount the amount of the underlying asset that the NFT can reduce
   */
-  function rPReward(
+  function rPRReward(
     address to,
     address token,
     uint256 amount,
@@ -40,25 +40,25 @@ contract ReducedPenaltyFacet is  Modifiers {
     
   ) external onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    RPAmount memory reductionAmount = RPAmount({
+    RPRAmount memory reductionAmount = RPRAmount({
       token: token,
       amount: amount,
       rewardPool: rewardPool 
     });
-    s.rPAmounts[s.rPNextId] = reductionAmount;
+    s.rPRAmounts[s.rPRNextId] = reductionAmount;
     bytes memory data = 'data';
-    IERC1155(s.reducedPenaltyReward).mint(to, s.rPNextId, 1, data);
-    s.rPNextId++;
+    IERC1155(s.reducedPenaltyReward).mint(to, s.rPRNextId, 1, data);
+    s.rPRNextId++;
   }
 
   /**
-  * returns {RPAmount} for the nft id in question
+  * returns {RPRAmount} for the nft id in question
   * @param id the nft id 
-  * @return RPAmount the amount of reduction it can provide in what token
+  * @return RPRAmount the amount of reduction it can provide in what token
   */
-  function rPReductionAmount(uint256 id) external returns (RPAmount memory) {
+  function rPRReductionAmount(uint256 id) external returns (RPRAmount memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.rPAmounts[id];
+    return s.rPRAmounts[id];
   }
   
   /**
@@ -66,7 +66,7 @@ contract ReducedPenaltyFacet is  Modifiers {
   * @param pid the poolid of the pool in question
   * @param positionid the position id in question, retreived from the array postion of {UserInfo}
   */
-  function rPWithdraw(uint256 pid, uint256 positionid) public  {
+  function rPRWithdraw(uint256 pid, uint256 positionid) public  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     PoolInfo storage pool = s.poolInfo[pid];
     UserInfo storage user = s.userInfo[pid][msg.sender];
@@ -94,17 +94,17 @@ contract ReducedPenaltyFacet is  Modifiers {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
           position.startBlock, position.endBlock, position.amounts[j]
         );
-        RPAmount storage rPAmount = s.rPAmounts[position.nftid];
-        if (address(token) == rPAmount.token) {
-          uint256 bonus = rPAmount.amount;
+        RPRAmount storage rPRAmount = s.rPRAmounts[position.nftid];
+        if (address(token) == rPRAmount.token) {
+          uint256 bonus = rPRAmount.amount;
           if (bonus <= penalty) {
             token.transfer(
               msg.sender,
               bonus
             );
             penalty -=  bonus;
-            rPAmount.amount = 0;
-            if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+            rPRAmount.amount = 0;
+            if (rPRAmount.rewardPool == REWARDPOOL.BASE) {
               s.tokenRewardData[address(token)].rewarded -= bonus;
               s.tokenRewardData[address(token)].paidOut += bonus;
             } else {
@@ -117,9 +117,9 @@ contract ReducedPenaltyFacet is  Modifiers {
               msg.sender,
               penalty
             );
-            rPAmount.amount -= penalty;
+            rPRAmount.amount -= penalty;
 
-            if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+            if (rPRAmount.rewardPool == REWARDPOOL.BASE) {
               s.tokenRewardData[address(token)].rewarded -= penalty;
               s.tokenRewardData[address(token)].paidOut += penalty;
             } else {
@@ -163,7 +163,7 @@ contract ReducedPenaltyFacet is  Modifiers {
   * reduced Penalty Withdraw vaults substitutes the withdrawVault function in {SdexVaultFacet} in the event the {UserPosition} in {VaultUserInfo} has the reduced penalty nft address associated with it
   * @param positionid the id of the associated position, found in the {UserPosition} array length - 1 of {VaultUserInfo} 
   */
-  function rPWithdrawVault(uint256 positionid) external  {
+  function rPRWithdrawVault(uint256 positionid) external  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
@@ -221,16 +221,16 @@ contract ReducedPenaltyFacet is  Modifiers {
           position.startBlock, position.endBlock, accruedSdex
         );
         // Perhaps it should be lose all Acc
-        RPAmount storage rPAmount = s.rPAmounts[position.nftid];
-        uint256 bonus = rPAmount.amount;
+        RPRAmount storage rPRAmount = s.rPRAmounts[position.nftid];
+        uint256 bonus = rPRAmount.amount;
         if (bonus <= penalty) {
           SdexFacet(address(this)).transfer(
             msg.sender,
             bonus
           );
           penalty -=  bonus;
-          rPAmount.amount = 0;
-          if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+          rPRAmount.amount = 0;
+          if (rPRAmount.rewardPool == REWARDPOOL.BASE) {
             s.tokenRewardData[address(this)].rewarded -= bonus;
             s.tokenRewardData[address(this)].paidOut += bonus;
           } else {
@@ -243,9 +243,9 @@ contract ReducedPenaltyFacet is  Modifiers {
             msg.sender,
             penalty
           );
-          rPAmount.amount -= penalty;
+          rPRAmount.amount -= penalty;
           bonus = penalty;
-          if (rPAmount.rewardPool == REWARDPOOL.BASE) {
+          if (rPRAmount.rewardPool == REWARDPOOL.BASE) {
             s.tokenRewardData[address(this)].rewarded -= penalty;
             s.tokenRewardData[address(this)].paidOut += penalty;
           } else {

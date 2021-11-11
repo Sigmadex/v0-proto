@@ -1,9 +1,8 @@
-
 const fromExponential = require('from-exponential')
-const { deployDiamond } = require('../../scripts/deploy.js')
-const { deploy } = require('../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceChain, advanceTime, advanceBlocks } = require('../utilities.js')
-const { fetchState, BN, calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('./helpers.js')
+const { deployDiamond } = require('../../../scripts/deploy.js')
+const { deploy } = require('../../../scripts/libraries/diamond.js')
+const { ADDRESSZERO, advanceChain, advanceTime, advanceBlocks } = require('../../utilities.js')
+const { fetchState, BN, calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('../helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
 
@@ -12,7 +11,7 @@ const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
 const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
-const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 
@@ -26,7 +25,7 @@ contract("SdexVaultFacet", (accounts) => {
   let tokenFarmFacet;
   let sdexVaultFacet;
   let rewardFacet;
-  let reducedPenaltyFacet;
+  let reducedPenaltyRewardFacet;
   let reducedPenaltyReward;
   let tokenA;
   let tokenB;
@@ -42,9 +41,9 @@ contract("SdexVaultFacet", (accounts) => {
     tokenFarmFacet = new web3.eth.Contract(TokenFarmFacet.abi, diamondAddress)
     sdexVaultFacet = new web3.eth.Contract(SdexVaultFacet.abi, diamondAddress)
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
-    reducedPenaltyFacet = new web3.eth.Contract(ReducedPenaltyFacet.abi, diamondAddress)
+    reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
 
-    const rPRAddress = await reducedPenaltyFacet.methods.rPAddress().call()
+    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     reducedPenaltyReward = new web3.eth.Contract(ReducedPenaltyReward.abi, rPRAddress)
     
 
@@ -55,7 +54,7 @@ contract("SdexVaultFacet", (accounts) => {
   })
 
   it("adds reduced Penalty to sdex", async () => {
-    const rPRAddress = await reducedPenaltyFacet.methods.rPAddress().call()
+    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
 
     await rewardFacet.methods.addReward(diamondAddress, rPRAddress).send({from:owner})
     const validRewardsSdex = await rewardFacet.methods.getValidRewardsForToken(diamondAddress).call()
@@ -315,7 +314,7 @@ contract("SdexVaultFacet", (accounts) => {
     
     // NFT
     assert.equal(await reducedPenaltyReward.methods.balanceOf(alice, 1).call(), 1)
-    const reduction = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
+    const reduction = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
     assert.equal(reduction.amount, state3.rewardGlobals[diamondAddress].rewarded);
     assert.equal(reduction.amount, state2.rewardGlobals[diamondAddress].penalties);
   })
@@ -365,7 +364,7 @@ contract("SdexVaultFacet", (accounts) => {
     const accruedSdex = currentAmount.sub(positionAmount)
     const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(blocksToStake/2 + 1, blocksToStake, accruedSdex) 
 
-    const reduction2 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
+    const reduction2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
     const reduction2BN =  BN(reduction2.amount)
 
     await advanceBlocks(blocksToStake/2) // 1800 seconds, 0 block
@@ -395,7 +394,7 @@ contract("SdexVaultFacet", (accounts) => {
 
     const totalSdex3 = await sdexFacet.methods.totalSupply().call()
 
-    const reduction3 = await reducedPenaltyFacet.methods.rPReductionAmount(1).call()
+    const reduction3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
     const reduction3BN =  BN(reduction3.amount)
     //Alice Sdex
     assert.equal(BN(state1[alice].sdex).sub(BN(stakeAmount)).toString(), state2[alice].sdex)
@@ -498,7 +497,7 @@ contract("SdexVaultFacet", (accounts) => {
     await sdexVaultFacet.methods.depositVault(
       stakeAmount, blocksToStake, reducedPenaltyReward._address, 4).send({from:alice})
     
-    const reduction = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+    const reduction = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
     console.log(reduction)
     console.log(reduction.amount.toString())
 
@@ -550,7 +549,7 @@ contract("SdexVaultFacet", (accounts) => {
     )
     console.log('============================')
 
-    const reduction2 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+    const reduction2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
     console.log(reduction2)
 
     positionid = 5
@@ -588,7 +587,7 @@ contract("SdexVaultFacet", (accounts) => {
     console.log('============================')
 
 
-    const reduction3 = await reducedPenaltyFacet.methods.rPReductionAmount(4).call()
+    const reduction3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
     console.log(reduction3)
 
   })

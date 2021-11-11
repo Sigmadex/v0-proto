@@ -1,4 +1,4 @@
-const { deploy, getSelectors } = require('./libraries/diamond.js')
+const { deploy, getSelectors, initArgs } = require('./libraries/diamond.js')
 
 const DiamondCutFacet = artifacts.require('DiamondCutFacet')
 const Diamond = artifacts.require('Diamond')
@@ -16,7 +16,10 @@ const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
 
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
-const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
+
+const IncreasedBlockReward = artifacts.require('IncreasedBlockReward')
+const IncreasedBlockRewardFacet = artifacts.require('IncreasedBlockRewardFacet')
 
 
 async function deployDiamond () {
@@ -43,7 +46,8 @@ async function deployDiamond () {
     AutoSdexFarmFacet,
     SdexVaultFacet,
     RewardFacet,
-    ReducedPenaltyFacet
+    ReducedPenaltyRewardFacet,
+    IncreasedBlockRewardFacet
   ]
 
   const cut = []
@@ -61,22 +65,17 @@ async function deployDiamond () {
 
   //Gen 0 NFTS
   const reducedPenaltyReward =  await deploy(owner, ReducedPenaltyReward, [diamond._address])
-  const withdrawSignature = web3.eth.abi.encodeFunctionSignature(
-    ReducedPenaltyFacet.abi.find((f) => /rPWithdraw/.test(f.name) == true)
-  )
-  const vaultWithdrawSignature = web3.eth.abi.encodeFunctionSignature(
-    ReducedPenaltyFacet.abi.find((f) => /rPWithdrawVault/.test(f.name) == true)
-  )
-  const rewardSignature = web3.eth.abi.encodeFunctionSignature(
-    ReducedPenaltyFacet.abi.find((f) => /rPReward/.test(f.name) == true)
-  )
-
+  const increasedBlockReward =  await deploy(owner, IncreasedBlockReward, [diamond._address])
   
+  const initalArgs =  initArgs(
+    [reducedPenaltyReward._address, increasedBlockReward._address],
+    [ReducedPenaltyRewardFacet, IncreasedBlockRewardFacet],
+    ['rPR', 'iBR']) 
 
   const diamondCut = await new web3.eth.Contract(IDiamondCut.abi, diamond._address)
   const fnCall = web3.eth.abi.encodeFunctionCall(
     DiamondInit.abi.find((f) => f.name == 'init'),
-    [reducedPenaltyReward._address, withdrawSignature, vaultWithdrawSignature, rewardSignature]
+    initalArgs
   )
   console.log('function call sig: ', fnCall)
 

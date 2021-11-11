@@ -1,8 +1,8 @@
 const fromExponential = require('from-exponential')
-const { deployDiamond } = require('../../scripts/deploy.js')
-const { deploy } = require('../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceBlocks } = require('../utilities.js')
-const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount, fetchState, BN } = require('./helpers.js')
+const { deployDiamond } = require('../../../scripts/deploy.js')
+const { deploy } = require('../../../scripts/libraries/diamond.js')
+const { ADDRESSZERO, advanceBlocks } = require('../../utilities.js')
+const { calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount, fetchState, BN } = require('../helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
 
@@ -11,7 +11,7 @@ const ToolShedFacet = artifacts.require('ToolShedFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
 const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
-const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 
@@ -27,7 +27,7 @@ contract("TokenFarmFacet", (accounts) => {
   let tokenFarmFacet;
   let sdexVaultFacet;
   let rewardFacet;
-  let reducedPenaltyFacet;
+  let reducedPenaltyRewardFacet;
   let reducedPenaltyReward;
   const blocksToStake = 10
   let diamondAddress
@@ -43,10 +43,10 @@ contract("TokenFarmFacet", (accounts) => {
     toolShedFacet = new web3.eth.Contract(ToolShedFacet.abi, diamondAddress)
     tokenFarmFacet = new web3.eth.Contract(TokenFarmFacet.abi, diamondAddress)
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
-    reducedPenaltyFacet = new web3.eth.Contract(ReducedPenaltyFacet.abi, diamondAddress)
+    reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
     sdexVaultFacet = new web3.eth.Contract(SdexVaultFacet.abi, diamondAddress)
 
-    const rPRAddress = await reducedPenaltyFacet.methods.rPAddress().call()
+    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     reducedPenaltyReward = new web3.eth.Contract(ReducedPenaltyReward.abi, rPRAddress)
 
     const amount = web3.utils.toWei('1000', 'ether')
@@ -58,7 +58,7 @@ contract("TokenFarmFacet", (accounts) => {
 
   })
   it("adds reduced penalty reward to tokensA, B, and sdex", async () => {
-    const rPRAddress = await reducedPenaltyFacet.methods.rPAddress().call()
+    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     await rewardFacet.methods.addReward(diamondAddress, rPRAddress).send({from:owner})
     const validRewardsSdex = await rewardFacet.methods.getValidRewardsForToken(diamondAddress).call()
     assert.equal(validRewardsSdex[0], rPRAddress)

@@ -20,6 +20,38 @@ async function deploy(account, artifact, args) {
   return instance;
 }
 
+function initArgs(nftAddresses, nftArtifacts, prefixes) {
+  const withdrawSigs = [];
+  const vaultWithdrawSigs = [];
+  const rewardSigs = [];
+  
+  nftArtifacts.forEach((artifact, i) => {
+    const withdrawTest = new RegExp(`${prefixes[i]}Withdraw`)
+    console.log(artifact.abi.find((f) => withdrawTest.test(f.name) == true ))
+    const withdrawVaultTest = new RegExp(`${prefixes[i]}WithdrawVault`)
+    const rewardTest = new RegExp(`${prefixes[i]}Reward`)
+    const wSig = web3.eth.abi.encodeFunctionSignature(
+      artifact.abi.find((f) =>  withdrawTest.test(f.name) == true)
+    )
+    const vWSig = web3.eth.abi.encodeFunctionSignature(
+      artifact.abi.find((f) =>  withdrawVaultTest.test(f.name) == true)
+    )
+    const rewardSig = web3.eth.abi.encodeFunctionSignature(
+      artifact.abi.find((f) =>  rewardTest.test(f.name) == true)
+    )
+    withdrawSigs.push(wSig)
+    vaultWithdrawSigs.push(vWSig)
+    rewardSigs.push(rewardSig)
+  })
+
+  return [
+    nftAddresses,
+    withdrawSigs,
+    vaultWithdrawSigs,
+    rewardSigs
+  ]
+}
 
 exports.getSelectors = getSelectors
 exports.deploy = deploy
+exports.initArgs = initArgs

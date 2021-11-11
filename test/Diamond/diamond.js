@@ -10,7 +10,8 @@ const TokenFarmFacet = artifacts.require('TokenFarmFacet')
 const AutoSdexFarmFacet = artifacts.require('AutoSdexFarmFacet')
 const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
-const ReducedPenaltyFacet = artifacts.require('ReducedPenaltyFacet')
+const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
+const IncreasedBlockRewardFacet = artifacts.require('IncreasedBlockRewardFacet')
 
 
 contract("Diamond", (accounts) => {
@@ -24,7 +25,8 @@ contract("Diamond", (accounts) => {
   let autoSdexFarmFacet;
   let sdexVaultFacet;
   let rewardFacet;
-  let reducedPenaltyFacet;
+  let reducedPenaltyRewardFacet;
+  let increasedPenaltyRewardFacet;
   const addresses = []
   before(async () => {
     const diamondAddress = await deployDiamond()
@@ -37,16 +39,17 @@ contract("Diamond", (accounts) => {
     sdexVaultFacet = new web3.eth.Contract(SdexVaultFacet.abi, diamondAddress)
     sdexFacet = new web3.eth.Contract(SdexFacet.abi, diamondAddress)
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
-    reducedPenaltyFacet = new web3.eth.Contract(ReducedPenaltyFacet.abi, diamondAddress)
+    reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
+    increasedBlockRewardFacet = new web3.eth.Contract(IncreasedBlockRewardFacet.abi, diamondAddress)
 
 	})
 
-  it("10 facets", async () => {
+  it("11 facets", async () => {
     const addrs = await diamondLoupeFacet.methods.facetAddresses().call()
     for (const address of await diamondLoupeFacet.methods.facetAddresses().call()) {
 			addresses.push(address)
 		}
-		assert.equal(addresses.length, 10) 
+		assert.equal(addresses.length, 11) 
   })
 
   it("should have correct selectors", async () => {
@@ -77,8 +80,11 @@ contract("Diamond", (accounts) => {
     selectors = getSelectors(rewardFacet)
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[8]).call()
     assert.sameMembers(result, selectors)
-    selectors = getSelectors(reducedPenaltyFacet)
+    selectors = getSelectors(reducedPenaltyRewardFacet)
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[9]).call()
+    assert.sameMembers(result, selectors)
+    selectors = getSelectors(increasedBlockRewardFacet)
+    result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[10]).call()
     assert.sameMembers(result, selectors)
   })
     /*

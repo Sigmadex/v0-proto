@@ -4,7 +4,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo, Reward } from '../libraries/LibAppStorage.sol';
 import './ToolShedFacet.sol';
 import './RewardFacet.sol';
-import './RewardFacets/ReducedPenaltyFacet.sol';
+
 import 'hardhat/console.sol';
 
 /**
