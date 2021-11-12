@@ -123,6 +123,7 @@ contract TokenFarmFacet is Modifiers {
     UserPosition storage position = user.positions[positionid];
 
     if (position.nftReward != address(0)) {
+      console.log('TokenFarmFacet::inside');
       Reward memory reward = s.rewards[position.nftReward];
       bytes memory fnCall = abi.encodeWithSelector(
         reward.withdrawSelector,

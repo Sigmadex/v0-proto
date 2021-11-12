@@ -38,9 +38,11 @@ contract RewardFacet is Modifiers {
     uint256 rewardAmount,
     REWARDPOOL rewardPool
   ) public  onlyDiamond {
+    console.log('RewardFacet::mintReward::hello');
     AppStorage storage s = LibAppStorage.diamondStorage();
     uint256 kindaRandomId = uint256(keccak256(abi.encodePacked(blockhash(block.number - 1), to, s.seed))) % s.validRewards[token].length;
     address nftAddr = s.validRewards[token][kindaRandomId];
+    console.log('RewardFacet::nftAddr::', nftAddr);
     Reward memory reward = s.rewards[nftAddr];
     bytes memory fnCall = abi.encodeWithSelector(
       reward.rewardSelector,

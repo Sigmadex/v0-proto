@@ -27,7 +27,6 @@ function initArgs(nftAddresses, nftArtifacts, prefixes) {
   
   nftArtifacts.forEach((artifact, i) => {
     const withdrawTest = new RegExp(`${prefixes[i]}Withdraw`)
-    console.log(artifact.abi.find((f) => withdrawTest.test(f.name) == true ))
     const withdrawVaultTest = new RegExp(`${prefixes[i]}WithdrawVault`)
     const rewardTest = new RegExp(`${prefixes[i]}Reward`)
     const wSig = web3.eth.abi.encodeFunctionSignature(

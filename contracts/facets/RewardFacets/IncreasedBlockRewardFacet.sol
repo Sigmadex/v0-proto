@@ -23,7 +23,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
   */
   function iBRAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.reducedPenaltyReward;
+    return s.increasedBlockReward;
   }
 
   /**
@@ -68,94 +68,89 @@ contract IncreasedBlockRewardFacet is  Modifiers {
   */
   function iBRWithdraw(uint256 pid, uint256 positionid) public  {
     AppStorage storage s = LibAppStorage.diamondStorage();
+    console.log('IncreasedBlockRewardFacet::hello');
 
     ToolShedFacet(address(this)).updatePool(pid);
 
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
 
-    if (position.nftReward != address(0)) {
-      Reward memory reward = s.rewards[position.nftReward];
-      bytes memory fnCall = abi.encodeWithSelector(
-        reward.withdrawSelector,
-        pid,
-        positionid
-      );
-      (bool success,) = address(this)
-      .delegatecall(fnCall);
-      require(success, "withdraw failed");
-
-    } else {
-      PoolInfo storage pool = s.poolInfo[pid];
-      uint256 totalAmountShares = 0;
-      //Manage Tokens 
-      uint256 blocksElapsed = block.number - position.startBlock;
-      for (uint j=0; j < user.tokenData.length; j++) {
-        IERC20 token = pool.tokenData[j].token;
-        uint256 blocksAhead = position.endBlock - position.startBlock;
-        totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
-        if (position.endBlock <= block.number) {
-          //past expiry date
-          //return tokens
-          token.transfer(
-            address(msg.sender),
-            position.amounts[j]
-          );
-          //request nft Reward
-          RewardFacet(address(this)).requestReward(
-            msg.sender, address(token), blocksAhead*position.amounts[j]
-          );
-        } else {
-          (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-            position.startBlock, position.endBlock, position.amounts[j]
-          );
-          token.transfer(
-            msg.sender,
-            refund
-          );
-          s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
-          s.tokenRewardData[address(token)].penalties += penalty;
-        }
-        user.tokenData[j].amount -= position.amounts[j];
-        user.tokenData[j].totalRewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
-        pool.tokenData[j].supply -= position.amounts[j];
-        position.amounts[j] = 0;
-        position.rewardDebts[j] = 0;
-      }
-
-      //Manage SDEX
-      uint256 pending = totalAmountShares / s.unity;
-      // We can get reward per block elapsed
-      uint256 rewardPerBlock = totalAmountShares / blocksElapsed;
-      console.log('IBRewardFacet::rewardPerBlock', rewardPerBlock);
-      // double rewardPerBlock until bonus is gone or left
-      uint256 blocksOfBonus = s.iBRAmounts[position.nftid].amount / rewardPerBlock;
-      uint256 bonus = (blocksOfBonus > blocksElapsed) ?
-        blocksElapsed * rewardPerBlock / s.unity :
-        blocksOfBonus * rewardPerBlock / s.unity;
-      
-      s.iBRAmounts[position.nftid].amount -= bonus;
-       
-      if (s.iBRAmounts[position.nftid].rewardPool == REWARDPOOL.BASE) {
-        s.tokenRewardData[address(this)].rewarded -= bonus;
-        s.tokenRewardData[address(this)].paidOut += bonus;
+    PoolInfo storage pool = s.poolInfo[pid];
+    uint256 totalAmountShares = 0;
+    //Manage Tokens 
+    uint256 blocksElapsed = block.number - position.startBlock;
+    for (uint j=0; j < user.tokenData.length; j++) {
+      IERC20 token = pool.tokenData[j].token;
+      uint256 blocksAhead = position.endBlock - position.startBlock;
+      totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
+      if (position.endBlock <= block.number) {
+        //past expiry date
+        //return tokens
+        token.transfer(
+          address(msg.sender),
+          position.amounts[j]
+        );
+        //request nft Reward
+        RewardFacet(address(this)).requestReward(
+          msg.sender, address(token), blocksAhead*position.amounts[j]
+        );
       } else {
-        s.accSdexRewardPool -= bonus;
-        s.accSdexPaidOut += bonus;
+        (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
+          position.startBlock, position.endBlock, position.amounts[j]
+        );
+        token.transfer(
+          msg.sender,
+          refund
+        );
+        s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
+        s.tokenRewardData[address(token)].penalties += penalty;
       }
+      user.tokenData[j].amount -= position.amounts[j];
+      user.tokenData[j].totalRewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
+      pool.tokenData[j].supply -= position.amounts[j];
+      position.amounts[j] = 0;
+      position.rewardDebts[j] = 0;
+    }
 
-      pending += bonus;
+    //Manage SDEX
+    IBRAmount storage iBRAmount = s.iBRAmounts[position.nftid];
 
-      if (pending >0) {
-        if (position.endBlock <= block.number) {
-          //Past Expiry Date
-          SdexFacet(address(this)).transfer(msg.sender, pending);
-          RewardFacet(address(this)).requestSdexReward(
-            msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
-          );
-        } else {
-          s.accSdexPenaltyPool += pending;
-        }
+    uint256 pending = totalAmountShares / s.unity;
+    console.log('IBRewardFacet::pending', pending);
+    // We can get reward per block elapsed
+    uint256 rewardPerBlock = pending / blocksElapsed;
+    console.log('IBRewardFacet::rewardPerBlock', rewardPerBlock);
+    // double rewardPerBlock until bonus is gone or left
+    uint256 blocksOfBonus = iBRAmount.amount / rewardPerBlock ;
+    console.log('IBRewardFacet::blocksOfBonus', blocksOfBonus);
+
+    uint256 bonus = 0;
+    if (blocksElapsed > blocksOfBonus) {
+      bonus =  iBRAmount.amount;
+    } else {
+      bonus = rewardPerBlock * blocksElapsed;
+    }
+    console.log('IBRewardFacet::bonus', bonus);
+    iBRAmount.amount -= bonus;
+     
+    if (s.iBRAmounts[position.nftid].rewardPool == REWARDPOOL.BASE) {
+      s.tokenRewardData[address(this)].rewarded -= bonus;
+      s.tokenRewardData[address(this)].paidOut += bonus;
+    } else {
+      s.accSdexRewardPool -= bonus;
+      s.accSdexPaidOut += bonus;
+    }
+    pending += bonus;
+
+    if (pending >0) {
+      if (position.endBlock <= block.number) {
+        //Past Expiry Date
+        SdexFacet(address(this)).transfer(msg.sender, pending);
+        RewardFacet(address(this)).requestSdexReward(
+          msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
+        );
+      } else {
+        s.accSdexPenaltyPool += pending;
       }
     }
   }
