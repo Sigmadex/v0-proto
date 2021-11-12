@@ -113,33 +113,8 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     }
 
     //Manage SDEX
-    IBRAmount storage iBRAmount = s.iBRAmounts[position.nftid];
-
     uint256 pending = totalAmountShares / s.unity;
-    console.log('IBRewardFacet::pending', pending);
-    // We can get reward per block elapsed
-    uint256 rewardPerBlock = pending / blocksElapsed;
-    console.log('IBRewardFacet::rewardPerBlock', rewardPerBlock);
-    // double rewardPerBlock until bonus is gone or left
-    uint256 blocksOfBonus = iBRAmount.amount / rewardPerBlock ;
-    console.log('IBRewardFacet::blocksOfBonus', blocksOfBonus);
-
-    uint256 bonus = 0;
-    if (blocksElapsed > blocksOfBonus) {
-      bonus =  iBRAmount.amount;
-    } else {
-      bonus = rewardPerBlock * blocksElapsed;
-    }
-    console.log('IBRewardFacet::bonus', bonus);
-    iBRAmount.amount -= bonus;
-     
-    if (s.iBRAmounts[position.nftid].rewardPool == REWARDPOOL.BASE) {
-      s.tokenRewardData[address(this)].rewarded -= bonus;
-      s.tokenRewardData[address(this)].paidOut += bonus;
-    } else {
-      s.accSdexRewardPool -= bonus;
-      s.accSdexPaidOut += bonus;
-    }
+    uint256 bonus = calcBonus(pending, position.startBlock, position.nftid);
     pending += bonus;
 
     if (pending >0) {
@@ -161,7 +136,111 @@ contract IncreasedBlockRewardFacet is  Modifiers {
   * @param positionid the id of the associated position, found in the {UserPosition} array length - 1 of {VaultUserInfo} 
   */
   function iBRWithdrawVault(uint256 positionid) external  {
-    
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
+    VaultUserPosition storage position = vUser.positions[positionid];
+    uint256 shares = position.shares;
+    require(shares > 0, "Nothing to withdraw");
+    uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
+    uint256 currentAmount = shares * vaultBalance / s.vTotalShares;
+    vUser.shares -= shares;
+    // what if currentAmount?
+    s.vTotalShares -= shares;
+
+    uint256 bal = s.vSdex;
+    // Consider the edge case where not all funds are staked, kinda odd, but it was there
+    if (bal < currentAmount) {
+      uint256 balWithdraw = currentAmount - bal;
+      AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
+      uint256 balAfter = s.vSdex;
+      //theoretical
+      uint256 diff = balAfter - bal;
+      if (diff < balWithdraw) {
+        currentAmount = bal + diff;
+      }
+    }
+
+    if (vUser.shares > 0) {
+      vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
+      vUser.sdexAtLastUserAction = vUser.shares * vaultBalance / s.vTotalShares;
+    } else {
+      vUser.sdexAtLastUserAction = 0;
+    }
+    vUser.lastUserActionTime = block.timestamp;
+    uint256 blocksAhead = position.endBlock - position.startBlock;
+    uint256 accruedSdex = currentAmount - position.amount;
+    /*******************/
+    uint256 bonus = calcBonus(accruedSdex, position.startBlock, position.nftid);
+    /*******************/
+    if (position.endBlock <= block.number) {
+      SdexFacet(address(this)).transfer(
+        msg.sender,
+        currentAmount + bonus
+      );
+      s.vSdex -= currentAmount;
+      //request nft Reward
+      RewardFacet(address(this)).requestReward(
+        msg.sender, address(this), position.amount*blocksAhead
+      );
+      RewardFacet(address(this)).requestSdexReward(
+        msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
+      );
+    } else {
+      (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
+        position.startBlock, position.endBlock, position.amount
+      );
+      (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
+        position.startBlock, position.endBlock, accruedSdex + bonus
+      );
+
+      SdexFacet(address(this)).transfer(
+        msg.sender,
+        refund
+      );
+      s.vSdex -= currentAmount;
+
+      s.accSdexPenaltyPool += penaltyAcc + refundAcc;
+      s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
+      s.tokenRewardData[address(this)].penalties += penalty;
+    }
+    position.amount = 0;
+    position.shares = 0;
+  }
+
+
+  function calcBonus(
+    uint256 accSdex,
+    uint256 startBlock,
+    uint256 nftid
+
+  ) private returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    IBRAmount storage iBRAmount = s.iBRAmounts[nftid];
+
+    uint256 blocksElapsed = block.number - startBlock;
+    uint256 rewardPerBlock = accSdex / blocksElapsed;
+    console.log('IBRewardFacet::rewardPerBlock', rewardPerBlock);
+    // double rewardPerBlock until bonus is gone or left
+    uint256 blocksOfBonus = iBRAmount.amount / rewardPerBlock ;
+    console.log('IBRewardFacet::blocksOfBonus', blocksOfBonus);
+
+    uint256 bonus = 0;
+    if (blocksElapsed > blocksOfBonus) {
+      bonus =  iBRAmount.amount;
+    } else {
+      bonus = rewardPerBlock * blocksElapsed;
+    }
+    console.log('IBRewardFacet::bonus', bonus);
+    iBRAmount.amount -= bonus;
+     
+    if (s.iBRAmounts[nftid].rewardPool == REWARDPOOL.BASE) {
+      s.tokenRewardData[address(this)].rewarded -= bonus;
+      s.tokenRewardData[address(this)].paidOut += bonus;
+    } else {
+      s.accSdexRewardPool -= bonus;
+      s.accSdexPaidOut += bonus;
+    }
+    return bonus;
   }
 }
 
