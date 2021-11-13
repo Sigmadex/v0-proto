@@ -157,6 +157,7 @@ contract SdexVaultFacet {
         RewardFacet(address(this)).requestReward(
           msg.sender, address(this), position.amount*blocksAhead
         );
+        console.log('SdexVaultFacet::withdrawVault::accruedSdex', accruedSdex);
         RewardFacet(address(this)).requestSdexReward(
           msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
         );

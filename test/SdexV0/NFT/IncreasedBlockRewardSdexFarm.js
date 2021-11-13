@@ -430,5 +430,31 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(0, state2.accSdexPenaltyPool)
     assert.equal(state1.accSdexPenaltyPool, BN(state1.accSdexPenaltyPool).sub(BN(state2.accSdexPenaltyPool)).toString())
   })
+  it('calculates correctly from vault when withdraw is greater than endBlock', async () => {
+    const nftid = 4
+    const positionid = 10
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+    
+    let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
+
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    await tokenFarmFacet.methods.deposit(
+      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
+    await advanceBlocks(35)
+    await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
+
+    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
+    
+
+    //const {refund, penalty} = calcPenalty(6, blocksToStake, stakeAmount) 
+    let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
+    console.log('this' ,rewardAmount1.amount, rewardAmount2.amount)
+    assert.equal(rewardAmount2.amount, 0)
+    assert.equal(BN(state1.accSdexRewardPool).sub(BN(rewardAmount1.amount)).toString(), state2.accSdexRewardPool)
+    assert.equal(0, state2.rewardGlobals[diamondAddress].penalties)
+    assert.equal(0, state2.accSdexPenaltyPool)
+    assert.equal(state1.accSdexPenaltyPool, BN(state1.accSdexPenaltyPool).sub(BN(state2.accSdexPenaltyPool)).toString())
+  })
 })
 

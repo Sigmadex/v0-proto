@@ -168,9 +168,13 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     }
     vUser.lastUserActionTime = block.timestamp;
     uint256 blocksAhead = position.endBlock - position.startBlock;
+    console.log('IncreasedBlockRewardFacet::withdrawVault::blocksStaked', blocksAhead);
+    console.log('IncreasedBlockRewardFacet::withdrawVault::elapsedBlocks', block.number - position.startBlock);
     uint256 accruedSdex = currentAmount - position.amount;
     /*******************/
+    console.log('IncreasedBlockRewardFacet::withdrawVault::accruedSdex', accruedSdex);
     uint256 bonus = calcBonus(accruedSdex, position.startBlock, position.nftid);
+    console.log('IncreasedBlockRewardFacet::withdrawVault::bonus', bonus);
     /*******************/
     if (position.endBlock <= block.number) {
       SdexFacet(address(this)).transfer(
