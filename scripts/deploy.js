@@ -21,6 +21,8 @@ const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 const IncreasedBlockReward = artifacts.require('IncreasedBlockReward')
 const IncreasedBlockRewardFacet = artifacts.require('IncreasedBlockRewardFacet')
 
+const RewardAmplifierReward = artifacts.require('RewardAmplifierReward')
+const RewardAmplifierRewardFacet = artifacts.require('RewardAmplifierRewardFacet')
 
 async function deployDiamond () {
   const accounts = await web3.eth.getAccounts()
@@ -47,7 +49,8 @@ async function deployDiamond () {
     SdexVaultFacet,
     RewardFacet,
     ReducedPenaltyRewardFacet,
-    IncreasedBlockRewardFacet
+    IncreasedBlockRewardFacet,
+    RewardAmplifierRewardFacet
   ]
 
   const cut = []
@@ -66,11 +69,12 @@ async function deployDiamond () {
   //Gen 0 NFTS
   const reducedPenaltyReward =  await deploy(owner, ReducedPenaltyReward, [diamond._address])
   const increasedBlockReward =  await deploy(owner, IncreasedBlockReward, [diamond._address])
+  const rewardAmplifierReward =  await deploy(owner, RewardAmplifierReward, [diamond._address])
   
   const initalArgs =  initArgs(
-    [reducedPenaltyReward._address, increasedBlockReward._address],
-    [ReducedPenaltyRewardFacet, IncreasedBlockRewardFacet],
-    ['rPR', 'iBR']) 
+    [reducedPenaltyReward._address, increasedBlockReward._address, rewardAmplifierReward._address],
+    [ReducedPenaltyRewardFacet, IncreasedBlockRewardFacet, RewardAmplifierRewardFacet],
+    ['rPR', 'iBR', 'rAR']) 
 
   const diamondCut = await new web3.eth.Contract(IDiamondCut.abi, diamond._address)
   const fnCall = web3.eth.abi.encodeFunctionCall(

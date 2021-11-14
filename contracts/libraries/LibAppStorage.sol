@@ -76,6 +76,12 @@ struct IBRAmount {
   REWARDPOOL rewardPool;
 }
 
+struct RARAmount {
+  address token;
+  uint256 amount;
+  REWARDPOOL rewardPool;
+}
+
 struct Reward{
   // Withdraw fn
   // Withdraw Vault fn
@@ -155,6 +161,11 @@ struct AppStorage {
   address increasedBlockReward;
   mapping (uint256 => IBRAmount) iBRAmounts;
   uint256 iBRNextId;
+
+  //Reward Amplifier Reward
+  address rewardAmplifierReward;
+  mapping (uint256 => RARAmount) rARAmounts;
+  uint256 rARNextId;
 
 }
 

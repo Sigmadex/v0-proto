@@ -118,6 +118,13 @@ contract DiamondInit {
     });
     s.iBRNextId = 1;
 
+    s.rewardAmplifierReward  = nftAddresses[2];
+    s.rewards[nftAddresses[2]]= Reward({
+      withdrawSelector: _withdrawSelectors[2],
+      vaultWithdrawSelector: _vaultWithdrawSelectors[2],
+      rewardSelector: _rewardSelectors[2]
+    });
+    s.rARNextId = 1;
 
   }
 }

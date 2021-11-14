@@ -12,6 +12,7 @@ const SdexVaultFacet = artifacts.require('SdexVaultFacet')
 const RewardFacet = artifacts.require('RewardFacet')
 const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 const IncreasedBlockRewardFacet = artifacts.require('IncreasedBlockRewardFacet')
+const RewardAmplifierRewardFacet = artifacts.require('RewardAmplifierRewardFacet')
 
 
 contract("Diamond", (accounts) => {
@@ -27,6 +28,7 @@ contract("Diamond", (accounts) => {
   let rewardFacet;
   let reducedPenaltyRewardFacet;
   let increasedPenaltyRewardFacet;
+  let rewardAmplifierRewardFacet;
   const addresses = []
   before(async () => {
     const diamondAddress = await deployDiamond()
@@ -41,15 +43,16 @@ contract("Diamond", (accounts) => {
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
     reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
     increasedBlockRewardFacet = new web3.eth.Contract(IncreasedBlockRewardFacet.abi, diamondAddress)
+    rewardAmplifierRewardFacet = new web3.eth.Contract(RewardAmplifierRewardFacet.abi, diamondAddress)
 
 	})
 
-  it("11 facets", async () => {
+  it("12 facets", async () => {
     const addrs = await diamondLoupeFacet.methods.facetAddresses().call()
     for (const address of await diamondLoupeFacet.methods.facetAddresses().call()) {
 			addresses.push(address)
 		}
-		assert.equal(addresses.length, 11) 
+		assert.equal(addresses.length, 12) 
   })
 
   it("should have correct selectors", async () => {
@@ -85,6 +88,9 @@ contract("Diamond", (accounts) => {
     assert.sameMembers(result, selectors)
     selectors = getSelectors(increasedBlockRewardFacet)
     result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[10]).call()
+    assert.sameMembers(result, selectors)
+    selectors = getSelectors(rewardAmplifierRewardFacet)
+    result = await diamondLoupeFacet.methods.facetFunctionSelectors(addresses[11]).call()
     assert.sameMembers(result, selectors)
   })
     /*
