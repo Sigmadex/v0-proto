@@ -113,6 +113,7 @@ contract("RewardAmplifier", (accounts) => {
   })
 
   it("increased Block Reward to sdex", async () => {
+
     await rewardFacet.methods.addReward(tokenA._address, rARAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenB._address, rARAddress).send({from:owner})
     await rewardFacet.methods.addReward(diamondAddress, rARAddress).send({from:owner})
@@ -190,19 +191,60 @@ contract("RewardAmplifier", (accounts) => {
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
     logState(state3, 'state3::alice::withdraw', alice,bob, diamondAddress, tokenA._address, tokenB._address)
-    /*
-    let nft1 = await increasedBlockReward.methods.balanceOf(alice , 1).call()
-    let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(1).call()
+    
+    let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , 1).call()
+    let rewardAmount1 = await rewardAmplifierRewardFacet.methods.rARAmount(1).call()
     assert.equal(nft1, 1)
-    assert.equal(rewardAmount1.token, diamondAddress)
-    assert.equal(rewardAmount1.amount, state3.rewardGlobals[diamondAddress].rewarded)
+    assert.equal(rewardAmount1.token, tokenA._address)
+    assert.equal(rewardAmount1.amount , state2.rewardGlobals[tokenA._address].penalties)
+    
+    let nft2 = await rewardAmplifierReward.methods.balanceOf(alice , 2).call()
+    let rewardAmount2 = await rewardAmplifierRewardFacet.methods.rARAmount(2).call()
+    assert.equal(nft2, 1)
+    assert.equal(rewardAmount2.token, tokenB._address)
+    assert.equal(rewardAmount2.amount , state2.rewardGlobals[tokenB._address].penalties)
+    
+    let nft3 = await rewardAmplifierReward.methods.balanceOf(alice , 3).call()
+    let rewardAmount3 = await rewardAmplifierRewardFacet.methods.rARAmount(3).call()
+    assert.equal(nft3, 1)
+    assert.equal(rewardAmount3.token, diamondAddress)
+    assert.equal(rewardAmount3.amount, state2.accSdexPenaltyPool)
+    
+    /*
     assert.equal(rewardAmount1.rewardPool, 0) // ENUM for token reward pool
     let nft2 = await increasedBlockReward.methods.balanceOf(alice , 2).call()
-    let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(2).call()
+    let rewardAmount2 = await rewardAmplifierRewardFacet.methods.rARAmount(2).call()
     assert.equal(nft2, 1)
     assert.equal(rewardAmount2.token, diamondAddress)
     assert.equal(rewardAmount2.amount, state3.accSdexRewardPool)
     assert.equal(rewardAmount2.rewardPool, 1) // ENBUm for accumulated Sdex Penalty Pool
     */
   })
+
+  it("amplifies a newly created reward", async () => {
+    let positionid = 1
+    let nftid = 1
+
+    await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+    await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
+    logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
+
+    let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , nftid).call()
+    let rewardAmount1 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
+
+    await tokenFarmFacet.methods.deposit(
+      poolid, [stakeAmount, stakeAmount], blocksToStake, rARAddress, nftid).send({from:alice})
+
+    await advanceBlocks(blocksToStake)
+
+    await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
+
+    let nft1A = await rewardAmplifierReward.methods.balanceOf(alice , 4).call()
+    let rewardAmount1A = await rewardAmplifierRewardFacet.methods.rARAmount(4).call()
+    console.log(rewardAmount1, rewardAmount1A)
+
+  })
+
 })

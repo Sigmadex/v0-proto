@@ -52,7 +52,6 @@ async function deployDiamond () {
     IncreasedBlockRewardFacet,
     RewardAmplifierRewardFacet
   ]
-
   const cut = []
   for (const FacetName of FacetArtifacts) {
     const facet = await deploy(owner, FacetName)

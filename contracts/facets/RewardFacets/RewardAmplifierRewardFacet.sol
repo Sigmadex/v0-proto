@@ -1,6 +1,6 @@
 pragma solidity 0.8.9;
 
-import { AppStorage, LibAppStorage, Modifiers, RARAmount, PoolInfo, UserInfo, UserPosition, REWARDPOOL } from '../../libraries/LibAppStorage.sol';
+import { TokenRewardData, AppStorage, LibAppStorage, Modifiers, RARAmount, PoolInfo, UserInfo, UserPosition, REWARDPOOL } from '../../libraries/LibAppStorage.sol';
 import '../../interfaces/IERC1155.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
@@ -23,7 +23,12 @@ contract RewardAmplifierRewardFacet is  Modifiers {
   */
   function rARAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.increasedBlockReward;
+    return s.rewardAmplifierReward;
+  }
+
+  function rARAmount(uint256 nftid) public returns (RARAmount memory) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.rARAmounts[nftid];
   }
 
   function rARReward(
@@ -33,6 +38,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     REWARDPOOL rewardPool
     
   ) external onlyDiamond {
+    console.log('RewardAmplifierRewardFacet::rARReward::hello');
     AppStorage storage s = LibAppStorage.diamondStorage();
     RARAmount memory amplificationAmount = RARAmount({
       token: token,
@@ -45,8 +51,50 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     s.rARNextId++;
   }
 
+  function reqReward(address to, address token, uint256 blockAmount, uint256 bonus) private {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    TokenRewardData storage tokenRewardData = s.tokenRewardData[token];
+
+    uint256 proportio = blockAmount * s.unity / tokenRewardData.blockAmountGlobal;
+    uint256 rewardAmount = proportio * tokenRewardData.penalties / s.unity;
+    s.tokenRewardData[address(token)].blockAmountGlobal -= blockAmount;
+    //s.tokenRewardData[address(token)].rewarded += rewardAmount + bonus;
+    s.tokenRewardData[address(token)].rewarded += rewardAmount;
+    s.tokenRewardData[address(token)].penalties -= rewardAmount;
+    RewardFacet(address(this)).mintReward(to, token, rewardAmount + bonus, REWARDPOOL.BASE);
+  }
+
+  function reqSdexReward(
+    address to,
+    uint256 startBlock,
+    uint256 endBlock,
+    uint256 poolAllocPoint,
+    uint256 amountAccumulated,
+    uint256 bonus
+  ) private {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    TokenRewardData memory tokenRewardData = s.tokenRewardData[address(this)];
+
+    // totalSdexEmission
+    //uint256 blocksAhead = endBlock - startBlock;
+    // sdex emission
+    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startBlock, block.number);
+    uint256 totalSdexEmission = (multiplier * s.sdexPerBlock);
+    uint256 sdexEmittedForPool = totalSdexEmission * poolAllocPoint / s.totalAllocPoint;
+    uint256 proportion = amountAccumulated * s.unity / sdexEmittedForPool;
+    if (amountAccumulated > sdexEmittedForPool) {
+      // odd edge case bug when single user is 100 percent of pool withdrawing between 1-3 blocks after endBlock
+      proportion = s.unity;
+    }
+    uint256 reward = proportion * s.accSdexPenaltyPool / s.unity;
+    s.accSdexPenaltyPool -= reward;
+    s.accSdexRewardPool += reward;
+    RewardFacet(address(this)).mintReward(to, address(this), reward + bonus, REWARDPOOL.ACC);
+  }
+
 
   function rARWithdraw(uint256 pid, uint256 positionid) public  {
+    console.log('RewardAmplifierRewardFacet::rARWithdraw::helo');
     AppStorage storage s = LibAppStorage.diamondStorage();
 
     ToolShedFacet(address(this)).updatePool(pid);
@@ -73,17 +121,18 @@ contract RewardAmplifierRewardFacet is  Modifiers {
           position.amounts[j]
         );
         //request nft Reward
-        uint256 rewardRequest = blocksAhead*position.amounts[j];
         if (rewardAmount.token == address(token) && rewardAmount.rewardPool == REWARDPOOL.BASE) {
-          rewardRequest += rewardAmount.amount;
-          
+          reqReward(msg.sender, address(token), blocksAhead*position.amounts[j], rewardAmount.amount);
           rewardAmount.amount = 0;
-          s.tokenRewardData[address(token)].rewarded -= rewardAmount.amount;
+          // just gets readded in rARRequest, commenting for reminder but saving gas
+          //s.tokenRewardData[address(token)].rewarded -= rewardAmount.amount;
           s.tokenRewardData[address(token)].paidOut += rewardAmount.amount;
+
+        } else {
+          RewardFacet(address(this)).requestReward(
+            msg.sender, address(token), blocksAhead*position.amounts[j]
+          );
         }
-        RewardFacet(address(this)).requestReward(
-          msg.sender, address(token), blocksAhead*position.amounts[j]
-        );
       } else {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
           position.startBlock, position.endBlock, position.amounts[j]
@@ -110,14 +159,15 @@ contract RewardAmplifierRewardFacet is  Modifiers {
         SdexFacet(address(this)).transfer(msg.sender, pending);
 
         if (rewardAmount.token == address(this) && rewardAmount.rewardPool == REWARDPOOL.ACC) {
-          pending += rewardAmount.amount;
+          reqSdexReward(msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending, rewardAmount.amount);
           rewardAmount.amount = 0;
-          s.accSdexRewardPool -= rewardAmount.amount;
+          //s.accSdexRewardPool -= rewardAmount.amount;
           s.accSdexPaidOut += rewardAmount.amount;
+        } else {
+          RewardFacet(address(this)).requestSdexReward(
+            msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
+          );
         }
-        RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
-        );
       } else {
         s.accSdexPenaltyPool += pending;
       }
