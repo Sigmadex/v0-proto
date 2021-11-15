@@ -99,7 +99,10 @@ contract DiamondInit {
     s.vCallFee = 25;
 
     // Rewards 
-    s.seed = 11111460156937785151929026842503960837766832936;
+    s.seed = 1;
+    s.seedNext = 1;
+    s.seedMax = 426547842461739379460149980002442288124894678853713953114433;
+
 
     //Reduced Penalty Rewards
     s.reducedPenaltyReward = nftAddresses[0];

@@ -150,6 +150,8 @@ struct AppStorage {
   // NFT Reward addres to reward struct
   mapping (address => Reward) rewards;
   uint256 seed;
+  uint256 seedNext;
+  uint256 seedMax;
   
   //Reduced Penalty Reward
   address reducedPenaltyReward;
