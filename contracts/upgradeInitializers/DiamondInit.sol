@@ -86,9 +86,9 @@ contract DiamondInit {
     s.sdexDecimals = 18;
 
     // Vault Shares
-    s.vSharesName = 'Vaultshares';
-    s.vSharesSymbol = 'VSHR';
-    s.vSharesDecimals = 18;
+    //s.vSharesName = 'Vaultshares';
+    ///s.vSharesSymbol = 'VSHR';
+    //s.vSharesDecimals = 18;
 
     // SDEX Vault
     s.vTotalShares = 0;

@@ -1,5 +1,5 @@
 
-# ReducedPenaltyReward
+# RewardAmplifierReward
 
 
 

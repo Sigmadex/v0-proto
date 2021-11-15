@@ -190,6 +190,25 @@ No modifiers
 | Type | Description |
 | --- | --- |
 |`uint256` | the amount of Sdex placed aside for rewards
+### accSdexPaidOut
+accumulated Sdex Paid Out returns the amount of SDEX that has been paid out from the rewards pool over all time.
+
+
+
+#### Declaration
+```solidity
+  function accSdexPaidOut(
+  ) public returns (uint256)
+```
+
+#### Modifiers:
+No modifiers
+
+
+#### Returns:
+| Type | Description |
+| --- | --- |
+|`uint256` | the amount of Sdex paid out from NFT rewards
 ### calcRefund
 calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
 

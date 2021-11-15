@@ -240,10 +240,10 @@ contract SdexVaultFacet {
   * @param user address of the user in question
   * @return uint256 amount of shares they have on the vault assets
    */
-  function vShares(address user) public view returns (uint256) {
-    AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.vShares[user];
-  }
+  //function vShares(address user) public view returns (uint256) {
+    //AppStorage storage s = LibAppStorage.diamondStorage();
+    //return s.vShares[user];
+ // }
 
   /**
    * the vault Call Fee determines the proportion (divided by 10000) is multiplied by the total vault assets on harvest to give to the user harvesting.

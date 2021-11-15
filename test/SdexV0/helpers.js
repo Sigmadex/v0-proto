@@ -74,7 +74,7 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
       'sdex':  await sdexFacet.methods.balanceOf(user).call(),
       'userInfo': await tokenFarmFacet.methods.userInfo(pool, user).call(),
       'vUserInfo': await sdexVaultFacet.methods.vUserInfo(user).call(),
-      'vShares': await sdexVaultFacet.methods.vShares(user).call()
+      //'vShares': await sdexVaultFacet.methods.vShares(user).call()
     }
 
     if (tokens) {
@@ -86,7 +86,7 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
   const diamondSdex = await sdexFacet.methods.balanceOf(diamondAddress).call()
 
   const vSdex = await sdexVaultFacet.methods.vSdex().call()
-  const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
+  //const vSharesDiamond = await sdexVaultFacet.methods.vShares(diamondAddress).call()
   const vTotalShares = await sdexVaultFacet.methods.vTotalShares().call()
 
   const poolInfo = await tokenFarmFacet.methods.poolInfo(pool).call()
@@ -105,7 +105,7 @@ async function fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFa
   returnObj[diamondAddress] = {
     'sdex': diamondSdex,
     'userInfo': userInfo,
-    'vShares': vSharesDiamond
+    //'vShares': vSharesDiamond
   }
   if (tokens) {
     for (const token of tokens) {

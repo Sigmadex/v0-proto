@@ -71,7 +71,7 @@ requestReward is called by the {TokenFarmFacet} and {SdexVaultFacet} upon the wi
     address to,
     address token,
     uint256 blockAmount
-  ) public onlyDiamond returns (uint256)
+  ) public onlyDiamond
 ```
 
 #### Modifiers:
@@ -84,12 +84,8 @@ requestReward is called by the {TokenFarmFacet} and {SdexVaultFacet} upon the wi
 | --- | --- | --- |
 |`to` | address | the address of the future Reward NFT holder
 |`token` | address | the address of the token being withdrawed (such as USDT)
-|`blockAmount` | uint256 | (blocksAhead*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool 
+|`blockAmount` | uint256 | (blocksAhead*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool
 
-#### Returns:
-| Type | Description |
-| --- | --- |
-|`rewardAmount` | amount rewarded to the user as an NFT reward, used by {TokenFarmFacet} and {SdexVaultFacet} in updating the state of the smart contract
 ### requestSdexReward
 Internally two penalty pools for Sdex are kept, one for penalties lost on staking Sdex itself, and another for penalites derived from lost block rewards. For example a premature withdraw on USDT-ETH results in a loss of accrued Sdex from block rewards, while an SDEX-ETH pair premature withdraw results in both a loss of accrued block rewards, and the SDEX originally staked as well. requestSdexReward mints NFT rewards based on penalties accrued only from lost block rewards.
 

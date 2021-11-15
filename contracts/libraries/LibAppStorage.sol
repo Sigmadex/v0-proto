@@ -105,12 +105,12 @@ struct AppStorage {
   mapping (uint256 => mapping (address => UserInfo)) userInfo; 
   uint256 poolLength;
   mapping(uint256 => PoolInfo) poolInfo;
-  address devAddress;
+  //address devAddress;
   uint256 sdexPerBlock;
   uint256 BONUS_MULTIPLIER;
   uint256 totalAllocPoint;
   uint256 startBlock;
-  uint256 sdexRewarded;
+  //uint256 sdexRewarded;
 
   //SDEX
   mapping(address => uint256) sdexBalances;
@@ -123,13 +123,13 @@ struct AppStorage {
 
   uint256 vSdex;
   //Vault Shares
-  mapping(address => uint256) vShares;
-  mapping(address => mapping(address => uint256))  vAllowances;
+  //mapping(address => uint256) vShares;
+  //mapping(address => mapping(address => uint256))  vAllowances;
   //uint256 vSharesTotalSupply;
 
-  string vSharesName;
-  string vSharesSymbol;
-  uint8 vSharesDecimals;
+  //string vSharesName;
+  //string vSharesSymbol;
+  //uint8 vSharesDecimals;
 
   //Vault
   mapping(address => VaultUserInfo) vUserInfo;

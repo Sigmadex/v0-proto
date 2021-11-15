@@ -25,10 +25,10 @@ called during deployment to intialize SDEX variables for the {SdexFacet} native 
 #### Declaration
 ```solidity
   function init(
-    address reducedPenaltyReward,
-    bytes4 _withdrawSelector,
-    bytes4 _vaultWithdrawSelector,
-    bytes4 _rewardSelector
+    address[] nftAddresses,
+    bytes4[] _withdrawSelectors,
+    bytes4[] _vaultWithdrawSelectors,
+    bytes4[] _rewardSelectors
   ) external
 ```
 
@@ -38,10 +38,10 @@ No modifiers
 #### Args:
 | Arg | Type | Description |
 | --- | --- | --- |
-|`reducedPenaltyReward` | address | address, will be array of GEN0 NFT soon 
-|`_withdrawSelector` | bytes4 | function signature of the reduced penalty withdraw function.  will be array of GEN0 NFT withdraw function selectors soon
-|`_vaultWithdrawSelector` | bytes4 | fn selectors for vault withdraw
-|`_rewardSelector` | bytes4 | fn selectors for reward function
+|`nftAddresses` | address[] | address[], array of GEN0 NFTs
+|`_withdrawSelectors` | bytes4[] | bytes4[]  array of GEN0 NFT withdraw function selectors
+|`_vaultWithdrawSelectors` | bytes4[] | bytes4[] fn selectors for vault withdraw
+|`_rewardSelectors` | bytes4[] | bytes4[] fn selectors for reward function
 
 
 
