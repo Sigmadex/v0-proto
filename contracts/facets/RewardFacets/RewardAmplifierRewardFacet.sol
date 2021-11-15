@@ -38,7 +38,6 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     REWARDPOOL rewardPool
     
   ) external onlyDiamond {
-    console.log('RewardAmplifierRewardFacet::rARReward::hello');
     AppStorage storage s = LibAppStorage.diamondStorage();
     RARAmount memory amplificationAmount = RARAmount({
       token: token,
@@ -94,7 +93,6 @@ contract RewardAmplifierRewardFacet is  Modifiers {
 
 
   function rARWithdraw(uint256 pid, uint256 positionid) public  {
-    console.log('RewardAmplifierRewardFacet::rARWithdraw::helo');
     AppStorage storage s = LibAppStorage.diamondStorage();
 
     ToolShedFacet(address(this)).updatePool(pid);
@@ -106,7 +104,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     uint256 totalAmountShares = 0;
     //Manage Tokens 
 
-    RARAmount memory rewardAmount = s.rARAmounts[position.nftid];
+    RARAmount storage rewardAmount = s.rARAmounts[position.nftid];
     for (uint j=0; j < user.tokenData.length; j++) {
 
       IERC20 token = pool.tokenData[j].token;
@@ -126,7 +124,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
           rewardAmount.amount = 0;
           // just gets readded in rARRequest, commenting for reminder but saving gas
           //s.tokenRewardData[address(token)].rewarded -= rewardAmount.amount;
-          s.tokenRewardData[address(token)].paidOut += rewardAmount.amount;
+          //s.tokenRewardData[address(token)].paidOut += rewardAmount.amount;
 
         } else {
           RewardFacet(address(this)).requestReward(
@@ -162,7 +160,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
           reqSdexReward(msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending, rewardAmount.amount);
           rewardAmount.amount = 0;
           //s.accSdexRewardPool -= rewardAmount.amount;
-          s.accSdexPaidOut += rewardAmount.amount;
+          //s.accSdexPaidOut += rewardAmount.amount;
         } else {
           RewardFacet(address(this)).requestSdexReward(
             msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
@@ -209,7 +207,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     uint256 blocksAhead = position.endBlock - position.startBlock;
     uint256 accruedSdex = currentAmount - position.amount;
     if (position.endBlock <= block.number) {
-      RARAmount memory rewardAmount = s.rARAmounts[position.nftid];
+      RARAmount storage rewardAmount = s.rARAmounts[position.nftid];
       SdexFacet(address(this)).transfer(
         msg.sender,
         currentAmount
@@ -217,25 +215,23 @@ contract RewardAmplifierRewardFacet is  Modifiers {
       s.vSdex -= currentAmount;
       //request nft Reward
 
-      uint256 rewardRequest = position.amount*blocksAhead;
-      uint256 sdexRewardRequest = accruedSdex;
       if (rewardAmount.rewardPool == REWARDPOOL.BASE) {
-        rewardRequest += rewardAmount.amount;
+        reqReward(msg.sender, address(this), position.amount*blocksAhead, rewardAmount.amount);
+        //s.tokenRewardData[address(this)].rewarded -= rewardAmount.amount;
+        //s.tokenRewardData[address(this)].paidOut += rewardAmount.amount;
         rewardAmount.amount = 0;
-        s.tokenRewardData[address(this)].rewarded -= rewardAmount.amount;
-        s.tokenRewardData[address(this)].paidOut += rewardAmount.amount;
+        RewardFacet(address(this)).requestSdexReward(
+          msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
+        );
       } else if (rewardAmount.rewardPool == REWARDPOOL.ACC) {
-          sdexRewardRequest += rewardAmount.amount;
+          RewardFacet(address(this)).requestReward(
+            msg.sender, address(this), position.amount * blocksAhead
+          );
+          reqSdexReward(msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex, rewardAmount.amount);
+          //s.accSdexRewardPool -= rewardAmount.amount;
+          //s.accSdexPaidOut += rewardAmount.amount;
           rewardAmount.amount = 0;
-          s.accSdexRewardPool -= rewardAmount.amount;
-          s.accSdexPaidOut += rewardAmount.amount;
       }
-      RewardFacet(address(this)).requestReward(
-        msg.sender, address(this), rewardRequest
-      );
-      RewardFacet(address(this)).requestSdexReward(
-        msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, sdexRewardRequest
-      );
     } else {
       (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
         position.startBlock, position.endBlock, position.amount
