@@ -27,6 +27,7 @@ contract("TokenFarmFacet", (accounts) => {
   let rewardFacet;
   let reducedPenaltyRewardFacet;
   let reducedPenaltyReward;
+  let rPRAddress;
   let tokenA;
   let tokenB;
   let tokens;
@@ -45,7 +46,7 @@ contract("TokenFarmFacet", (accounts) => {
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
     reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
 
-    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
+    rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     reducedPenaltyReward = new web3.eth.Contract(ReducedPenaltyReward.abi, rPRAddress)
 
 
@@ -60,7 +61,6 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenB.methods.transfer(bob, amount).send({ from: owner });
   })
   it("adds reduced penalty reward to tokensA, B, and sdex", async () => {
-    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     await rewardFacet.methods.addReward(tokenA._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenB._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(diamondAddress, rPRAddress).send({from:owner})
@@ -81,6 +81,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenA._address, tokenB._address],
       newPoolAllocPoints,
+      [rPRAddress],
       true
     ).send(
       {from:owner}
@@ -104,6 +105,7 @@ contract("TokenFarmFacet", (accounts) => {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],
         newPoolAllocPoints,
+        [rPRAddress],
         true
       ).send(
         {from:alice}

@@ -160,6 +160,7 @@ contract("reward roulette", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenA._address, tokenB._address],
       newPoolAllocPoints,
+      [iBRAddress, rARAddress, rPRAddress],
       true
     ).send(
       {from:owner}
@@ -183,6 +184,7 @@ contract("reward roulette", (accounts) => {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],
         newPoolAllocPoints,
+        [iBRAddress, rARAddress, rPRAddress],
         true
       ).send(
         {from:alice}

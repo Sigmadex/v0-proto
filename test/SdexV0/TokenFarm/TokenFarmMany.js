@@ -73,6 +73,7 @@ contract("TokenFarmFacet", (accounts) => {
   let rewardFacet;
   let reducedPenaltyRewardFacet;
   let reducedPenaltyReward;
+  let rPRAddress;
   let tokenA;
   let tokenB;
   let tokenC;
@@ -91,7 +92,7 @@ contract("TokenFarmFacet", (accounts) => {
     rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)
     reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
 
-    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
+    rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     reducedPenaltyReward = new web3.eth.Contract(ReducedPenaltyReward.abi, rPRAddress)
     
 
@@ -133,7 +134,6 @@ contract("TokenFarmFacet", (accounts) => {
   })
 
   it("adds reduced penalty reward to tokensA, B, C, and sdex (omits D)", async () => {
-    const rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     await rewardFacet.methods.addReward(tokenA._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenB._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenC._address, rPRAddress).send({from:owner})
@@ -166,6 +166,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenA._address, tokenB._address],
       farmAAlloc,
+      [rPRAddress],
       true
     ).send(
       {from:owner}
@@ -174,6 +175,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenA._address, tokenC._address],
       farmBAlloc,
+      [rPRAddress],
       true
     ).send(
       {from:owner}
@@ -181,6 +183,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenA._address, tokenD._address],
       farmCAlloc,
+      [rPRAddress],
       true
     ).send(
       {from:owner}
@@ -188,6 +191,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenA._address],
       farmDAlloc,
+      [rPRAddress],
       true
     ).send(
       {from:owner}
@@ -195,6 +199,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenB._address, tokenC._address],
       farmEAlloc,
+      [rPRAddress],
       true
     ).send(
       {from:owner}
@@ -202,6 +207,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenFarmFacet.methods.add(
       [tokenC._address, tokenD._address],
       farmFAlloc,
+      [rPRAddress],
       true
     ).send(
       {from:owner}

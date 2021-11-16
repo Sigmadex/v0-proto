@@ -71,6 +71,9 @@ contract DiamondInit {
         accSdexPerShare: 0
       })
     );
+    for (uint j=0; j < nftAddresses.length; j++) {
+      s.validNFTsForPool[0][nftAddresses[j]] = true;
+    }
     s.userInfo[0][address(this)].tokenData.push(
       UserTokenData({
         amount:0,

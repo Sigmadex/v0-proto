@@ -38,13 +38,9 @@ contract RewardFacet is Modifiers {
     uint256 rewardAmount,
     REWARDPOOL rewardPool
   ) public  onlyDiamond {
-    console.log('RewardFacet::mintReward::hello');
     AppStorage storage s = LibAppStorage.diamondStorage();
     uint256 kindaRandomId = uint256(keccak256(abi.encodePacked(blockhash(block.number - 1), to, s.seed))) % s.validRewards[token].length;
-    console.log('RewardFacet::kindaRandomId::', kindaRandomId);
-    console.log('RewardFacet::length::', s.validRewards[token].length);
     address nftAddr = s.validRewards[token][kindaRandomId];
-    console.log('RewardFacet::nftAddr::', nftAddr);
     Reward memory reward = s.rewards[nftAddr];
     bytes memory fnCall = abi.encodeWithSelector(
       reward.rewardSelector,
@@ -124,7 +120,6 @@ contract RewardFacet is Modifiers {
     uint256 seedNext = s.seedNext;
     for (uint i=0; i < kindaRandomId; i++) {
       uint256 oldSeed = seed;
-      console.log('oldSeed', oldSeed);
       seed = seedNext;
       seedNext += oldSeed;
       if (seedNext > s.seedMax) {
@@ -134,7 +129,5 @@ contract RewardFacet is Modifiers {
     }
     s.seed = seed;
     s.seedNext = seedNext;
-    console.log('seed', seed);
-    console.log('seedNext', seedNext);
   }
 }

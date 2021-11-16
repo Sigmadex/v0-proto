@@ -145,6 +145,9 @@ struct AppStorage {
   uint256 vCallFee; // 0.25%
 
   // NFT
+  // poolid => nftaddr ==> bool?
+  mapping (uint256 => mapping( address => bool)) validNFTsForPool;
+  // Valid rewards for token
   // Token addr => valid NFT rewards
   mapping (address => address[]) validRewards;
   // NFT Reward addres to reward struct

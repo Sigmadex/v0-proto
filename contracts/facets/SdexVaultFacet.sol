@@ -105,6 +105,7 @@ contract SdexVaultFacet {
    * @param positionid the id of the position in question, attained from the positions array in the {UserVaultInfo} struct 
    */
   function withdrawVault(uint256 positionid) public  {
+    console.log('SdexVaultFacet::withdrawVault::hello');
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
@@ -120,8 +121,12 @@ contract SdexVaultFacet {
 
     } else {
       uint256 shares = position.shares;
+      console.log('SdexVaultFacet::withdrawVault::shares', shares);
+      console.log('SdexVaultFacet::withdrawVault::totalShares', s.vTotalShares);
+
       require(shares > 0, "Nothing to withdraw");
       uint256 currentAmount = shares * vaultBalance() / s.vTotalShares;
+      console.log('SdexVaultFacet::withdrawVault::currentAmount', currentAmount);
       vUser.shares -= shares;
       // what if currentAmount?
       s.vTotalShares -= shares;
@@ -129,12 +134,14 @@ contract SdexVaultFacet {
       uint256 bal = s.vSdex;
       // Consider the edge case where not all funds are staked, kinda odd, but it was there
       if (bal < currentAmount) {
+        console.log('leaving staking');
         uint256 balWithdraw = currentAmount - bal;
         AutoSdexFarmFacet(address(this)).leaveStaking(balWithdraw);
         uint256 balAfter = s.vSdex;
         //theoretical
         uint256 diff = balAfter - bal;
         if (diff < balWithdraw) {
+          console.log('in the wierd code');
           currentAmount = bal + diff;
         }
       }
@@ -162,6 +169,7 @@ contract SdexVaultFacet {
           msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
         );
       } else {
+        console.log('SdexVaultFacet::withdrawVault::penaltyTriggered');
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
           position.startBlock, position.endBlock, position.amount
         );

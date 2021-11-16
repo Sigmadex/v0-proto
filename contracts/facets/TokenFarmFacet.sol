@@ -20,10 +20,12 @@ contract TokenFarmFacet is Modifiers {
     * @param tokens tokens to be added to the pool, can be one or many (only currently tested for max 2)
     * @param allocPoint allocation points for pool.  This determines what proportion of SDEX is given to this pool every block. allocPoint / TotalAllocPoint = proportion of sdexPerBlock
     * @param withUpdate runs the massUpdatePool option on execution to update all pool states
+    * @param validNFTs list of addresses of nft rewards that are valid for this pool
   */
   function add(
     IERC20[] memory tokens,
     uint256 allocPoint,
+    address[] memory validNFTs,
     bool withUpdate
   ) public onlyOwner {
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -41,8 +43,24 @@ contract TokenFarmFacet is Modifiers {
         accSdexPerShare: 0
       }));
     }
+    for (uint j=0; j <validNFTs.length; j++) {
+      s.validNFTsForPool[s.poolLength][validNFTs[j]] = true;
+    }
     s.poolLength++;
     ToolShedFacet(address(this)).updateStakingPool();
+  }
+
+  function changeValidNFTsForPool(uint256 poolid, address[] memory nfts, bool[] memory newStates) public onlyOwner {
+    require((nfts.length == newStates.length), 'please match nfts to newstates 1:1');
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    for (uint j=0; j < nfts.length; j++) {
+      s.validNFTsForPool[poolid][nfts[j]] = newStates[j];
+    }
+  }
+
+  function isValidNFTForPool(uint256 poolid, address nft) public returns (bool) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.validNFTsForPool[poolid][nft];
   }
   /**
     * Used to deposit a users tokens in a pool for a specific time. Opens up a position in the pool for the amounts given for the time staked.  Users with NFT rewards attach here.
@@ -73,6 +91,7 @@ contract TokenFarmFacet is Modifiers {
     });
     if (nftReward != address(0)) {
       // FLAG might now work in diamond //
+      require(s.validNFTsForPool[pid][nftReward], 'chosen NFT is not part of the list of valid ones for this pool');
       require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
       newPosition.nftReward = nftReward;
       newPosition.nftid = nftid;
