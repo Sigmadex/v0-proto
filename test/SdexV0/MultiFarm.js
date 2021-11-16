@@ -74,6 +74,8 @@ contract("MultiFarm", (accounts) => {
     await tokenA.methods.transfer(carol, amount).send({ from: owner });
     await tokenB.methods.transfer(carol, amount).send({ from: owner });
     await tokenC.methods.transfer(carol, amount).send({ from: owner });
+
+    const mint = await sdexFacet.methods.executiveMint(alice, amount).send({ from: owner })
   })
 
   it("adds reduced penalty reward to tokensA, B, and sdex", async () => {
@@ -150,10 +152,10 @@ contract("MultiFarm", (accounts) => {
     assert.equal(totalAllocPoints4, BN(totalAllocPoints3).add(BN(ASAllocPoints)).toString())
   })
 
-  it("Alice deposits into pools with A", async () => {
+  it("Alice deposits into AB repeatedly, no penalties", async () => {
 
     let stateI_AB = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i <= 9; i++) {
       await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
       await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
@@ -164,7 +166,7 @@ contract("MultiFarm", (accounts) => {
 
     }
       await advanceBlocks(1)
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i <= 9; i++) {
       await tokenFarmFacet.methods.withdraw(poolAB, i).send({from: alice})
     }
 
@@ -175,8 +177,136 @@ contract("MultiFarm", (accounts) => {
     const totalAlloc = await toolShedFacet.methods.totalAllocPoint().call()
     const poolProportion = BN(stateI_AB.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const rewardsForPool = BN(sdexPerBlock).mul(BN(firstDep)).mul(poolProportion).div(unity)
-    assert.equal(stateF_AB[diamondAddress].sdex, 5) // rounding err
-    assert.equal(stateF_AB[alice].sdex, BN(rewardsForPool).sub(BN(stateF_AB[diamondAddress].sdex)).toString())
-
+    assert.equal(stateF_AB[diamondAddress].sdex, 6) // rounding err
+    assert.equal(stateF_AB[alice].sdex, BN(stateI_AB[alice].sdex).add(BN(rewardsForPool)).sub(BN(stateF_AB[diamondAddress].sdex)).toString())
   })
+
+
+  it("Alice deposits into pools with AB & AC", async () => {
+    const positionidAB = [10,11,12,13,14]
+    const positionidAC = [0,1,2,3,4]
+
+    let stateI_AB = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
+    let stateI_AC = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
+    for (let i = 0; i <= 9; i++) {
+      if (i % 2) {
+        await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+        await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+        //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
+
+        await tokenFarmFacet.methods.deposit(
+          poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      } else {
+
+        await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+        await tokenC.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+        //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
+
+        await tokenFarmFacet.methods.deposit(
+          poolAC, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      }
+    }
+    await advanceBlocks(1)
+    for (let i = 0; i <= 9; i++) {
+      if (i % 2) {
+        await tokenFarmFacet.methods.withdraw(poolAB, positionidAB[Math.floor(i/2)]).send({from: alice})
+      } else {
+        await tokenFarmFacet.methods.withdraw(poolAC, positionidAC[Math.floor(i/2)]).send({from: alice})
+      }
+    }
+
+    let stateF_AB = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
+    let stateF_AC = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAC, tokens)
+    console.log(stateF_AB.rewardGlobals)
+    console.log('=======================================================')
+    console.log(stateF_AC.rewardGlobals)
+    const blocks = stateF_AB.blockNumber - stateI_AB.blockNumber
+    const firstDepAB = blocks - 6 
+    const firstDepAC = blocks - 3 - 1
+    const totalAlloc = await toolShedFacet.methods.totalAllocPoint().call()
+    const poolProportionAB = BN(stateI_AB.pool.allocPoint).mul(unity).div(BN(totalAlloc))
+    const poolProportionAC = BN(stateI_AC.pool.allocPoint).mul(unity).div(BN(totalAlloc))
+    const rewardsForAB = BN(sdexPerBlock).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
+    const rewardsForAC = BN(sdexPerBlock).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
+    console.log(stateF_AB[diamondAddress].sdex, 10)
+    assert.equal(stateF_AB[alice].sdex, BN(stateI_AB[alice].sdex).add(BN(rewardsForAB)).add(BN(rewardsForAC)).sub(BN(4)).toString())
+  })
+
+  it("Alice deposits into pools with AB, AC & AS", async () => {
+    const positionidAB = [15,16,17,18,19]
+    const positionidAC = [5,6,7,8,9]
+    const positionidAS = [0,1,2,3,4]
+
+    let stateI_AB = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
+    let stateI_AC = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
+    let stateI_AS = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAS, tokens)
+    for (let i = 0; i <= 14; i++) {
+      if (i % 3 == 0) {
+        console.log('i mod 3 = 0')
+        await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+        await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+        //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
+
+        await tokenFarmFacet.methods.deposit(
+          poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      } else if (i % 3 == 1) {
+        console.log('i mod 3 = 1')
+
+        await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+        await tokenC.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+        //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
+
+        await tokenFarmFacet.methods.deposit(
+          poolAC, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      } else {
+        console.log('i mod 3 == 2')
+        await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+        await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
+
+        //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
+
+        await tokenFarmFacet.methods.deposit(
+          poolAS, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      }
+    }
+    await advanceBlocks(1)
+    for (let i = 0; i <= 14; i++) {
+      if (i % 3 == 0) {
+        console.log('AB', positionidAB[Math.floor(i/3)])
+        await tokenFarmFacet.methods.withdraw(poolAB, positionidAB[Math.floor(i/3)]).send({from: alice})
+      } else if (i % 3 == 1) {
+        console.log('AC', positionidAC[Math.floor(i/3)])
+        await tokenFarmFacet.methods.withdraw(poolAC, positionidAC[Math.floor(i/3)]).send({from: alice})
+      } else {
+        console.log('AS', positionidAS[Math.floor(i/3)])
+        await tokenFarmFacet.methods.withdraw(poolAS, positionidAS[Math.floor(i/3)]).send({from: alice})
+      }
+    }
+
+    let stateF_AB = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAB, tokens)
+    let stateF_AC = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolAC, tokens)
+    console.log(stateF_AB.rewardGlobals)
+    console.log('=======================================================')
+    console.log(stateF_AC.rewardGlobals)
+    const blocks = stateF_AB.blockNumber - stateI_AB.blockNumber
+    const firstDepAB = blocks - 3 - 2
+    const firstDepAC = blocks - 6 - 1
+    const firstDepAS = blocks - 9
+    const totalAlloc = await toolShedFacet.methods.totalAllocPoint().call()
+    const poolProportionAB = BN(stateI_AB.pool.allocPoint).mul(unity).div(BN(totalAlloc))
+    const poolProportionAC = BN(stateI_AC.pool.allocPoint).mul(unity).div(BN(totalAlloc))
+    const poolProportionAS = BN(stateI_AS.pool.allocPoint).mul(unity).div(BN(totalAlloc))
+    const rewardsForAB = BN(sdexPerBlock).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
+    const rewardsForAC = BN(sdexPerBlock).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
+    const rewardsForAS = BN(sdexPerBlock).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
+    console.log(stateF_AB[diamondAddress].sdex, 10)
+    assert.equal(stateF_AB[alice].sdex, 
+      BN(stateI_AB[alice].sdex).add(BN(rewardsForAB)).add(BN(rewardsForAC)).add(BN(rewardsForAS)).sub(BN(0)).toString())
+  })
+
+
 })
