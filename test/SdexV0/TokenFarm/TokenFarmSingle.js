@@ -60,6 +60,7 @@ contract("TokenFarmFacet", (accounts) => {
     await tokenA.methods.transfer(bob, amount).send({ from: owner });
     await tokenB.methods.transfer(bob, amount).send({ from: owner });
   })
+
   it("adds reduced penalty reward to tokensA, B, and sdex", async () => {
     await rewardFacet.methods.addReward(tokenA._address, rPRAddress).send({from:owner})
     await rewardFacet.methods.addReward(tokenB._address, rPRAddress).send({from:owner})
@@ -256,6 +257,15 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2.accSdexPenaltyPool, sdexReward.toString())
     assert.equal(state2.accSdexRewardPool, 0)
   })
+  it("trying to withdraw a position already withdrawn fails", async () => {
+    const positionid = 0 
+    try {
+      await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
+      assert.fail("withdraws should fail if they are withdrawn again");
+    } catch (e) {
+      assert.include(e.message, 'nothing in this position to withdraw');
+    }
+  })
 
   it("allows a user to Stake, and is Rewarded", async () => {
     await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -368,6 +378,7 @@ contract("TokenFarmFacet", (accounts) => {
     //
   })
 
+
   it("can deposit using reduced penalty reward", async () => {
     let aliceRPid = 1
     let aliceRPAmount = await reducedPenaltyReward.methods.balanceOf(alice, aliceRPid).call()
@@ -479,8 +490,5 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(aliceRPRA, 1)
     const reductionAmountA = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
     assert.equal(reductionAmountA.amount, 0)
-
-
-
   })
 })

@@ -76,8 +76,7 @@ contract TokenFarmFacet is Modifiers {
     uint256 blocksAhead,
     address nftReward,
     uint256 nftid
-  ) public {
-    //require(pid != 0, "Please use the SdexVault or ManualSdexFarm Facets for this token please");
+  ) public { 
     AppStorage storage s = LibAppStorage.diamondStorage();
     ToolShedFacet(address(this)).updatePool(pid);
 
@@ -90,7 +89,6 @@ contract TokenFarmFacet is Modifiers {
       nftid: 0
     });
     if (nftReward != address(0)) {
-      // FLAG might now work in diamond //
       require(s.validNFTsForPool[pid][nftReward], 'chosen NFT is not part of the list of valid ones for this pool');
       require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
       newPosition.nftReward = nftReward;
@@ -140,9 +138,15 @@ contract TokenFarmFacet is Modifiers {
 
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
+    
+    // anything inside
+    uint256 amountTest = 0;
+    for (uint j=0; j < position.amounts.length; j++) {
+     amountTest += position.amounts[j]; 
+    }
+    require(amountTest > 0, 'nothing in this position to withdraw');
 
     if (position.nftReward != address(0)) {
-      console.log('TokenFarmFacet::inside');
       Reward memory reward = s.rewards[position.nftReward];
       bytes memory fnCall = abi.encodeWithSelector(
         reward.withdrawSelector,

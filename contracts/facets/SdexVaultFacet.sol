@@ -121,12 +121,8 @@ contract SdexVaultFacet {
 
     } else {
       uint256 shares = position.shares;
-      console.log('SdexVaultFacet::withdrawVault::shares', shares);
-      console.log('SdexVaultFacet::withdrawVault::totalShares', s.vTotalShares);
-
       require(shares > 0, "Nothing to withdraw");
       uint256 currentAmount = shares * vaultBalance() / s.vTotalShares;
-      console.log('SdexVaultFacet::withdrawVault::currentAmount', currentAmount);
       vUser.shares -= shares;
       // what if currentAmount?
       s.vTotalShares -= shares;
