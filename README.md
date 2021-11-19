@@ -37,6 +37,10 @@ V0 Uses a React Frontend
 ``npm install``
 ``npm run start``
 
+#### Frontend-Metamask Integration
+Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
+The metamask prompt to add network only allows https, so this one must be done manually
+
 #### Docusaur
 V0 uses Docusaurus To present Documentation
 
