@@ -22,6 +22,7 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
+      chainId: 1337,
       accounts: {
         mnemonic: process.env.MNEMONIC
       },
