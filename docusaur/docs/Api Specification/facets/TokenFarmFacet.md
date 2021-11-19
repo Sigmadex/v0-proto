@@ -20,7 +20,8 @@ Adds a new liquidity pool to the protocol
   function add(
     contract IERC20[] tokens,
     uint256 allocPoint,
-    bool withUpdate
+    address[] withUpdate,
+    bool validNFTs
   ) public onlyOwner
 ```
 
@@ -34,7 +35,40 @@ Adds a new liquidity pool to the protocol
 | --- | --- | --- |
 |`tokens` | contract IERC20[] | tokens to be added to the pool, can be one or many (only currently tested for max 2)
 |`allocPoint` | uint256 | allocation points for pool.  This determines what proportion of SDEX is given to this pool every block. allocPoint / TotalAllocPoint = proportion of sdexPerBlock
-|`withUpdate` | bool | runs the massUpdatePool option on execution to update all pool states
+|`withUpdate` | address[] | runs the massUpdatePool option on execution to update all pool states
+|`validNFTs` | bool | list of addresses of nft rewards that are valid for this pool
+
+### changeValidNFTsForPool
+No description
+
+
+#### Declaration
+```solidity
+  function changeValidNFTsForPool(
+  ) public onlyOwner
+```
+
+#### Modifiers:
+| Modifier |
+| --- |
+| onlyOwner |
+
+
+
+### isValidNFTForPool
+No description
+
+
+#### Declaration
+```solidity
+  function isValidNFTForPool(
+  ) public returns (bool)
+```
+
+#### Modifiers:
+No modifiers
+
+
 
 ### deposit
 Used to deposit a users tokens in a pool for a specific time. Opens up a position in the pool for the amounts given for the time staked.  Users with NFT rewards attach here.
