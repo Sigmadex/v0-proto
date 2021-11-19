@@ -1,0 +1,35 @@
+require('dotenv').config()
+/**
+ * @type import('hardhat/config').HardhatUserConfig
+ */
+require('@nomiclabs/hardhat-truffle5')
+require('hardhat-contract-sizer');
+
+module.exports = {
+  contractSizer: {
+      alphaSort: true,
+      disambiguatePaths: false,
+      runOnCompile: true,
+      strict: true,
+  },
+  solidity: {
+    version: "0.8.10",
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
+  },
+  paths: {
+    artifacts: "../web/src/config/artifacts"
+  },
+  defaultNetwork: "hardhat",
+  networks: {
+    hardhat: {
+      chainId: 1337,
+      accounts: {
+        mnemonic: process.env.MNEMONIC
+      },
+      allowUnlimitedContractSize: false,
+    }
+  },
+};

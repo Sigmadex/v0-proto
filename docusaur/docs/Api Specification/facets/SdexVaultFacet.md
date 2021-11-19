@@ -186,30 +186,6 @@ No modifiers
 | Type | Description |
 | --- | --- |
 |`uint256` | total amount of vault shares
-### vShares
-Returns an individuals amount of shares they have on the assets on the vault
-
-
-
-#### Declaration
-```solidity
-  function vShares(
-    address user
-  ) public returns (uint256)
-```
-
-#### Modifiers:
-No modifiers
-
-#### Args:
-| Arg | Type | Description |
-| --- | --- | --- |
-|`user` | address | address of the user in question
-
-#### Returns:
-| Type | Description |
-| --- | --- |
-|`uint256` | amount of shares they have on the vault assets
 ### vCallFee
 the vault Call Fee determines the proportion (divided by 10000) is multiplied by the total vault assets on harvest to give to the user harvesting.
 
