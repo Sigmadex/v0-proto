@@ -18,6 +18,13 @@ V0 uses the Hardhat Development environment
 #### Node For Frontend-Metamask Integration
 Input a mnemonic in the .env file (do not commit)
 ``cp .env.example .env``
+Metmask prefers auto mine set to false, a block interval (in ms) is helpful for testing control flow, in `hardhat/hardhat.config.js`
+```
+mining: {
+  auto: false,
+  interval: 1618
+}
+  ```
 Start Node (one should see their public keys attached to their mnemonic)
 ``npx hardhat node``
 Deploy contracts to localhost

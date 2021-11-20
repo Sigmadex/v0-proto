@@ -26,10 +26,15 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 1337,
+      mining: {
+        auto: true,
+        //auto: false,
+        //interval: 1618
+      },
       accounts: {
         mnemonic: process.env.MNEMONIC
       },
       allowUnlimitedContractSize: false,
-    }
+    },
   },
 };

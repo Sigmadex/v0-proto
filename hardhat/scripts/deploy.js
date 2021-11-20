@@ -1,6 +1,6 @@
 const fs = require('fs')
 
-const { deploy, getSelectors, initArgs } = require('./libraries/diamond.js')
+const { deploy, getSelectors, initArgs, ADDRESSZERO } = require('./libraries/diamond.js')
 
 const DiamondCutFacet = artifacts.require('DiamondCutFacet')
 const Diamond = artifacts.require('Diamond')
@@ -36,8 +36,11 @@ async function deployDiamond () {
   console.log('DiamondCutFacet deployed:', diamondCutFacet._address)
   // deploy Diamond
   const diamond = await deploy(owner, Diamond, [owner, diamondCutFacet._address])
-
-  fs.writeFileSync('../web/src/config/Addresses.json', JSON.stringify({'diamond': diamond._address}), (err) => {
+  const data = {
+    'diamond': diamond._address,
+    'ZERO': ADDRESSZERO
+  }
+  fs.writeFileSync('../web/src/config/Addresses.json', JSON.stringify(data), (err) => {
     if (err) {
       throw err
     } else {

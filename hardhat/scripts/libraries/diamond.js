@@ -54,3 +54,5 @@ function initArgs(nftAddresses, nftArtifacts, prefixes) {
 exports.getSelectors = getSelectors
 exports.deploy = deploy
 exports.initArgs = initArgs
+
+exports.ADDRESSZERO = '0x0000000000000000000000000000000000000000'

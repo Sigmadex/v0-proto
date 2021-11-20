@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { deploy, getSelectors, initArgs } = require('./libraries/diamond.js')
+const { deploy, getSelectors, initArgs, ADDRESSZERO } = require('./libraries/diamond.js')
 
 const SdexFacet = artifacts.require('SdexFacet')
 const TokenFarmFacet = artifacts.require('TokenFarmFacet')
@@ -14,6 +14,7 @@ const MockERC20 = artifacts.require('MockERC20')
 
 const Addresses = require('../../web/src/config/Addresses.json')
 async function deployTestnetScaffold() {
+
   const diamondAddress = Addresses.diamond
   console.log(diamondAddress)
   const accounts = await web3.eth.getAccounts()
@@ -114,6 +115,7 @@ async function deployTestnetScaffold() {
     {from:owner}
   )
   
+  Addresses['ADDRESSZERO'] = ADDRESSZERO
 }
 
 if (require.main === module) {

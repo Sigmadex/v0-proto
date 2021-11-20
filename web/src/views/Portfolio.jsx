@@ -2,7 +2,7 @@ import React from "react"
 import Addresses from 'config/Addresses'
 
 import { useWeb3React } from '@web3-react/core'
-import  { useGetSdexBalance, useGetTokenBalance } from 'hooks/useTokenBalance'
+import  { useGetTokenBalance } from 'hooks/useERC20'
 
 import WalletModal from 'components/WalletModal'
 
@@ -12,10 +12,10 @@ const Web3 = require('web3')
 const Portfolio: React.FC = () => {
   const { account } = useWeb3React()
 
-  const { balance: sdexBalance } = useGetTokenBalance(Addresses.diamond)
-  const { balance: tokenABalance } = useGetTokenBalance(Addresses.tokenA)
-  const { balance: tokenBBalance } = useGetTokenBalance(Addresses.tokenB)
-  const { balance: tokenCBalance } = useGetTokenBalance(Addresses.tokenC)
+  const sdexBalance  = useGetTokenBalance(Addresses.diamond)
+  const tokenABalance  = useGetTokenBalance(Addresses.tokenA)
+  const tokenBBalance  = useGetTokenBalance(Addresses.tokenB)
+  const tokenCBalance  = useGetTokenBalance(Addresses.tokenC)
   console.log(sdexBalance)
   
   return (
