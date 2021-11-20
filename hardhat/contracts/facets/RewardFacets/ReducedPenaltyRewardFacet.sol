@@ -14,8 +14,10 @@ import '../SdexFacet.sol';
   * @dev The {ReducedPenaltyRewardFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {ReducedPenaltyReward} NFT.    
 */
 contract ReducedPenaltyRewardFacet is  Modifiers {
-
+  event RewardNFT(address to, address token, uint256 amount);
+  event WithdrawVault(address indexed sender, uint256 amount, uint256 shares);
   constructor() {
+
   }
   /**
     * the reduced Penalty Address is the address of the NFT
@@ -49,6 +51,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     bytes memory data = 'data';
     IERC1155(s.reducedPenaltyReward).mint(to, s.rPRNextId, 1, data);
     s.rPRNextId++;
+    emit RewardNFT(to, token, amount);
   }
 
   /**
@@ -156,6 +159,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
         s.accSdexPenaltyPool += pending;
       }
     }
+
   }
 
 
@@ -168,6 +172,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
     require(position.shares > 0, "Nothing to withdraw");
+    uint256 shares = position.shares;
     uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
     uint256 currentAmount = position.shares * vaultBalance / s.vTotalShares;
     vUser.shares -= position.shares;
@@ -269,6 +274,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     }
     position.amount = 0;
     position.shares = 0;
+    emit WithdrawVault(msg.sender, currentAmount, shares);
   }
 }
 

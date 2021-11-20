@@ -15,6 +15,8 @@ import '../SdexFacet.sol';
   * @dev The {IncreasedBlockRewardFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {MultiplierReward} NFT.    
 */
 contract IncreasedBlockRewardFacet is  Modifiers {
+  event RewardNFT(address to, address token, uint256 amount);
+  event WithdrawVault(address indexed sender, uint256 amount, uint256 shares);
   constructor() {
   }
   /**
@@ -49,6 +51,8 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     bytes memory data = 'data';
     IERC1155(s.increasedBlockReward).mint(to, s.iBRNextId, 1, data);
     s.iBRNextId++;
+
+    emit RewardNFT(to, token, amount);
   }
 
   /**
@@ -209,6 +213,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     }
     position.amount = 0;
     position.shares = 0;
+    emit WithdrawVault(msg.sender, currentAmount, shares);
   }
 
 

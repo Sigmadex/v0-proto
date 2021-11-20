@@ -12,8 +12,10 @@ import './RewardFacet.sol';
   * @dev Token Farm concerns creating and removing of positions from various created pools, as well as the associated getters for {UserInfo} and {PoolInfo}
 */
 contract TokenFarmFacet is Modifiers {
+  event Add(uint256 indexed pid, address[] tokens, address[] validNFTs, uint256 allocPoint);
   event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
-  event Withdraw(address indexed user, uint256 indexed pid);
+  event Withdraw(address indexed user, uint256 indexed pid, uint256 indexed positionid);
+  event PoolUpdateNFT(uint256 indexed pid, address[] nfts, bool[] newStates);
 
   /**
     *Adds a new liquidity pool to the protocol
@@ -34,20 +36,24 @@ contract TokenFarmFacet is Modifiers {
     }
     uint256 lastRewardBlock = block.number > s.startBlock ? block.number : s.startBlock;
     s.totalAllocPoint += allocPoint;
-    s.poolInfo[s.poolLength].allocPoint = allocPoint;
-    s.poolInfo[s.poolLength].lastRewardBlock = lastRewardBlock;
+    uint256 pid = s.poolLength;
+    s.poolInfo[pid].allocPoint = allocPoint;
+    s.poolInfo[pid].lastRewardBlock = lastRewardBlock;
+    address[] memory tokenAddrs = new address[](tokens.length);
     for (uint j=0; j < tokens.length; j++) {
-      s.poolInfo[s.poolLength].tokenData.push(PoolTokenData({
+      tokenAddrs[j] = address(tokens[j]);
+      s.poolInfo[pid].tokenData.push(PoolTokenData({
         token: tokens[j],
         supply: 0,
         accSdexPerShare: 0
       }));
     }
     for (uint j=0; j <validNFTs.length; j++) {
-      s.validNFTsForPool[s.poolLength][validNFTs[j]] = true;
+      s.validNFTsForPool[pid][validNFTs[j]] = true;
     }
     s.poolLength++;
     ToolShedFacet(address(this)).updateStakingPool();
+    emit Add(pid, tokenAddrs, validNFTs, allocPoint);
   }
 
   function changeValidNFTsForPool(uint256 poolid, address[] memory nfts, bool[] memory newStates) public onlyOwner {
@@ -56,6 +62,7 @@ contract TokenFarmFacet is Modifiers {
     for (uint j=0; j < nfts.length; j++) {
       s.validNFTsForPool[poolid][nfts[j]] = newStates[j];
     }
+    emit PoolUpdateNFT(poolid, nfts, newStates);
   }
 
   function isValidNFTForPool(uint256 poolid, address nft) public returns (bool) {
@@ -211,6 +218,7 @@ contract TokenFarmFacet is Modifiers {
         }
       }
     }
+   emit Withdraw(msg.sender, pid, positionid);
   }
   /**
     * Getter function for the amount of pools in the protocol

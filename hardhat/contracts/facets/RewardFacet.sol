@@ -9,7 +9,8 @@ import 'hardhat/console.sol';
   * @dev The {RewardFacet} is tasked with minting Reward NFT's upon the withdrawal of a successfully completed stake by a user.
 */
 contract RewardFacet is Modifiers {
-  
+  event AddRewardForToken(address token, address nftReward);
+
   /**
     * addReward is called by Sigmadex to add an NFT reward to a token that is found in one or more pools.  Many NFT rewards are token specific, A USDT pool will mint a USDT specific reward.  The valid rewards are found in this array
     * @param tokenAddr The address of the token this nft (such as USDT)
@@ -24,6 +25,7 @@ contract RewardFacet is Modifiers {
       }
     }
     s.validRewards[tokenAddr].push(nftRewardAddr);
+    emit AddRewardForToken(tokenAddr, nftRewardAddr);
   }
 
   /**

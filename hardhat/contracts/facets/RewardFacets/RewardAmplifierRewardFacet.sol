@@ -14,6 +14,8 @@ import '../SdexFacet.sol';
   * @dev The {RewardAmplifierFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {RewardAmplifier} NFT.    
 */
 contract RewardAmplifierRewardFacet is  Modifiers {
+  event RewardNFT(address to, address token, uint256 amount);
+  event WithdrawVault(address indexed sender, uint256 amount, uint256 shares);
   constructor() {
   }
 
@@ -48,6 +50,8 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     bytes memory data = 'data';
     IERC1155(s.rewardAmplifierReward).mint(to, s.rARNextId, 1, data);
     s.rARNextId++;
+
+    emit RewardNFT(to, token, amount);
   }
 
   function reqReward(address to, address token, uint256 blockAmount, uint256 bonus) private {
@@ -177,7 +181,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
-    //uint256 shares = position.shares;
+    uint256 shares = position.shares;
     require(position.shares > 0, "Nothing to withdraw");
     //uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
     uint256 currentAmount = position.shares * SdexVaultFacet(address(this)).vaultBalance() / s.vTotalShares;
@@ -252,6 +256,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     }
     position.amount = 0;
     position.shares = 0;
+    emit WithdrawVault(msg.sender, currentAmount, shares);
   }
 
 }

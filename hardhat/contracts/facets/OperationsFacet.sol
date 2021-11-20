@@ -3,15 +3,21 @@ pragma solidity 0.8.10;
 import { AppStorage, LibAppStorage, Modifiers } from '../libraries/LibAppStorage.sol';
 
 contract OperationsFacet is Modifiers {
+  event UpdateBonusMultiplier(uint256 multiplier);
+  event UpdateSdexPerBlock(uint256 sdexPerBlock);
+  event UpdateVaultPerformanceFee(uint256 performanceFee);
+  event UpdateVaultCallFee(uint256 callFee);
   // Farm
   function setBonusMultiplier(uint256 multiplier) public onlyOwner {
     AppStorage storage s = LibAppStorage.diamondStorage();
     s.BONUS_MULTIPLIER = multiplier;
+    emit UpdateBonusMultiplier(multiplier);
   }
 
   function setSdexPerBlock(uint256 newBlockRate) public onlyOwner {
     AppStorage storage s = LibAppStorage.diamondStorage();
     s.sdexPerBlock = newBlockRate;
+    emit UpdateSdexPerBlock(newBlockRate);
   }
 
   //Vault
@@ -19,11 +25,13 @@ contract OperationsFacet is Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     require(newPerformanceFee <= s.vMAX_PERFORMANCE_FEE, "must be lower than max");
     s.vPerformanceFee = newPerformanceFee;
+    emit UpdateVaultPerformanceFee(newPerformanceFee);
   }
   function setVaultCallFee(uint256 newCallFee) public onlyOwner {
     AppStorage storage s = LibAppStorage.diamondStorage();
     require(newCallFee <= s.vMAX_CALL_FEE, "must be lower than max");
     s.vCallFee = newCallFee;
+    emit UpdateVaultCallFee(newCallFee);
   }
 
 
