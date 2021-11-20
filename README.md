@@ -26,10 +26,13 @@ mining: {
 }
   ```
 Start Node (one should see their public keys attached to their mnemonic)
+
 ``npx hardhat node``
 Deploy contracts to localhost
+
 ``npx hardhat run ./scripts/deploy.js --network localhost``
-Seed With Test Data
+Seed With Test Data (take 278 blocks- a long time if your mining interval is big)
+
 ``npx hardhat run ./scripts/scaffold-testnet.js --network localhost``
 
 

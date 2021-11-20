@@ -132,11 +132,13 @@ contract TokenFarmFacet is Modifiers {
     uint256 pid,
     uint256 positionid
   ) public {
+    console.log('TokenFarmFacet::withdraw::test');
     AppStorage storage s = LibAppStorage.diamondStorage();
 
     ToolShedFacet(address(this)).updatePool(pid);
 
     UserInfo storage user = s.userInfo[pid][msg.sender];
+    require(user.positions.length > positionid, "position with that id does not exist");
     UserPosition storage position = user.positions[positionid];
     
     // anything inside
