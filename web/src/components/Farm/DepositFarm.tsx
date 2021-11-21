@@ -1,7 +1,7 @@
 import React, {FC, useState, useEffect, useCallback} from 'react' 
 import {useGetAllowance, useSetAllowance, ApprovalStatus} from 'hooks/useERC20'
 import { useDepositFarm } from 'hooks/useTokenFarmFacet'
-import Addresses from 'config/Addresses.json'
+import Static from 'config/Static.json'
 import { CheckLg } from 'react-bootstrap-icons';
 
 
@@ -10,15 +10,15 @@ const Web3 = require('web3')
 
 const DepositFarm: FC = () => {
   
-  const addressA = Addresses.tokenA
-  const addressB = Addresses.tokenB
+  const addressA = Static.addresses.tokenA
+  const addressB = Static.addresses.tokenB
 
   // Form 
   const [amountA, setAmountA] = useState(0)
   const [amountB, setAmountB] = useState(0)
   const [blocksStake, setBlocksStake] = useState(0)
   
-  // Will need a getTokenAddressesByFarmid
+  // Will need a getTokenStatic.addressesByFarmid
 
   const allowanceA = useGetAllowance(addressA)
   const allowanceB = useGetAllowance(addressB)
@@ -117,7 +117,7 @@ const DepositFarm: FC = () => {
     1, // pull this later from url params
     [amountA, amountB],
     blocksStake,
-    Addresses.ZERO, // no nft for now
+    Static.addresses.ZERO, // no nft for now
     0
   )
   const [depositPending, setDepositPending] = useState(false)

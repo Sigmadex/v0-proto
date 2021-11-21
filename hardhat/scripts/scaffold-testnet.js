@@ -13,10 +13,10 @@ const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 
 const MockERC20 = artifacts.require('MockERC20')
 
-const Addresses = require('../../web/src/config/Addresses.json')
+const Static = require('../../web/src/config/Static.json')
 async function deployTestnetScaffold() {
 
-  const diamondAddress = Addresses.diamond
+  const diamondAddress = Static.addresses.diamond
   const accounts = await web3.eth.getAccounts()
   const owner = accounts[0]
   const alice = accounts[1]
@@ -30,17 +30,9 @@ async function deployTestnetScaffold() {
   const tokenB = await deploy(owner, MockERC20, ['Wrapped BTC', 'WBTC', erc20TotalSupply ])
   const tokenC = await deploy(owner, MockERC20, ['USD Tether', 'USDT', erc20TotalSupply ])
 
-  Addresses['tokenA'] = tokenA._address
-  Addresses['tokenB'] = tokenB._address
-  Addresses['tokenC'] = tokenC._address
-  const data = JSON.stringify(Addresses)
-  fs.writeFileSync('../web/src/config/Addresses.json', data, (err) => {
-    if (err) {
-      throw err
-    } else {
-      console.log('Diamond Address Written to the web/public directory')
-    }
-  })
+  Static.addresses['tokenA'] = tokenA._address
+  Static.addresses['tokenB'] = tokenB._address
+  Static.addresses['tokenC'] = tokenC._address
 
   const amount = web3.utils.toWei('2000', 'ether')
   await tokenA.methods.transfer(alice, amount).send({ from: owner });
@@ -66,35 +58,45 @@ async function deployTestnetScaffold() {
   await sdexFacet.methods.executiveMint(carol, sdexAmount).send({ from: owner })
   await sdexFacet.methods.executiveMint(dan, sdexAmount).send({ from: owner })
 
-    const rewardAmplifierRewardFacet = new web3.eth.Contract(RewardAmplifierRewardFacet.abi, diamondAddress)
-    const increasedBlockRewardFacet = new web3.eth.Contract(IncreasedBlockRewardFacet.abi, diamondAddress)
-    const reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
+  const rewardAmplifierRewardFacet = new web3.eth.Contract(RewardAmplifierRewardFacet.abi, diamondAddress)
+  const increasedBlockRewardFacet = new web3.eth.Contract(IncreasedBlockRewardFacet.abi, diamondAddress)
+  const reducedPenaltyRewardFacet = new web3.eth.Contract(ReducedPenaltyRewardFacet.abi, diamondAddress)
 
-    const rARAddress = await rewardAmplifierRewardFacet.methods.rARAddress().call()
-    const iBRAddress = await increasedBlockRewardFacet.methods.iBRAddress().call()
-    const rPRAddress =  await reducedPenaltyRewardFacet.methods.rPRAddress().call()
+  const rARAddress = await rewardAmplifierRewardFacet.methods.rARAddress().call()
+  const iBRAddress = await increasedBlockRewardFacet.methods.iBRAddress().call()
+  const rPRAddress =  await reducedPenaltyRewardFacet.methods.rPRAddress().call()
 
-    const rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)  
+  const rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)  
 
-    await rewardFacet.methods.addReward(tokenA._address, rARAddress).send({from:owner})
-    await rewardFacet.methods.addReward(tokenB._address, rARAddress).send({from:owner})
-    await rewardFacet.methods.addReward(diamondAddress, rARAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenA._address, rARAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenB._address, rARAddress).send({from:owner})
+  await rewardFacet.methods.addReward(diamondAddress, rARAddress).send({from:owner})
 
-    await rewardFacet.methods.addReward(tokenA._address, iBRAddress).send({from:owner})
-    await rewardFacet.methods.addReward(tokenB._address, iBRAddress).send({from:owner})
-    await rewardFacet.methods.addReward(diamondAddress, iBRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenA._address, iBRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenB._address, iBRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(diamondAddress, iBRAddress).send({from:owner})
 
 
-    await rewardFacet.methods.addReward(tokenA._address, rPRAddress).send({from:owner})
-    await rewardFacet.methods.addReward(tokenB._address, rPRAddress).send({from:owner})
-    await rewardFacet.methods.addReward(tokenC._address, rPRAddress).send({from:owner})
-    await rewardFacet.methods.addReward(diamondAddress, rPRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenA._address, rPRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenB._address, rPRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(tokenC._address, rPRAddress).send({from:owner})
+  await rewardFacet.methods.addReward(diamondAddress, rPRAddress).send({from:owner})
 
 
 
   const tokenFarmFacet = new web3.eth.Contract(TokenFarmFacet.abi, diamondAddress)
   const sdexVaultFacet = new web3.eth.Contract(SdexVaultFacet.abi, diamondAddress)
 
+  const symbolA = await tokenA.methods.symbol().call()
+  const symbolB = await tokenB.methods.symbol().call()
+  const symbolC = await tokenC.methods.symbol().call()
+  const symbolS = await sdexFacet.methods.symbol().call()
+  const assetA = {[symbolA]: tokenA._address}
+  const assetB = {[symbolB]: tokenB._address}
+  const assetC = {[symbolC]: tokenC._address}
+  const assetS = {[symbolS]: diamondAddress }
+  Static['farms'] = {}
+  Static.farms[0] = [assetS]
   await tokenFarmFacet.methods.add(
     [tokenA._address, tokenB._address],
     '1000', //pool Alloc Points
@@ -103,7 +105,7 @@ async function deployTestnetScaffold() {
   ).send(
     {from:owner}
   )
-    
+  Static.farms[1]  = [assetA, assetB]
   await tokenFarmFacet.methods.add(
     [tokenA._address, tokenC._address],
     '1000', //pool Alloc Points
@@ -112,6 +114,7 @@ async function deployTestnetScaffold() {
   ).send(
     {from:owner}
   )
+  Static.farms[2]  = [assetA, assetC]
 
   await tokenFarmFacet.methods.add(
     [tokenC._address, diamondAddress],
@@ -121,6 +124,7 @@ async function deployTestnetScaffold() {
   ).send(
     {from:owner}
   )
+  Static.farms[3]  = [assetC, assetS]
   const poolS = 0
   const poolAB = 1
   const poolAC = 2
@@ -284,35 +288,44 @@ async function deployTestnetScaffold() {
     }
   }
     
-    for (let i = 0; i <= 5; i++) {
-      switch (i % 4) {
-        case (0):
-        await tokenFarmFacet.methods.withdraw(
-          poolS,
-          Math.floor(i/4)
-        ).send({from:alice})
-        break
-        case (1):
-        await tokenFarmFacet.methods.withdraw(
-          poolAB,
-          Math.floor(i/4)
-        ).send({from:alice})
-        break
-        case (2):
-        await tokenFarmFacet.methods.withdraw(
-          poolAC,
-          Math.floor(i/4)
-        ).send({from:alice})
-        break
-        case (3):
-        await tokenFarmFacet.methods.withdraw(
-          poolCS,
-          Math.floor(i/4)
-        ).send({from:alice})
-        break
-      }
+  for (let i = 0; i <= 5; i++) {
+    switch (i % 4) {
+      case (0):
+      await tokenFarmFacet.methods.withdraw(
+        poolS,
+        Math.floor(i/4)
+      ).send({from:alice})
+      break
+      case (1):
+      await tokenFarmFacet.methods.withdraw(
+        poolAB,
+        Math.floor(i/4)
+      ).send({from:alice})
+      break
+      case (2):
+      await tokenFarmFacet.methods.withdraw(
+        poolAC,
+        Math.floor(i/4)
+      ).send({from:alice})
+      break
+      case (3):
+      await tokenFarmFacet.methods.withdraw(
+        poolCS,
+        Math.floor(i/4)
+      ).send({from:alice})
+      break
     }
   }
+  const data = JSON.stringify(Static)
+  fs.writeFileSync('../web/src/config/Static.json', data, (err) => {
+    if (err) {
+      throw err
+    } else {
+      console.log('Diamond Address Written to the web/public directory')
+    }
+  })
+
+}
     
 
 

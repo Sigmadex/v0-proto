@@ -36,17 +36,6 @@ async function deployDiamond () {
   console.log('DiamondCutFacet deployed:', diamondCutFacet._address)
   // deploy Diamond
   const diamond = await deploy(owner, Diamond, [owner, diamondCutFacet._address])
-  const data = {
-    'diamond': diamond._address,
-    'ZERO': ADDRESSZERO
-  }
-  fs.writeFileSync('../web/src/config/Addresses.json', JSON.stringify(data), (err) => {
-    if (err) {
-      throw err
-    } else {
-      console.log('Diamond Address Written to the web/public directory')
-    }
-  })
 
   console.log('Diamond deployed:', diamond._address)
   // deploy DiamondInit
@@ -101,6 +90,23 @@ async function deployDiamond () {
     diamondInit._address,
     fnCall
   ).send({from:owner})
+
+  const data = {
+    addresses:  {
+      'diamond': diamond._address,
+      'ZERO': ADDRESSZERO,
+      'reducedPenaltyReward': reducedPenaltyReward._address,
+      'increasedBlockReward': increasedBlockReward._address,
+      'rewardAmplifierReward': rewardAmplifierReward._address
+    },
+  }
+  fs.writeFileSync('../web/src/config/Static.json', JSON.stringify(data), (err) => {
+    if (err) {
+      throw err
+    } else {
+      console.log('Diamond Address Written to the web/public directory')
+    }
+  })
   return diamond._address
   /*
 

@@ -1,10 +1,11 @@
 import React from "react"
-import Addresses from 'config/Addresses'
+import Static from 'config/Static.json'
 
 import { useWeb3React } from '@web3-react/core'
 import  { useGetTokenBalance } from 'hooks/useERC20'
 
 import WalletModal from 'components/WalletModal'
+import ListPositions from 'components/Portfolio/ListPositions'
 
 
 const Web3 = require('web3')
@@ -12,11 +13,10 @@ const Web3 = require('web3')
 const Portfolio: React.FC = () => {
   const { account } = useWeb3React()
 
-  const sdexBalance  = useGetTokenBalance(Addresses.diamond)
-  const tokenABalance  = useGetTokenBalance(Addresses.tokenA)
-  const tokenBBalance  = useGetTokenBalance(Addresses.tokenB)
-  const tokenCBalance  = useGetTokenBalance(Addresses.tokenC)
-  console.log(sdexBalance)
+  const sdexBalance  = useGetTokenBalance(Static.addresses.diamond)
+  const tokenABalance  = useGetTokenBalance(Static.addresses.tokenA)
+  const tokenBBalance  = useGetTokenBalance(Static.addresses.tokenB)
+  const tokenCBalance  = useGetTokenBalance(Static.addresses.tokenC)
   
   return (
     <>
@@ -109,135 +109,7 @@ const Portfolio: React.FC = () => {
           <span>Unrealized Rewards = <strong>$91,529</strong></span>
         </div>
       </div>{/* /.row */}
-
-      <div className="row">
-        <div className="col-3 mb-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <h5 className="card-title mb-3">SDEX-DOT</h5>
-              <dl className="row mb-0">
-                <dt className="col-6 fw-normal">Total value:</dt>
-                <dd className="col-6 text-end fw-bold">$50,000.00</dd>
-                <dt className="col-6 fw-normal">Interest rate:</dt>
-                <dd className="col-6 text-end fw-bold">30%</dd>
-                <dt className="col-6 fw-normal">Maturity:</dt>
-                <dd className="col-6 text-end fw-bold">55 days</dd>
-              </dl>
-              <hr className="my-1" />
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">Amount (SDEX):</dt>
-                <dd className="col-5 text-end fw-bold">830.24</dd>
-                <dt className="col-7 fw-normal">Amount (DOT):</dt>
-                <dd className="col-5 text-end fw-bold">49.96</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3 mb-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
-                SDEX-DAI
-                <small className="fs-6 text-muted">+ NFT No Tx fees</small>
-              </h5>
-              <dl className="row mb-0">
-                <dt className="col-6 fw-normal">Total value:</dt>
-                <dd className="col-6 text-end fw-bold">$50,000.00</dd>
-                <dt className="col-6 fw-normal">Interest rate:</dt>
-                <dd className="col-6 text-end fw-bold">25%</dd>
-                <dt className="col-6 fw-normal">Maturity:</dt>
-                <dd className="col-6 text-end fw-bold">91 days</dd>
-              </dl>
-              <hr className="my-1" />
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">Amount (SDEX):</dt>
-                <dd className="col-5 text-end fw-bold">830.24</dd>
-                <dt className="col-7 fw-normal">Amount (DOT):</dt>
-                <dd className="col-5 text-end fw-bold">49.96</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3 mb-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
-                SDEX-ETH
-              </h5>
-              <dl className="row mb-0">
-                <dt className="col-6 fw-normal">Total value:</dt>
-                <dd className="col-6 text-end fw-bold">$50,000.00</dd>
-                <dt className="col-6 fw-normal">Interest rate:</dt>
-                <dd className="col-6 text-end fw-bold">25%</dd>
-                <dt className="col-6 fw-normal">Maturity:</dt>
-                <dd className="col-6 text-end fw-bold">172 days</dd>
-              </dl>
-              <hr className="my-1" />
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">Amount (SDEX):</dt>
-                <dd className="col-5 text-end fw-bold">830.24</dd>
-                <dt className="col-7 fw-normal">Amount (DOT):</dt>
-                <dd className="col-5 text-end fw-bold">49.96</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3 mb-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
-                SDEX-BNB
-                <small className="fs-6 text-muted">+ NFT Eearly Harvest</small>
-              </h5>
-              <dl className="row mb-0">
-                <dt className="col-6 fw-normal">Total value:</dt>
-                <dd className="col-6 text-end fw-bold">$50,000.00</dd>
-                <dt className="col-6 fw-normal">Interest rate:</dt>
-                <dd className="col-6 text-end fw-bold">30%</dd>
-                <dt className="col-6 fw-normal">Maturity:</dt>
-                <dd className="col-6 text-end fw-bold">176 days</dd>
-              </dl>
-              <hr className="my-1" />
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">Amount (SDEX):</dt>
-                <dd className="col-5 text-end fw-bold">830.24</dd>
-                <dt className="col-7 fw-normal">Amount (DOT):</dt>
-                <dd className="col-5 text-end fw-bold">49.96</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3 mb-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
-                SDEX-BTC
-                <small className="fs-6 text-muted">+ NFT No Tx Fees</small>
-              </h5>
-              <dl className="row mb-0">
-                <dt className="col-6 fw-normal">Total value:</dt>
-                <dd className="col-6 text-end fw-bold">$50,000.00</dd>
-                <dt className="col-6 fw-normal">Interest rate:</dt>
-                <dd className="col-6 text-end fw-bold">30%</dd>
-                <dt className="col-6 fw-normal">Maturity:</dt>
-                <dd className="col-6 text-end fw-bold">190 days</dd>
-              </dl>
-              <hr className="my-1" />
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">Amount (SDEX):</dt>
-                <dd className="col-5 text-end fw-bold">830.24</dd>
-                <dt className="col-7 fw-normal">Amount (DOT):</dt>
-                <dd className="col-5 text-end fw-bold">49.96</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-      </div>{/* /.row */}
-
+      <ListPositions />
       <div className="row">
         <div className="col-12 mb-2">
           <h3>NFTs</h3>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useWeb3React } from '@web3-react/core'
 import { getERC20 } from 'utils/contractHelpers'
-import Addresses from 'config/Addresses.json'
+import Static from 'config/Static.json'
 //const Web3 = require('web3')
 
 
@@ -14,18 +14,19 @@ export enum ApprovalStatus {
 export const useGetTokenBalance = (address:string) => {
   const [balance, setBalance] = useState("")
   const { account, library } = useWeb3React()
-  console.log('tokenbalance', library)
+  
+  const fetchBalance = useCallback(async () => {
+    console.log('fetching balance')
+    const erc20 = getERC20(library, address)
+    setBalance(await erc20.methods.balanceOf(account).call({from:account}))
+  }, [account, address, library])
 
   useEffect(() => {
-    const fetchBalance = async () => {
-      const erc20 = getERC20(library, address)
-      setBalance(await erc20.methods.balanceOf(account).call({from:account}))
-    }
-
     if (account) {
       fetchBalance()
     }
-  })
+  }, [account, fetchBalance])
+
   return balance
 }
 
@@ -35,7 +36,7 @@ export const useGetAllowance = (address:string) => {
 
   const fetchAllowance = useCallback(async () => {
     const erc20 = getERC20(library, address)
-    const allow = await erc20.methods.allowance(account, Addresses.diamond).call({from:account})
+    const allow = await erc20.methods.allowance(account, Static.addresses.diamond).call({from:account})
     setAllowance(allow)
     console.log('fetch allowance')
   }, [account, address, library])
@@ -58,7 +59,7 @@ export const useSetAllowance = (address: string, amount:number) => {
     const contract = getERC20(library, address)
     try {
       const approve = await contract.methods.approve(
-        Addresses.diamond,
+        Static.addresses.diamond,
         library.utils.toWei(String(amount), 'ether')
       ).send({ from: account })
       return approve.status

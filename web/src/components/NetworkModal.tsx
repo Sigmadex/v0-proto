@@ -1,4 +1,4 @@
-import React, { FC } from 'react'
+import React, { FC, useCallback } from 'react'
 
 import { useWeb3React } from '@web3-react/core'
 
@@ -32,11 +32,16 @@ const chainData = {
 
 const NetworkModal: FC  = () => {
   const closeRef = React.createRef()
+
   const {chainId, connector, account } = useWeb3React()
   
-  const [networkName, setNetworkName] = React.useState('No Network Detected')
+  const [networkName, setNetworkName] = React.useState('Network Unsupported')
 
+  const clickModal = useCallback(() => {
+    closeRef.current.click()
+  }, [closeRef])
   React.useEffect(() => {
+    console.log('use effect triggered ')
     if (chainId) {
       switch (chainId) {
           case 1:
@@ -52,14 +57,17 @@ const NetworkModal: FC  = () => {
             setNetworkName('Chain Not Supported')
             break;
         }
+    } else {
+      if (account) {
+        setNetworkName('Network Not Supported')
+      } else {
+        setNetworkName('Network Unknown')
+      }
     }
     clickModal()
 
-  }, [chainId])
+  }, [chainId, account, clickModal])
 
-  function clickModal() {
-    closeRef.current.click()
-  }
 
 	async function requestChain(chain) {
     const { chainId } = chainData[chain]
@@ -105,12 +113,8 @@ const NetworkModal: FC  = () => {
 
   return (
     <>
-    {
-      account ?
-			<button type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#networkModal">
-        {networkName}
-			</button> : <span></span>
-    }
+      <button type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#networkModal"> { networkName }
+			</button>
 
 
 			<div className="modal fade" id="networkModal" tabIndex="-1" aria-labelledby="networkModalLabel" aria-hidden="true">

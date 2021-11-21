@@ -1,9 +1,45 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useWeb3React } from '@web3-react/core'
 import { getTokenFarmFacet } from 'utils/contractHelpers'
-import Addresses from 'config/Addresses.json'
+import Static from 'config/Static.json'
 
 const Web3 = require('web3')
+
+export const useGetUserInfo = () => {
+  const [userInfo, setUserInfo] = useState([])
+
+  const { account, library } = useWeb3React()
+
+  const fetchUserInfo = useCallback(async () => {
+    console.log('fetchUserInfo')
+    const tmp = [];
+    const tokenFarmFacet = getTokenFarmFacet(library)
+    try {
+      const amountOfPools = await tokenFarmFacet.methods.poolLength().call({from: account})
+      for (let i=0; i < amountOfPools; i++) {
+        const info = await tokenFarmFacet.methods.userInfo(i, account).call({from: account})
+        tmp.push(info)
+        //setUserInfo([...userInfo, info])
+      }
+      setUserInfo([...tmp])
+
+    } catch (e) {
+      console.log(e)
+    }
+
+
+  }, [account, library])
+
+  useEffect(() => {
+    if (account && library) {
+      fetchUserInfo()
+    }
+  }, [account, fetchUserInfo, library])
+  return userInfo
+}
+
+
+
 
 export const useDepositFarm = (
   poolid:number,
