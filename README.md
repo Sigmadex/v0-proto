@@ -1,7 +1,8 @@
 <br>
 <img src="https://i.imgur.com/PwOJmQN.png" width="200px">
 <br>
-Sigmadex Version 0
+<b>// Sigmadex Version 0</b>
+
 ## Getting Started
 
 ### Hardhat
