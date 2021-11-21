@@ -56,6 +56,7 @@ const config = {
         logo: {
           alt: 'Sigmadex',
           src: 'https://i.imgur.com/L7rAsEe.png',
+          srcDark: 'https://i.imgur.com/PAw3zac.png',
         },
         items: [
           {
