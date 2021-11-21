@@ -193,6 +193,12 @@ No modifiers
 
 ## Events
 
+### Add
+No description
+
+  
+
+
 ### Deposit
 No description
 
@@ -200,6 +206,12 @@ No description
 
 
 ### Withdraw
+No description
+
+  
+
+
+### PoolUpdateNFT
 No description
 
   

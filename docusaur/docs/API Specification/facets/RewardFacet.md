@@ -142,3 +142,11 @@ No modifiers
 |`validRewards` | an array of NFT addresses that are valid rewards for this token
 
 
+## Events
+
+### AddRewardForToken
+No description
+
+  
+
+

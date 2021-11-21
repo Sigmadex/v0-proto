@@ -80,3 +80,29 @@ No description
 
 
 
+## Events
+
+### UpdateBonusMultiplier
+No description
+
+  
+
+
+### UpdateSdexPerBlock
+No description
+
+  
+
+
+### UpdateVaultPerformanceFee
+No description
+
+  
+
+
+### UpdateVaultCallFee
+No description
+
+  
+
+
