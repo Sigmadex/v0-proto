@@ -4,6 +4,8 @@ cache/
 artifacts/
 .swp
 
+**/.env
+**/node_modules
 
 # Dependencies
 docusaur/node_modules
@@ -49,3 +51,12 @@ yarn-debug.log*
 yarn-error.log*
 
 mockups
+
+**/data/
+**/generated/
+**/bin/
+**/build/
+
+
+
+

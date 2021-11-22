@@ -324,7 +324,9 @@ async function deployTestnetScaffold() {
       console.log('Diamond Address Written to the web/public directory')
     }
   })
-
+  console.log('rPR nextid', await reducedPenaltyRewardFacet.methods.rPRNextId().call())
+  console.log('rAR nextid', await rewardAmplifierRewardFacet.methods.rARNextId().call())
+  console.log('iBR nextid', await increasedBlockRewardFacet.methods.iBRNextId().call())
 }
     
 

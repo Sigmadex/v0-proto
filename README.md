@@ -16,7 +16,7 @@ V0 uses the Hardhat Development environment
 #### Running the Tests
 ``npx hardhat test``
 
-#### Node For Frontend-Metamask Integration
+#### Node For Frontend-Subgraph-Metamask Integration
 Input a mnemonic in the .env file (do not commit)
 ``cp .env.example .env``
 Metmask prefers auto mine set to false, a block interval (in ms) is helpful for testing control flow, in `hardhat/hardhat.config.js`
@@ -28,7 +28,7 @@ mining: {
   ```
 Start Node (one should see their public keys attached to their mnemonic)
 
-``npx hardhat node``
+``npx hardhat node --hostname 0.0.0.0``
 Deploy contracts to localhost
 
 ``npx hardhat run ./scripts/deploy.js --network localhost``
@@ -52,7 +52,30 @@ V0 Uses a React Frontend
 Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
 The metamask prompt to add network only allows https, so this one must be done manually
 
-#### Docusaur
+### Subgraph (localhost)
+Sigmadex uses thegraph to query indexed events, which enables queries such as getNFTsByUser(). To learn about developing with subgraph, doing this [tutorial](https://thegraph.academy/developers/defining-a-subgraph/) and this [local development guide](https://thegraph.academy/developers/local-development/) is  recommended.
+
+#### Prerequisites
+- ``npm install -g @graphprotocol/graph-cli``
+- docker and docker compose
+
+To start the graph localhost
+Start a blockchain node with ``npx hardhat node --hostname 0.0.0.0``
+
+``cd subgraph``
+start thegraph node ``docker-compose up``
+
+Generate the code templates ``npm run codegen``
+
+Create the subgraph ``npm run  create-local``
+
+Deploy the subgraph ``npm run deploy-local``
+
+If you restart your blockchain node, ensure to stop docker, and run ``sudo rm -rf /data/postgres`` as the new genesis block will not match the old one and thegraph wont start its block muncher
+
+
+
+### Docusaur
 V0 uses Docusaurus To present Documentation
 
 #### Install

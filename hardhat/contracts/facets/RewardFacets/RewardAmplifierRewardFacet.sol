@@ -27,6 +27,14 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.rewardAmplifierReward;
   }
+  /*
+  * Return the next id to be minted of this nft class, thus number -1 can be thought of as total supply
+  * @return uint256 the next id to be consumed
+  */
+  function rARNextId() public returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.rARNextId;
+  }
 
   function rARAmount(uint256 nftid) public returns (RARAmount memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();

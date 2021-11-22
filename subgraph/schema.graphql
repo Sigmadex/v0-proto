@@ -1,0 +1,31 @@
+type Nft @entity {
+  id: ID!
+  contract: NftContract!
+  tokenID: BigInt!
+  ownership: [Ownership!]! @derivedFrom(field: "nft")
+  tokenURI: String!
+  createdAt: BigInt!
+  removedAt: BigInt
+}
+
+type NftContract @entity {
+  id: ID!
+  name: String!
+  symbol: String
+  platform: Platform!
+  nfts: [Nft!]! @derivedFrom(field: "contract")
+}
+
+
+type Ownership @entity {
+  id: ID!
+  owner: Bytes!
+  nft: Nft!
+  quantity: BigInt!
+}
+
+enum Platform {
+  ReducedPenaltyReward
+  RewardAmplifierReward
+  IncreasedBlockReward
+}

@@ -27,6 +27,15 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.reducedPenaltyReward;
   }
+  /*
+  * Return the next id to be minted of this nft class, thus number -1 can be thought of as total supply
+  * @return uint256 the next id to be consumed
+  */
+  function rPRNextId() public returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.rPRNextId;
+  }
+
 
   /**
   * reduced penalty reward is charged with minting the NFT and updating the diamonds internal state relative to this NFT.

@@ -27,6 +27,14 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.increasedBlockReward;
   }
+  /**
+  * Return the next id to be minted of this nft class, thus number -1 can be thought of as total supply
+  * @return uint256 the next id to be consumed
+  */
+  function iBRNextId() public returns (uint256) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.iBRNextId;
+  }
 
   /**
     * multiplier Reward is charged with minting the multiplier NFT as a reward
@@ -114,6 +122,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
       pool.tokenData[j].supply -= position.amounts[j];
       position.amounts[j] = 0;
       position.rewardDebts[j] = 0;
+                
     }
 
     //Manage SDEX
