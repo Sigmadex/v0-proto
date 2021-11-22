@@ -6,7 +6,7 @@ import  { useGetTokenBalance } from 'hooks/useERC20'
 
 import WalletModal from 'components/WalletModal'
 import ListPositions from 'components/Portfolio/ListPositions'
-
+import ListNFTs from 'components/Portfolio/ListNFTs'
 
 const Web3 = require('web3')
 
@@ -115,92 +115,7 @@ const Portfolio: React.FC = () => {
           <h3>NFTs</h3>
         </div>
       </div>{/* /.row */}
-
-      <div className="row">
-        <div className="col-3">
-          <div className="card h-100">
-            <div className="card-body">
-              <h6 className="card-title">
-                <span className="badge bg-primary me-2">NFT</span>
-                APY Multiplier
-              </h6>
-              <p className="card-text">
-                Multiply the preset interest rate of user's liquidity 
-                positions by 2x.
-              </p>
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">One time use:</dt>
-                <dd className="col-5 text-end fw-bold">no</dd>
-                <dt className="col-7 fw-normal">Status:</dt>
-                <dd className="col-5 text-end fw-bold">Owned</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3">
-          <div className="card h-100">
-            <div className="card-body">
-              <h6 className="card-title">
-                <span className="badge bg-primary me-2">NFT</span>
-                Penalty Rate
-              </h6>
-              <p className="card-text">
-                Ability to remove liquidity at any point in time without 
-                incurring a penalty.
-              </p>
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">One time use:</dt>
-                <dd className="col-5 text-end fw-bold">yes</dd>
-                <dt className="col-7 fw-normal">Status:</dt>
-                <dd className="col-5 text-end fw-bold">Owned</dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3">
-          <div className="card h-100">
-            <div className="card-body">
-              <h6 className="card-title">
-                <span className="badge bg-primary me-2">NFT</span>
-                No Transaction Fees
-              </h6>
-              <p className="card-text">
-                <strong>One time use:</strong>
-                No transaction fees when swapping any tokens.
-              </p>
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">One time use:</dt>
-                <dd className="col-5 text-end fw-bold">yes</dd>
-                <dt className="col-7 fw-normal">Status:</dt>
-                <dd className="col-5 text-end fw-bold"><small>Owned (3)</small></dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-
-        <div className="col-3">
-          <div className="card h-100">
-            <div className="card-body">
-              <h6 className="card-title">
-                <span className="badge bg-primary me-2">NFT</span>
-                APY Multiplier
-              </h6>
-              <p className="card-text">
-                Multiply the preset interest rate of user's liquidity positions 
-                by 1.5x.
-              </p>
-              <dl className="row mb-0">
-                <dt className="col-7 fw-normal">One time use:</dt>
-                <dd className="col-5 text-end fw-bold">no</dd>
-                <dt className="col-7 fw-normal">Status:</dt>
-                <dd className="col-5 text-end fw-bold"><small>Farming (46h left)</small></dd>
-              </dl>
-            </div>
-          </div>{/* /.card */}
-        </div>{/* /.col-3 */}
-      </div>{/* /.row */}
+      <ListNFTs />
     </>
   )
 }

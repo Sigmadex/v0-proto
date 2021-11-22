@@ -40,18 +40,6 @@ Seed With Test Data (take 278 blocks- a long time if your mining interval is big
 #### Build Doc Api Spec
 ``npm run docgen``
 
-### Frontend
-V0 Uses a React Frontend
-
-#### Install
-``cd web``
-``npm install``
-``npm run start``
-
-#### Frontend-Metamask Integration
-Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
-The metamask prompt to add network only allows https, so this one must be done manually
-
 ### Subgraph (localhost)
 Sigmadex uses thegraph to query indexed events, which enables queries such as getNFTsByUser(). To learn about developing with subgraph, doing this [tutorial](https://thegraph.academy/developers/defining-a-subgraph/) and this [local development guide](https://thegraph.academy/developers/local-development/) is  recommended.
 
@@ -73,6 +61,21 @@ Deploy the subgraph ``npm run deploy-local``
 
 If you restart your blockchain node, ensure to stop docker, and run ``sudo rm -rf /data/postgres`` as the new genesis block will not match the old one and thegraph wont start its block muncher
 
+
+### Frontend
+V0 Uses a React Frontend
+
+#### Install
+``cd web``
+``npm install``
+``npm run start``
+
+``cp .env.example .env``
+fill out, the `REACT_APP_SUBGRAPH_URL` is pasted in the terminal output of ``npm run deploy-local`` cmd could be `http://127.0.0.1:8000/subgraphs/name/sigmadex/subgraph`
+
+#### Frontend-Metamask Integration
+Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
+The metamask prompt to add network only allows https, so this one must be done manually
 
 
 ### Docusaur

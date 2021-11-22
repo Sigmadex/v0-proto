@@ -2,7 +2,14 @@ import React, { FC, Fragment } from "react"
 import Static from 'config/Static.json'
 const Web3 = require('web3')
 
-const Position: FC = ({data, pid}) => {
+interface PositionProps {
+  data: object;
+  pid: string;
+
+}
+
+
+const Position: FC<PositionProps> = ({data, pid}) => {
   const farmStatic = Static.farms[pid]
   
   let symbol = farmStatic.map((asset) => {
