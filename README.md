@@ -6,7 +6,7 @@
 ## Getting Started
 
 ### Hardhat
-V0 uses the Hardhat Development environment
+V0 uses the Hardhat Development environment.
 
 #### Install
 ``cd hardhat``
@@ -37,11 +37,12 @@ Seed With Test Data (take 278 blocks- a long time if your mining interval is big
 ``npx hardhat run ./scripts/scaffold-testnet.js --network localhost``
 
 
-#### Build Doc Api Spec
+#### Build Doc API Spec
 ``npm run docgen``
 
+
 ### Subgraph (localhost)
-Sigmadex uses thegraph to query indexed events, which enables queries such as getNFTsByUser(). To learn about developing with subgraph, doing this [tutorial](https://thegraph.academy/developers/defining-a-subgraph/) and this [local development guide](https://thegraph.academy/developers/local-development/) is  recommended.
+Sigmadex uses thegraph to query indexed events, which enables queries such as getNFTsByUser(). To learn about developing with subgraph, doing this [tutorial](https://thegraph.academy/developers/defining-a-subgraph/) and this [local development guide](https://thegraph.academy/developers/local-development/) is recommended.
 
 #### Prerequisites
 - ``npm install -g @graphprotocol/graph-cli``
@@ -59,8 +60,19 @@ Create the subgraph ``npm run  create-local``
 
 Deploy the subgraph ``npm run deploy-local``
 
-If you restart your blockchain node, ensure to stop docker, and run ``sudo rm -rf /data/postgres`` as the new genesis block will not match the old one and thegraph wont start its block muncher
+If you restart your blockchain node, ensure to stop docker, and run ``sudo rm -rf /data/postgres`` as the new genesis block will not match the old one and thegraph wont start its block muncher.
 
+### Frontend
+V0 Uses a React Frontend.
+
+#### Install
+``cd web``
+``npm install``
+``npm run start``
+
+#### Frontend-Metamask Integration
+Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
+The metamask prompt to add network only allows https, so this one must be done manually.
 
 ### Frontend
 V0 Uses a React Frontend
@@ -79,7 +91,7 @@ The metamask prompt to add network only allows https, so this one must be done m
 
 
 ### Docusaur
-V0 uses Docusaurus To present Documentation
+V0 uses Docusaurus to present documentation.
 
 #### Install
 ``cd docusaur``
@@ -88,7 +100,9 @@ V0 uses Docusaurus To present Documentation
 
 
 ## Sigmadex Resources
-
-https://sigmadex.org<br>
-https://blog.sigmadex.org<br>
-https://t.me/Sigmadex
+|Resource|Link                 |
+|:-------|:--------------------|
+|Website|https://sigmadex.org  |
+|Telegram|https://t.me/Sigmadex|
+|Blog|https://blog.sigmadex.org|
+|Docs|https://sigmadex.github.io/v0-proto|
