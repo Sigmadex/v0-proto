@@ -9,7 +9,7 @@ import { handleTransferSingle, handleTransferBatch, handleURI } from "./mapping"
 export { handleURI }
 
 export function iBRHandleTransferSingle(event: TransferSingle): void {
-	ensureNftContract(event.address)
+  ensureNftContract(event.address)
   handleTransferSingle(event)
 }
 

@@ -11,59 +11,59 @@ export let BIGINT_ONE = BigInt.fromI32(1);
 export let BIGDECIMAL_ZERO = new BigDecimal(BIGINT_ZERO);
 
 export function handleTransferSingle(event: TransferSingle): void {
-	transferBase(
-		event.address,
-		event.params.from,
-		event.params.to,
-		event.params.id,
-		event.params.value,
-		event.block.timestamp
-	);
+  transferBase(
+    event.address,
+    event.params.from,
+    event.params.to,
+    event.params.id,
+    event.params.value,
+    event.block.timestamp
+  );
 }
 
 export function handleTransferBatch(event: TransferBatch): void {
-	if (event.params.ids.length != event.params.values.length) {
-		throw new Error("Inconsistent arrays length in TransferBatch");
-	}
+  if (event.params.ids.length != event.params.values.length) {
+    throw new Error("Inconsistent arrays length in TransferBatch");
+  }
 
-	for (let i = 0; i < event.params.ids.length; i++) {
-		let ids = event.params.ids;
-		let values = event.params.values;
-		transferBase(
-			event.address,
-			event.params.from,
-			event.params.to,
-			ids[i],
-			values[i],
-			event.block.timestamp
-		);
-	}
-	//do
+  for (let i = 0; i < event.params.ids.length; i++) {
+    let ids = event.params.ids;
+    let values = event.params.values;
+    transferBase(
+      event.address,
+      event.params.from,
+      event.params.to,
+      ids[i],
+      values[i],
+      event.block.timestamp
+    );
+  }
+  //do
 }
 
 function transferBase(contractAddress: Address, from: Address, to: Address, id: BigInt, value: BigInt, timestamp: BigInt): void {
-	let nftId = contractAddress.toHexString() + "/" + id.toString();
-	let nft = Nft.load(nftId);
-	if (nft == null) {
-		let contract = ERC1155.bind(contractAddress);
-		nft = new Nft(nftId);
-		nft.contract = contractAddress.toHexString();
-		nft.tokenID = id;
-		nft.tokenURI = contract.uri(id);
-		nft.createdAt = timestamp;
-		nft.save();
-	}
+  let nftId = contractAddress.toHexString() + "/" + id.toString();
+  let nft = Nft.load(nftId);
+  if (nft == null) {
+    let contract = ERC1155.bind(contractAddress);
+    nft = new Nft(nftId);
+    nft.contract = contractAddress.toHexString();
+    nft.tokenID = id;
+    nft.tokenURI = contract.uri(id);
+    nft.createdAt = timestamp;
+    nft.save();
+  }
 
-	if (to == ZERO_ADDRESS) {
-		// burn token
-		nft.removedAt = timestamp;
-		nft.save();
-	}
+  if (to == ZERO_ADDRESS) {
+    // burn token
+    nft.removedAt = timestamp;
+    nft.save();
+  }
 
-	if (from != ZERO_ADDRESS) {
-		updateOwnership(nftId, from, BIGINT_ZERO.minus(value));
-	}
-	updateOwnership(nftId, to, value);
+  if (from != ZERO_ADDRESS) {
+    updateOwnership(nftId, from, BIGINT_ZERO.minus(value));
+  }
+  updateOwnership(nftId, to, value);
 }
 
 
@@ -93,10 +93,10 @@ export function updateOwnership(nftId: string, owner: Address, deltaQuantity: Bi
 }
 
 export function handleURI(event: URI): void {
-    let id = event.address.toHexString() + "/" + event.params.id.toString();
-    let nft = Nft.load(id);
-    if (nft != null) {
-        nft.tokenURI = event.params.value;
-        nft.save();
-    }
+  let id = event.address.toHexString() + "/" + event.params.id.toString();
+  let nft = Nft.load(id);
+  if (nft != null) {
+    nft.tokenURI = event.params.value;
+    nft.save();
+  }
 }

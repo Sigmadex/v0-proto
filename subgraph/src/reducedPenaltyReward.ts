@@ -7,7 +7,7 @@ import { handleTransferSingle, handleTransferBatch, handleURI } from "./mapping"
 export { handleURI }
 
 export function rPRHandleTransferSingle(event: TransferSingle): void {
-	ensureNftContract(event.address)
+  ensureNftContract(event.address)
   handleTransferSingle(event)
 }
 
