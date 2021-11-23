@@ -1,4 +1,4 @@
-import React from "react"
+import React, {useState, useEffect} from "react"
 import Static from 'config/Static.json'
 
 import { useWeb3React } from '@web3-react/core'
@@ -11,12 +11,41 @@ import ListNFTs from 'components/Portfolio/ListNFTs'
 const Web3 = require('web3')
 
 const Portfolio: React.FC = () => {
+  const [withdrawEvt, setWithdrawEvt] = useState(false)
   const { account } = useWeb3React()
 
-  const sdexBalance  = useGetTokenBalance(Static.addresses.diamond)
-  const tokenABalance  = useGetTokenBalance(Static.addresses.tokenA)
-  const tokenBBalance  = useGetTokenBalance(Static.addresses.tokenB)
-  const tokenCBalance  = useGetTokenBalance(Static.addresses.tokenC)
+  const {
+    balance:sdexBalance,
+    fetchBalance:fetchSdexBalance,
+  }  = useGetTokenBalance(Static.addresses.diamond)
+  const {
+    balance:tokenABalance,
+    fetchBalance:fetchTokenABalance,
+  }  = useGetTokenBalance(Static.addresses.tokenA)
+  const {
+    balance:tokenBBalance,
+    fetchBalance:fetchTokenBBalance,
+  }  = useGetTokenBalance(Static.addresses.tokenB)
+  const {
+    balance:tokenCBalance,
+    fetchBalance:fetchTokenCBalance,
+  }  = useGetTokenBalance(Static.addresses.tokenC)
+
+  useEffect(() => {
+    if (withdrawEvt) {
+      console.log('hello withdraw evt')
+      fetchSdexBalance()
+      fetchTokenABalance()
+      fetchTokenBBalance()
+      fetchTokenCBalance()
+      setWithdrawEvt(false)
+    }
+  }, [withdrawEvt, fetchTokenABalance, fetchTokenBBalance,fetchTokenCBalance, fetchSdexBalance])
+  
+
+  const listenForWithdrawEvt = () => {
+    setWithdrawEvt(true)
+  }
   
   return (
     <>
@@ -109,7 +138,7 @@ const Portfolio: React.FC = () => {
           <span>Unrealized Rewards = <strong>$91,529</strong></span>
         </div>
       </div>{/* /.row */}
-      <ListPositions />
+      <ListPositions listenForWithdrawEvt={listenForWithdrawEvt}/>
       <div className="row">
         <div className="col-12 mb-2">
           <h3>NFTs</h3>

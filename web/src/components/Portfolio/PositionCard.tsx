@@ -11,10 +11,11 @@ interface PositionCardProps {
   amounts: number[];
   startBlock: number;
   endBlock: number;
+  listenForWithdrawEvt: Function
 
 }
 
-const PositionCard: FC<PositionCardProps> = ({amounts, pid, startBlock, endBlock, positionid, blockNumber}) => {
+const PositionCard: FC<PositionCardProps> = ({amounts, pid, startBlock, endBlock, positionid, blockNumber, listenForWithdrawEvt}) => {
   const [totalAmount, setTotalAmount] = useState(amounts.reduce((acc:number, cur:number) => Number(acc)+Number(cur)))
   const farmStatic = Static.farms[pid]
   const [maturity, setMaturity] = useState("")
@@ -30,7 +31,7 @@ const PositionCard: FC<PositionCardProps> = ({amounts, pid, startBlock, endBlock
     const blocksElapsed = blockNumber - startBlock
     if (blocksRemain > 0) {
       setMaturity(String(blocksRemain))
-      setPercent((blocksElapsed/endBlock*100).toFixed(2))
+      setPercent(((blocksElapsed/(endBlock-startBlock))*100).toFixed(2))
     } else {
       setMaturity("Complete")
     }
@@ -60,12 +61,13 @@ const PositionCard: FC<PositionCardProps> = ({amounts, pid, startBlock, endBlock
       setWithdrawPending(false)
       console.log(status)
       if (status == true) {
-        setTotalAmount(0) 
+        setTotalAmount(0)
+        listenForWithdrawEvt(true)
       }
     } catch (e) {
       console.log(e)
     }
-  }, [onWithdraw])
+  }, [onWithdraw, listenForWithdrawEvt])
   return (
     <div className="col-3 mb-4">
       <div className="card h-100">

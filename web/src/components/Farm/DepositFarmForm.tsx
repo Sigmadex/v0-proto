@@ -1,7 +1,11 @@
 import React, {FC, useState, useEffect, useCallback} from 'react' 
-import {useGetAllowance, useSetAllowance, ApprovalStatus} from 'hooks/useERC20'
-import { useDepositFarm } from 'hooks/useTokenFarmFacet'
 import Static from 'config/Static.json'
+
+import { useDepositFarm } from 'hooks/useTokenFarmFacet'
+import {useGetAllowance, useSetAllowance, ApprovalStatus} from 'hooks/useERC20'
+
+import DepositSuccessModal from 'components/Farm/DepositSuccessModal'
+
 import { CheckLg } from 'react-bootstrap-icons';
 
 
@@ -121,14 +125,16 @@ const DepositFarmForm: FC = () => {
     0
   )
   const [depositPending, setDepositPending] = useState(false)
-  
+  const [depositSuccess, setDepositSuccess] = useState(false)
   const deposit = useCallback(async () => {
     try {
       setDepositPending(true)
       const status = await onDeposit()
       setDepositPending(false)
       console.log(status)
-
+      if (status) {
+        setDepositSuccess(true)
+      } 
     } catch (e) {
       console.log(e)
     }
@@ -239,6 +245,7 @@ const DepositFarmForm: FC = () => {
         </dl>
       </div>{/* /.card-body */}
     </div>{/* /.card */}
+      <DepositSuccessModal success={depositSuccess} />
     </>
   )
 }

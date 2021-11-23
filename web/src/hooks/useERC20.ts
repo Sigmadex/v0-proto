@@ -27,7 +27,7 @@ export const useGetTokenBalance = (address:string) => {
     }
   }, [account, fetchBalance])
 
-  return balance
+  return {balance, fetchBalance}
 }
 
 export const useGetAllowance = (address:string) => {
