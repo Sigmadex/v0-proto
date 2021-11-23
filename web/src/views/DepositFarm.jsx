@@ -1,12 +1,12 @@
 import React  from 'react' 
-import DepositFarm from 'components/Farm/DepositFarm'
+import DepositFarmForm from 'components/Farm/DepositFarmForm'
 
-const NFTReward = () => {
+const DepositFarm = () => {
   return (
     <>
       <div className="row">
         <div className="col-6">
-          <DepositFarm />
+          <DepositFarmForm />
         </div>{/* /.col-6 */}
         <div className="col-6">
           <div className="card">
@@ -51,4 +51,4 @@ const NFTReward = () => {
   )
 }
 
-export default NFTReward
+export default DepositFarm

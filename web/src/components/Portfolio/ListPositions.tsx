@@ -1,13 +1,16 @@
 import React, { FC } from "react"
 import { useGetUserInfo } from 'hooks/useTokenFarmFacet'
-import Position from 'components/Portfolio/Position'
+import PositionCard from 'components/Portfolio/PositionCard'
+
+import { useBlockNumber } from 'hooks/useBlockchain'
 
 const ListPositions: FC = () => {
   const userInfos = useGetUserInfo()
+  const blockNumber = useBlockNumber()
   
-  const positions = userInfos.map((userInfo, i) => {
-    return userInfo.positions.map((position, j) => {
-      return <Position key={i+j} data={position} pid={i} />
+  const positions = userInfos.map((userInfo, i:number) => {
+    return userInfo.positions.map((position, j:number) => {
+      return <PositionCard key={i+j} amounts={position.amounts} startBlock={position.startBlock} endBlock={position.endBlock} pid={i} positionid={j} blockNumber={Number(blockNumber)} />
     })
   }) 
   

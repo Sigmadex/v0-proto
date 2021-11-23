@@ -50,17 +50,23 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     REWARDPOOL rewardPool
     
   ) external onlyDiamond {
+    console.log('rPRReward::reward::test');
     AppStorage storage s = LibAppStorage.diamondStorage();
     RPRAmount memory reductionAmount = RPRAmount({
       token: token,
       amount: amount,
       rewardPool: rewardPool 
     });
+    console.log('rPRReward::reward::test2');
     s.rPRAmounts[s.rPRNextId] = reductionAmount;
+    console.log('rPRReward::reward::test3');
     bytes memory data = 'data';
     IERC1155(s.reducedPenaltyReward).mint(to, s.rPRNextId, 1, data);
+    console.log('rPRReward::reward::test4');
     s.rPRNextId++;
+    console.log('rPRReward::reward::test5');
     emit RewardNFT(to, token, amount);
+    console.log('rPRReward::reward::test6');
   }
 
   /**

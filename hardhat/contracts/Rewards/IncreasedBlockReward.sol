@@ -28,6 +28,8 @@ contract IncreasedBlockReward is ERC1155PresetMinterPauser {
   * @param data metadata of the NFT, 
   */
   function mint(address to, uint256 id, uint256 amount, bytes calldata data) public override onlyDiamond {
+    console.log('ibr::mint::test');
     _mint(to, id, amount, data);
+    console.log('ibr::mint::test2');
   }
 }

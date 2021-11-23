@@ -5,6 +5,42 @@ import Static from 'config/Static.json'
 
 const Web3 = require('web3')
 
+
+export const useGetPoolInfos = () => {
+  const [poolInfo, setPoolInfo] = useState([])
+
+  const { account, library } = useWeb3React()
+
+  const fetchPoolInfo = useCallback(async () => {
+    console.log('fetchPoolInfo')
+    const tmp = [];
+    const tokenFarmFacet = getTokenFarmFacet(library)
+    try {
+      const amountOfPools = await tokenFarmFacet.methods.poolLength().call({from: account})
+      for (let i=0; i < amountOfPools; i++) {
+        const info = await tokenFarmFacet.methods.poolInfo(i).call({from: account})
+        tmp.push(info)
+        //setPoolInfo([...poolInfo, info])
+      }
+      console.log('tmp', tmp)
+      setPoolInfo(tmp)
+
+    } catch (e) {
+      console.log(e)
+    }
+
+
+  }, [account, library])
+
+  useEffect(() => {
+    if (account && library) {
+      fetchPoolInfo()
+    }
+  }, [account, fetchPoolInfo, library])
+  return poolInfo
+}
+
+
 export const useGetUserInfo = () => {
   const [userInfo, setUserInfo] = useState([])
 
@@ -21,7 +57,8 @@ export const useGetUserInfo = () => {
         tmp.push(info)
         //setUserInfo([...userInfo, info])
       }
-      setUserInfo([...tmp])
+      console.log('tmp', tmp)
+      setUserInfo(tmp)
 
     } catch (e) {
       console.log(e)
@@ -37,9 +74,6 @@ export const useGetUserInfo = () => {
   }, [account, fetchUserInfo, library])
   return userInfo
 }
-
-
-
 
 export const useDepositFarm = (
   poolid:number,
@@ -72,3 +106,26 @@ export const useDepositFarm = (
 }
 
 
+export const useWithdrawFarm = (
+  poolid:number,
+  positionid:number
+) => {
+  const {account, library } = useWeb3React()
+
+  const handleWithdraw = useCallback(async() => {
+    console.log('handleWithdraw')
+    const contract = getTokenFarmFacet(library)
+    try{
+      const withdraw = await contract.methods.withdraw(
+        poolid,
+        positionid
+      ).send({from:account})
+      return withdraw.status
+    } catch(e) {
+      console.log(e)
+      return false
+    }
+  }, [account, positionid, library, poolid])
+
+  return { onWithdraw: handleWithdraw }
+}

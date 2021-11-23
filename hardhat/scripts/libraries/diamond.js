@@ -13,7 +13,7 @@ async function deploy(account, artifact, args) {
   }).send({
     from: account,
     gas: 15000000,
-    gasPrice: '10000000000000'
+    gasPrice: '1000000000'
   }).then((inst) => {
     instance = inst
   })

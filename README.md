@@ -16,25 +16,6 @@ V0 uses the Hardhat Development environment.
 #### Running the Tests
 ``npx hardhat test``
 
-#### Node For Frontend-Subgraph-Metamask Integration
-Input a mnemonic in the .env file (do not commit)
-``cp .env.example .env``
-Metmask prefers auto mine set to false, a block interval (in ms) is helpful for testing control flow, in `hardhat/hardhat.config.js`
-```
-mining: {
-  auto: false,
-  interval: 1618
-}
-  ```
-Start Node (one should see their public keys attached to their mnemonic)
-
-``npx hardhat node --hostname 0.0.0.0``
-Deploy contracts to localhost
-
-``npx hardhat run ./scripts/deploy.js --network localhost``
-Seed With Test Data (take 278 blocks- a long time if your mining interval is big)
-
-``npx hardhat run ./scripts/scaffold-testnet.js --network localhost``
 
 
 #### Build Doc API Spec
@@ -74,8 +55,24 @@ V0 Uses a React Frontend.
 Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
 The metamask prompt to add network only allows https, so this one must be done manually.
 
-### Frontend
-V0 Uses a React Frontend
+#### Node For Frontend-Subgraph-Metamask Integration
+Input a mnemonic in the .env file (do not commit)
+``cd hardhat && cp .env.example .env``
+
+A bug in hardhat with delegatecalls and automine: false prevents use of the hardhat node for frontend dev, instead
+
+``npm install -g ganache-cli``
+
+
+Start Node (one should see their public keys attached to their mnemonic)
+
+``ganache-cli -i 1337 -b 1 --gasLimit=120000000`` optionally there is a `-m {MNEMONIC}` flag that can be used for metamask integration``
+Deploy contracts to localhost, one can set the `-b` to zero if they do not wish to test event emitters and simulate delay 
+
+``npx hardhat run ./scripts/deploy.js --network localhost``
+Seed With Test Data (take 278 blocks- a long time if your mining interval is big)
+
+``npx hardhat run ./scripts/scaffold-testnet.js --network localhost``
 
 #### Install
 ``cd web``

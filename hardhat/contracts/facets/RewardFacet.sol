@@ -85,6 +85,7 @@ contract RewardFacet is Modifiers {
     uint256 poolAllocPoint,
     uint256 amountAccumulated
   ) public onlyDiamond {
+    console.log('RewardFacet::requestSdexReward::test');
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData memory tokenRewardData = s.tokenRewardData[address(this)];
 
@@ -100,7 +101,10 @@ contract RewardFacet is Modifiers {
       proportion = s.unity;
     }
     uint256 reward = proportion * s.accSdexPenaltyPool / s.unity;
+    console.log('RewardFacet::requestSdexReward::reward::', reward);
+    console.log('RewardFacet::requestSdexReward::accSdexPenaltyPool::i', s.accSdexPenaltyPool);
     s.accSdexPenaltyPool -= reward;
+    console.log('RewardFacet::requestSdexReward::accSdexPenaltyPool::f', s.accSdexPenaltyPool);
     s.accSdexRewardPool += reward;
     mintReward(to, address(this), reward, REWARDPOOL.ACC);
   }
@@ -116,10 +120,15 @@ contract RewardFacet is Modifiers {
   }
 
   function changeSeed(uint256 kindaRandomId) private {
+
+    console.log('RewardFacet::changeSeed::kindaRandomId::i::', kindaRandomId);
     kindaRandomId += 1;
+    console.log('RewardFacet::changeSeed::kindaRandomId::f::', kindaRandomId);
     AppStorage storage s = LibAppStorage.diamondStorage();
     uint256 seed = s.seed;
+    console.log('RewardFacet::changeSeed::s.seed::i::', s.seed);
     uint256 seedNext = s.seedNext;
+    console.log('RewardFacet::changeSeed::s.seedNext::i::', seedNext);
     for (uint i=0; i < kindaRandomId; i++) {
       uint256 oldSeed = seed;
       seed = seedNext;
@@ -128,8 +137,11 @@ contract RewardFacet is Modifiers {
         seed = 1;
         seedNext = 1;
       }
+      console.log('loop');
     }
     s.seed = seed;
+    console.log('RewardFacet::changeSeed::s.seed::f::', s.seed);
     s.seedNext = seedNext;
+    console.log('RewardFacet::changeSeed::seedNext::f::', s.seedNext);
   }
 }

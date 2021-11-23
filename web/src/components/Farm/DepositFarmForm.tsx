@@ -8,7 +8,7 @@ import { CheckLg } from 'react-bootstrap-icons';
 const Web3 = require('web3')
 
 
-const DepositFarm: FC = () => {
+const DepositFarmForm: FC = () => {
   
   const addressA = Static.addresses.tokenA
   const addressB = Static.addresses.tokenB
@@ -137,7 +137,7 @@ const DepositFarm: FC = () => {
     <>
     <div className="card">
       <div className="card-body">
-        <h5 className="card-title">Farm Details</h5>
+        <h5 className="card-title">Deposit Farm</h5>
         <p>
           Stake a minimum of <strong>15,000 SDEX</strong> and <strong>15,000 BNB</strong>
           for 180 days to earn the <a href="">APY Multiplier</a> NFT (limited to 5 pieces).
@@ -242,4 +242,4 @@ const DepositFarm: FC = () => {
     </>
   )
 }
-export default DepositFarm
+export default DepositFarmForm

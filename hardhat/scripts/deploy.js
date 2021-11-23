@@ -73,6 +73,10 @@ async function deployDiamond () {
   const increasedBlockReward =  await deploy(owner, IncreasedBlockReward, [diamond._address])
   const rewardAmplifierReward =  await deploy(owner, RewardAmplifierReward, [diamond._address])
   
+  console.log('deploy::rPR::address::', reducedPenaltyReward._address)
+  console.log('deploy::iBR::address::', increasedBlockReward._address)
+  console.log('deploy::rAR::address::', rewardAmplifierReward._address)
+  
   const initalArgs =  initArgs(
     [reducedPenaltyReward._address, increasedBlockReward._address, rewardAmplifierReward._address],
     [ReducedPenaltyRewardFacet, IncreasedBlockRewardFacet, RewardAmplifierRewardFacet],

@@ -1,10 +1,10 @@
 import React, {FC} from "react"
 
-interface NFTProps {
+interface NFTCardProps {
   data: object
 }
 
-const NFT:FC<NFTProps> = ({data}) => {
+const NFTCard:FC<NFTCardProps> = ({data}) => {
   return (
     <div className="col-3 mb-4">
       <div className="card h-100">
@@ -30,4 +30,4 @@ const NFT:FC<NFTProps> = ({data}) => {
   )
 }
 
-export default NFT
+export default NFTCard

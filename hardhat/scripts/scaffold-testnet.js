@@ -65,6 +65,9 @@ async function deployTestnetScaffold() {
   const rARAddress = await rewardAmplifierRewardFacet.methods.rARAddress().call()
   const iBRAddress = await increasedBlockRewardFacet.methods.iBRAddress().call()
   const rPRAddress =  await reducedPenaltyRewardFacet.methods.rPRAddress().call()
+  console.log('rPR::address::', rPRAddress)
+  console.log('iBR::address::', iBRAddress)
+  console.log('rAR::address::', rARAddress)
 
   const rewardFacet = new web3.eth.Contract(RewardFacet.abi, diamondAddress)  
 
@@ -125,6 +128,16 @@ async function deployTestnetScaffold() {
     {from:owner}
   )
   Static.farms[3]  = [assetC, assetS]
+
+  const data = JSON.stringify(Static)
+  fs.writeFileSync('../web/src/config/Static.json', data, (err) => {
+    if (err) {
+      throw err
+    } else {
+      console.log('Diamond Address Written to the web/public directory')
+    }
+  })
+
   const poolS = 0
   const poolAB = 1
   const poolAC = 2
@@ -316,14 +329,7 @@ async function deployTestnetScaffold() {
       break
     }
   }
-  const data = JSON.stringify(Static)
-  fs.writeFileSync('../web/src/config/Static.json', data, (err) => {
-    if (err) {
-      throw err
-    } else {
-      console.log('Diamond Address Written to the web/public directory')
-    }
-  })
+
   console.log('rPR nextid', await reducedPenaltyRewardFacet.methods.rPRNextId().call())
   console.log('rAR nextid', await rewardAmplifierRewardFacet.methods.rARNextId().call())
   console.log('iBR nextid', await increasedBlockRewardFacet.methods.iBRNextId().call())

@@ -1,5 +1,7 @@
 import React from 'react'
 
+import BlockNumber from 'components/BlockNumber'
+
 const Footer: React.FC = () => {
   return (
     <footer className="mt-5 py-4">
@@ -35,6 +37,9 @@ const Footer: React.FC = () => {
               <li><i className="bi-twitter me-1"></i><a href="">Twitter</a></li>
               <li><i className="bi-github me-1"></i><a href="">Github</a></li>
             </ul>
+          </div>
+          <div className="col">
+            <BlockNumber /> 
           </div>
         </div>{/* /.row */}
       </div>{/* /.container */}

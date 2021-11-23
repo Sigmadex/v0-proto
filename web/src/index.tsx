@@ -19,9 +19,9 @@ function getLibrary(provider, connector) {
 ReactDOM.render(
   <React.StrictMode>
     <Web3ReactProvider getLibrary={getLibrary}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </Web3ReactProvider>
   </React.StrictMode>,
   document.getElementById('root')

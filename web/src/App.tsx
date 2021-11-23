@@ -5,8 +5,9 @@ import Footer from './components/Footer'
 import Home from './views/Home'
 import Portfolio from './views/Portfolio'
 import Farms from './views/Farms'
+import Farm from './views/Farm'
 import Swap from './views/Swap'
-import NFTReward from './views/NFTReward'
+import DepositFarm from './views/DepositFarm'
 
 import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
 
@@ -35,9 +36,10 @@ function App() {
       <div className="container">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/farms" element={<Farms />} />
+          <Route path="/farms" element={<Farms />}/>
+          <Route path="/farms/:id" element={<Farm />} />
+          <Route path="/farms/:id/deposit" element={<DepositFarm />} />
           <Route path="/swap" element={<Swap />} />
-          <Route path="/nftreward" element={<NFTReward />} />
           <Route path="/portfolio" element={<Portfolio />} />
         </Routes>
       </div>
