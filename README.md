@@ -23,7 +23,7 @@ V0 uses the Hardhat Development environment.
 
 
 ### Subgraph (localhost)
-Sigmadex uses thegraph to query indexed events, which enables queries such as getNFTsByUser(). To learn about developing with subgraph, doing this [tutorial](https://thegraph.academy/developers/defining-a-subgraph/) and this [local development guide](https://thegraph.academy/developers/local-development/) is recommended.
+Sigmadex uses thegraph to query indexed events, which enables queries such as `getNFTsByUser()`. To learn about developing with subgraph, reviewing this [tutorial](https://thegraph.academy/developers/defining-a-subgraph/) and this [local development guide](https://thegraph.academy/developers/local-development/) is recommended.
 
 #### Prerequisites
 - ``npm install -g @graphprotocol/graph-cli``
@@ -66,8 +66,8 @@ A bug in hardhat with delegatecalls and automine: false prevents use of the hard
 
 Start Node (one should see their public keys attached to their mnemonic)
 
-``ganache-cli -i 1337 -b 1 --gasLimit=120000000`` optionally there is a `-m {MNEMONIC}` flag that can be used for metamask integration``
-Deploy contracts to localhost, one can set the `-b` to zero if they do not wish to test event emitters and simulate delay 
+``ganache-cli -i 1337 -b 1 --gasLimit=120000000`` optionally there is a `-m {MNEMONIC}` flag that can be used for metamask integration.
+Deploy contracts to localhost, one can set the `-b` to zero if they do not wish to test event emitters and simulate delay. 
 
 ``npx hardhat run ./scripts/deploy.js --network localhost``
 Seed With Test Data (take 278 blocks- a long time if your mining interval is big)
@@ -84,7 +84,7 @@ fill out, the `REACT_APP_SUBGRAPH_URL` is pasted in the terminal output of ``npm
 
 #### Frontend-Metamask Integration
 Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
-The metamask prompt to add network only allows https, so this one must be done manually
+The metamask prompt to add network only allows https, so this one must be done manually.
 
 
 ### Docusaur
