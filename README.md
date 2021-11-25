@@ -9,17 +9,23 @@
 V0 uses the Hardhat Development environment.
 
 #### Install
-``cd hardhat``
-``npm install``
-``npx hardhat compile``
+```
+cd hardhat
+npm install
+npx hardhat compile
+```
 
 #### Running the Tests
-``npx hardhat test``
+```
+npx hardhat test
+```
 
 
 
 #### Build Doc API Spec
-``npm run docgen``
+```
+npm run docgen
+```
 
 
 ### Subgraph (localhost)
@@ -47,9 +53,11 @@ If you restart your blockchain node, ensure to stop docker, and run ``sudo rm -r
 V0 Uses a React Frontend.
 
 #### Install
-``cd web``
-``npm install``
-``npm run start``
+```
+cd web
+npm install
+npm run start
+```
 
 #### Frontend-Metamask Integration
 Hardhat node utilizes `http://localhost:8545` to serve with `chainid=1337`
@@ -75,9 +83,11 @@ Seed With Test Data (take 278 blocks- a long time if your mining interval is big
 ``npx hardhat run ./scripts/scaffold-testnet.js --network localhost``
 
 #### Install
-``cd web``
-``npm install``
-``npm run start``
+```
+cd web
+npm install
+npm run start
+```
 
 ``cp .env.example .env``
 fill out, the `REACT_APP_SUBGRAPH_URL` is pasted in the terminal output of ``npm run deploy-local`` cmd could be `http://127.0.0.1:8000/subgraphs/name/sigmadex/subgraph`
@@ -91,9 +101,11 @@ The metamask prompt to add network only allows https, so this one must be done m
 V0 uses Docusaurus to present documentation.
 
 #### Install
-``cd docusaur``
-``npm install``
-``npm run start``
+```
+cd docusaur
+npm install
+npm run start
+```
 
 
 ## Sigmadex Resources
