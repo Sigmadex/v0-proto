@@ -2,7 +2,6 @@ pragma solidity 0.8.10;
 
 import '@openzeppelin/contracts/token/ERC1155/presets/ERC1155PresetMinterPauser.sol';
 
-import 'hardhat/console.sol';
 
 /**
 * @title ReducedPenaltyReward NFT
@@ -28,8 +27,6 @@ contract ReducedPenaltyReward is ERC1155PresetMinterPauser {
   * @param data metadata of the NFT, 
   */
   function mint(address to, uint256 id, uint256 amount, bytes calldata data) public override onlyDiamond {
-    console.log('rpr::mint::test');
     _mint(to, id, amount, data);
-    console.log('rpr::mint::test2');
   }
 }

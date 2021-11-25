@@ -8,7 +8,7 @@ dataSources:
     name: ReducedPenaltyReward
     network: mainnet
     source:
-      address: '0x62E1714D0c64C7910f458350AD8429366546fdA8'
+      address: '0x93209Fc377c1B05b826Da06Bd8DEf703dF6Fc917'
       abi: ERC1155
     mapping:
       kind: ethereum/events
@@ -33,7 +33,7 @@ dataSources:
     name: IncreasedBlockReward
     network: mainnet
     source:
-      address: '0xDFb35Ed7199e90d2Ee59e36EBAD766DA5d988A19'
+      address: '0x7fD915Dcab248A757cebD8019Bf709cFa0D97a3E'
       abi: ERC1155
     mapping:
       kind: ethereum/events
@@ -58,7 +58,7 @@ dataSources:
     name: RewardAmplifierReward
     network: mainnet
     source:
-      address: '0xD0E0fC300c740Aff1b4eC830d999123ab68c90A0'
+      address: '0xaa95F423e28Dbbe6788c69b77652d36de35BC43d'
       abi: ERC1155
     mapping:
       kind: ethereum/events
