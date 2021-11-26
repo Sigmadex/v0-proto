@@ -25,7 +25,6 @@ Vulnerabilities on third party sites are not considered bugs.
 Sigmadex was developed with the following assumptions, and thus any bug must also adhere to the following assumptions
 to be eligible for the bug bounty:
 
-- The total supply of any token does not exceed 2<sup>128</sup> - 1, i.e. `type(uint128).max`.
 - The `transfer` and `transferFrom` methods of any token strictly decrease the balance of the token sender by the transfer amount and increases the balance of token recipient by the transfer amount, i.e. fee on transfer tokens are excluded.
 - The token balance of an address can only change due to a call to `transfer` by the sender or `transferFrom` by an approved address, i.e. rebase tokens and interest bearing tokens are excluded.
 
@@ -38,7 +37,7 @@ In addition, all vulnerabilities disclosed prior to the mainnet launch date will
 
 ## Discovery
 
-Any vulnerability or bug discovered should be reported to the following email address: [security@sigmadex.org](mailto:security@sigmadex.org).
+Any vulnerability or major bug discovered should be immediately reported to the following email address: [security@sigmadex.org](mailto:security@sigmadex.org).
 
 The vulnerability must not be disclosed publicly or to any other person, entity or email address before Sigmadex has been notified, has fixed the issue, and has granted permission for public disclosure. In addition, disclosure must be made within 24 hours following discovery of the vulnerability.
 
