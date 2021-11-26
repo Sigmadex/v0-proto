@@ -11,5 +11,5 @@ echo $FILE
 python3 parse.py
 rm -rf /subgraph/.env
 npm run codegen
-npm run create-local
-npm run deploy-local
+npm run create-local:docker
+npm run deploy-local:docker

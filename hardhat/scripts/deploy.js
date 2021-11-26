@@ -104,7 +104,8 @@ async function deployDiamond () {
       'rewardAmplifierReward': rewardAmplifierReward._address
     },
   }
-  const destStatic = Boolean(process.env.IS_DOCKER) ? '/web/src/config/Static.json': '../web/src/config/Static.json'
+  console.log('IS_DOCKER', process.env.IS_DOCKER)
+  const destStatic = (process.env.IS_DOCKER === 'true') ? '/web/src/config/Static.json': '../web/src/config/Static.json'
   fs.writeFileSync(destStatic, JSON.stringify(data), (err) => {
     if (err) {
       throw err
@@ -118,7 +119,7 @@ async function deployDiamond () {
   rewardAmplifierReward=${rewardAmplifierReward._address}
   `
 
-  const destSubGraph = Boolean(process.env.IS_DOCKER) ? '/subgraph/.env': '../subgraph/'
+  const destSubGraph = (process.env.IS_DOCKER === 'true') ? '/subgraph/.env': '../subgraph/.env'
   fs.writeFileSync(destSubGraph, subgraphVars, (err) => {
     if (err) {
       throw err
