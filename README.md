@@ -114,4 +114,6 @@ npm run start
 |Website|https://sigmadex.org  |
 |Telegram|https://t.me/Sigmadex|
 |Blog|https://blog.sigmadex.org|
+|Bug Bounty|https://sigmadex.org/bug-bounty|
 |Docs|https://sigmadex.github.io/v0-proto|
+
