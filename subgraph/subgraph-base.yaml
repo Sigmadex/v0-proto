@@ -1,0 +1,80 @@
+specVersion: 0.0.2
+description: Nft Reward Subgraph for Sigmadex
+repository: https://github.com/graphprotocol/example-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: ReducedPenaltyReward
+    network: mainnet
+    source:
+      address: ${reducedPenaltyReward}
+      abi: ERC1155
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - NftContract
+        - Nft
+      abis:
+        - name: ERC1155
+          file: ./abis/ERC1155.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: rPRHandleTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: rPRHandleTransferBatch
+        - event: URI(string,indexed uint256)
+          handler: handleURI
+      file: ./src/reducedPenaltyReward.ts
+
+  - kind: ethereum/contract
+    name: IncreasedBlockReward
+    network: mainnet
+    source:
+      address: ${increasedBlockReward}
+      abi: ERC1155
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - NftContract
+        - Nft
+      abis:
+        - name: ERC1155
+          file: ./abis/ERC1155.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: iBRHandleTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: iBRHandleTransferBatch
+        - event: URI(string,indexed uint256)
+          handler: handleURI
+      file: ./src/increasedBlockReward.ts
+
+  - kind: ethereum/contract
+    name: RewardAmplifierReward
+    network: mainnet
+    source:
+      address: ${rewardAmplifierReward}
+      abi: ERC1155
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - NftContract
+        - Nft
+      abis:
+        - name: ERC1155
+          file: ./abis/ERC1155.json
+      eventHandlers:
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: rARHandleTransferSingle
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: rARHandleTransferBatch
+        - event: URI(string,indexed uint256)
+          handler: handleURI
+      file: ./src/rewardAmplifierReward.ts

@@ -130,7 +130,9 @@ async function deployTestnetScaffold() {
   Static.farms[3]  = [assetC, assetS]
 
   const data = JSON.stringify(Static)
-  fs.writeFileSync('../web/src/config/Static.json', data, (err) => {
+  
+  const destSatic = Boolean(process.env.IS_DOCKER) ? '/web/src/config/Static.json': '../web/src/config/Static.json'
+  fs.writeFileSync(destStatic, data, (err) => {
     if (err) {
       throw err
     } else {

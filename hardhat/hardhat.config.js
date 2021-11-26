@@ -24,6 +24,13 @@ module.exports = {
   },
   defaultNetwork: "hardhat",
   networks: {
+    docker: {
+      url:'http://ganache-cli:8545',
+      chainId: 1337,
+      mining: {
+        auto: true,
+      }
+    },
     hardhat: {
       chainId: 1337,
       mining: {

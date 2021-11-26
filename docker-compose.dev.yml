@@ -1,0 +1,101 @@
+version: '3.9'
+
+services:
+  ganache-cli:
+    image: trufflesuite/ganache-cli:latest
+    entrypoint:
+      - node
+      - /app/ganache-core.docker.cli.js
+      - --deterministic
+      - --mnemonic
+      - ${MNEMONIC}
+      - --networkId
+      - '1337'
+      - -b
+      - ${BLOCKSPEED}
+      - --gasLimit
+      - ${GASLIMIT}
+    env_file:
+      - .env
+    ports:
+      - "8545:8545"
+  
+  hardhat-deploy:
+    depends_on:
+      - ganache-cli
+    build:
+      context: ./hardhat
+    volumes:
+      - ./subgraph:/subgraph
+      - ./web:/web
+    links:
+      - ganache-cli
+    command: npm run deploy:docker
+    #command: tail -f /dev/null
+
+  graph-node:
+    image: graphprotocol/graph-node:latest
+    ports:
+      - '8000:8000'
+      - '8001:8001'
+      - '8020:8020'
+      - '8030:8030'
+      - '8040:8040'
+    depends_on:
+      - hardhat-deploy
+      - ipfs
+      - postgres
+    environment:
+      postgres_host: postgres
+      postgres_user: graph-node
+      postgres_pass: let-me-in
+      postgres_db: graph-node
+      ipfs: 'ipfs:5001'
+      # Change next line if you want to connect to a different JSON-RPC endpoint
+      ethereum: 'mainnet:http://host.docker.internal:8545'
+      GRAPH_LOG: info
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
+  ipfs:
+    image: ipfs/go-ipfs:v0.4.23
+    ports:
+      - '5001:5001'
+    volumes:
+      - ./data/ipfs:/data/ipfs
+  postgres:
+    image: postgres
+    ports:
+      - '5432:5432'
+    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
+    environment:
+      POSTGRES_USER: graph-node
+      POSTGRES_PASSWORD: let-me-in
+      POSTGRES_DB: graph-node
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+
+  subgraph-init:
+    depends_on:
+      - graph-node
+      - ipfs
+      - postgres
+    build:  
+      context: ./subgraph
+    volumes:
+      - ./subgraph:/subgraph
+    links:
+      - ipfs
+      - graph-node
+    command: ./start.sh
+
+
+  client:
+    build:
+      context: ./web
+    volumes:
+      - ./web:/web
+    ports:
+      - "3000:3000"
+    command: npm start
+    
