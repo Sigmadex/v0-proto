@@ -1,4 +1,4 @@
-# Sigmadex Bug Bounty
+# Sigmadex Community Bug Bounty
 
 ## Overview
 
@@ -13,12 +13,12 @@ The core purpose of the Bug Bounty Program is limited to notable bugs that resul
 
 The following are not within the scope of the Program:
 
-- Any contract located under [contracts/test](./contracts/test) or [contracts/lens](./contracts/lens).
+- Any contracts in another repository.
 - Bugs in any third party contract or platform that interacts with the Sigmadex Smart Contracts.
 - Vulnerabilities already reported and/or discovered in contracts built by third parties on Sigmadex.
 - Any bugs which have been reported already.
 
-Vulnerabilities on third party sites are not considered bugs.
+Vulnerabilities on third party sites are not considered bugs as Sigmadex cannot modify third party contract code.
 
 ## Presumption
 
@@ -32,7 +32,7 @@ to be eligible for the bug bounty:
 
 Rewards will be allocated based on the severity of the bug disclosed and will be evaluated and rewarded at the discretion of the Sigmadex team.
 For critical bugs that lead to loss of user funds (more than 1% or user specified slippage tolerance),
-rewards of up to $500,000 will be granted. Lower severity bugs will be rewarded at the discretion of the team.
+rewards of up to $250,000 will be granted. Lower severity bugs will be rewarded at the discretion of the team.
 In addition, all vulnerabilities disclosed prior to the mainnet launch date will be subject to receive higher rewards.
 
 ## Discovery
