@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
-    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o '../docusaur/docs/API Specification' -t ../docusaur/docgen-template"
+    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o '../docusaur/docs/API Specification' -t ../docusaur/docgen-template",
+    "deploy:docker": "npxd hardhat run ./scripts/deploy.js --network docker && npxd hardhat run ./scripts/scaffold-testnet.js --network docker"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "hardhat": "^2.6.4",
     "hardhat-contract-sizer": "^2.1.1",
+    "npxd": "^1.2.1",
     "solc-0.8": "npm:solc@^0.8.9",
     "solidity-docgen": "^0.5.16",
     "web3": "^1.5.3"

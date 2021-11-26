@@ -13,7 +13,7 @@ const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 
 const MockERC20 = artifacts.require('MockERC20')
 
-const Static = require('../../web/src/config/Static.json')
+const Static = (process.env.IS_DOCKER === 'true') ? require('/web/src/config/Static.json') : require('../../web/src/config/Static.json')
 async function deployTestnetScaffold() {
 
   const diamondAddress = Static.addresses.diamond
@@ -130,7 +130,9 @@ async function deployTestnetScaffold() {
   Static.farms[3]  = [assetC, assetS]
 
   const data = JSON.stringify(Static)
-  fs.writeFileSync('../web/src/config/Static.json', data, (err) => {
+  
+  const destStatic = (process.env.IS_DOCKER === 'true') ? '/web/src/config/Static.json': '../web/src/config/Static.json'
+  fs.writeFileSync(destStatic, data, (err) => {
     if (err) {
       throw err
     } else {
