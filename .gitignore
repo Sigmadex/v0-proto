@@ -57,6 +57,9 @@ mockups
 **/bin/
 **/build/
 
+Personal
+web/src/config/artifacts
+web/src/config/Static.json
 
-
+subgraph/subgraph.yaml
 
