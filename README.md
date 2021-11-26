@@ -6,13 +6,13 @@
 # Getting Started
 
 ## Docker Development
-A development can be created in a single line using `docker-compose`
+A development environment can be created in a single line using `docker-compose`
 
 To begin ``cp .env.example .env`` and fill out with a test mnenmonic also placed in metamask
 
 Next ``cd hardhat && cp .env.example .env`` and fillout, this will need the same mnemonic as in the base .env.  Additionally, ensure ``IS_DOCKER=true``
 
-Next ``cd web && cp .env.example .env`` the defualt values should work unless one plans on deeper subgraph development
+Next ``cd web && cp .env.example .env`` the default values should work unless one plans on deeper subgraph development
 
 Next ``docker-compose -f docker-compose.dev.yml up``
 
