@@ -131,7 +131,7 @@ async function deployTestnetScaffold() {
 
   const data = JSON.stringify(Static)
   
-  const destSatic = Boolean(process.env.IS_DOCKER) ? '/web/src/config/Static.json': '../web/src/config/Static.json'
+  const destStatic = Boolean(process.env.IS_DOCKER) ? '/web/src/config/Static.json': '../web/src/config/Static.json'
   fs.writeFileSync(destStatic, data, (err) => {
     if (err) {
       throw err

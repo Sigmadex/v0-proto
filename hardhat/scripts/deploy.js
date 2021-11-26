@@ -104,7 +104,7 @@ async function deployDiamond () {
       'rewardAmplifierReward': rewardAmplifierReward._address
     },
   }
-  const destSatic = Boolean(process.env.IS_DOCKER) ? '/web/src/config/Static.json': '../web/src/config/Static.json'
+  const destStatic = Boolean(process.env.IS_DOCKER) ? '/web/src/config/Static.json': '../web/src/config/Static.json'
   fs.writeFileSync(destStatic, JSON.stringify(data), (err) => {
     if (err) {
       throw err
