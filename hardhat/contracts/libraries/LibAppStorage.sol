@@ -2,8 +2,8 @@ pragma solidity 0.8.10;
 
 import { LibDiamond } from "../libraries/LibDiamond.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 struct TokenRewardData {
-  //uint256 timeAmountGlobal;
   uint256 blockAmountGlobal;
   uint256 rewarded;
   uint256 penalties;
@@ -33,8 +33,6 @@ struct UserTokenData {
   uint256 totalRewardDebt;
 }
 struct UserPosition {
-  //uint256 timeStart;
-  //uint256 timeEnd;
   uint256 startBlock;
   uint256 endBlock;
   uint256[] amounts;
@@ -44,8 +42,6 @@ struct UserPosition {
 }
 
 struct VaultUserPosition {
-  //uint256 timeStart;
-  //uint256 timeEnd;
   uint256 startBlock;
   uint256 endBlock;
   uint256 amount;
@@ -145,11 +141,17 @@ struct AppStorage {
   uint256 vCallFee; // 0.25%
 
   // NFT
-  // poolid => nftaddr ==> bool?
-  mapping (uint256 => mapping( address => bool)) validNFTsForPool;
+  // Can this NFT be applied to this pool
+  // poolid => nftaddr ==> bool? O(1) Lookup
+
+  // Testing Enumerable Set
+  mapping (uint256 => EnumerableSet.AddressSet) setValidNFTsForPool;
+
   // Valid rewards for token
+  // Can this NFT be minted for this Token?
   // Token addr => valid NFT rewards
   mapping (address => address[]) validRewards;
+  
   // NFT Reward addres to reward struct
   mapping (address => Reward) rewards;
   uint256 seed;

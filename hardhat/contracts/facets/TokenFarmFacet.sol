@@ -2,16 +2,20 @@ pragma solidity 0.8.10;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC1155/IERC1155.sol';
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo, Reward } from '../libraries/LibAppStorage.sol';
 import './ToolShedFacet.sol';
 import './RewardFacet.sol';
+
 
 /**
   * @title TokenFarmFacet
   * @dev Token Farm concerns creating and removing of positions from various created pools, as well as the associated getters for {UserInfo} and {PoolInfo}
 */
 contract TokenFarmFacet is Modifiers {
+  using EnumerableSet for EnumerableSet.AddressSet;
+
   event Add(uint256 indexed pid, address[] tokens, address[] validNFTs, uint256 allocPoint);
   event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
   event Withdraw(address indexed user, uint256 indexed pid, uint256 indexed positionid);
@@ -49,7 +53,8 @@ contract TokenFarmFacet is Modifiers {
       }));
     }
     for (uint j=0; j <validNFTs.length; j++) {
-      s.validNFTsForPool[pid][validNFTs[j]] = true;
+      //s.validNFTsForPool[pid][validNFTs[j]] = true;
+      s.setValidNFTsForPool[pid].add(validNFTs[j]);
     }
     s.poolLength++;
     ToolShedFacet(address(this)).updateStakingPool();
@@ -57,17 +62,32 @@ contract TokenFarmFacet is Modifiers {
   }
 
   function changeValidNFTsForPool(uint256 poolid, address[] memory nfts, bool[] memory newStates) public onlyOwner {
-    require((nfts.length == newStates.length), 'please match nfts to newstates 1:1');
     AppStorage storage s = LibAppStorage.diamondStorage();
+    require((nfts.length == newStates.length), 'please match nfts to newstates 1:1');
+
     for (uint j=0; j < nfts.length; j++) {
-      s.validNFTsForPool[poolid][nfts[j]] = newStates[j];
+      if (s.setValidNFTsForPool[poolid].contains(nfts[j])) {
+        if (newStates[j] == false) {
+          s.setValidNFTsForPool[poolid].remove(nfts[j]);
+        }
+      } else {
+        if (newStates[j] == true) {
+          s.setValidNFTsForPool[poolid].add(nfts[j]);
+        }
+      }
     }
     emit PoolUpdateNFT(poolid, nfts, newStates);
   }
 
   function isValidNFTForPool(uint256 poolid, address nft) public returns (bool) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.validNFTsForPool[poolid][nft];
+    return s.setValidNFTsForPool[poolid].contains(nft);
+  }
+
+  function validNFTsForPool(uint256 poolid) public returns (address[] memory) {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+    return s.setValidNFTsForPool[poolid].values();
+
   }
   /**
     * Used to deposit a users tokens in a pool for a specific time. Opens up a position in the pool for the amounts given for the time staked.  Users with NFT rewards attach here.
@@ -96,7 +116,7 @@ contract TokenFarmFacet is Modifiers {
       nftid: 0
     });
     if (nftReward != address(0)) {
-      require(s.validNFTsForPool[pid][nftReward], 'chosen NFT is not part of the list of valid ones for this pool');
+      require(s.setValidNFTsForPool[pid].contains(nftReward), 'chosen NFT is not part of the list of valid ones for this pool');
       require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
       newPosition.nftReward = nftReward;
       newPosition.nftid = nftid;

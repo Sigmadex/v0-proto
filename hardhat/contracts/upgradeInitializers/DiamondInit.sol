@@ -16,6 +16,7 @@ import { IERC173 } from "../interfaces/IERC173.sol";
 import { IERC165 } from "../interfaces/IERC165.sol";
 
 import '../facets/SdexFacet.sol';
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 // It is exapected that this contract is customized if you want to deploy your diamond
 // with data from a deployment script. Use the init function to initialize state variables
@@ -26,6 +27,7 @@ import '../facets/SdexFacet.sol';
 */
 contract DiamondInit {
   AppStorage internal s;
+  using EnumerableSet for EnumerableSet.AddressSet;
   // You can add parameters to this function in order to pass in 
   // data to set your own state variables
 
@@ -72,7 +74,8 @@ contract DiamondInit {
       })
     );
     for (uint j=0; j < nftAddresses.length; j++) {
-      s.validNFTsForPool[0][nftAddresses[j]] = true;
+      s.setValidNFTsForPool[0].add(nftAddresses[j]);
+
     }
     s.userInfo[0][address(this)].tokenData.push(
       UserTokenData({

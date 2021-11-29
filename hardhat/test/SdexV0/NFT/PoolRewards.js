@@ -205,6 +205,43 @@ contract("poolRewards", (accounts) => {
     assert.equal(iBRisValid2, true)
   })
 
+  it("owner disables the rAR to pool 1", async () => {
+    const rPRisValid = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rPRAddress).call()
+    const rARisValid = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rARAddress).call()
+    const iBRisValid = await tokenFarmFacet.methods.isValidNFTForPool(poolid, iBRAddress).call()
+    assert.equal(rPRisValid, true)
+    assert.equal(rARisValid, true)
+    assert.equal(iBRisValid, true)
+
+    await tokenFarmFacet.methods.changeValidNFTsForPool(poolid, [rARAddress, rPRAddress, iBRAddress],
+      [false, true, true]).send({from: owner})
+    
+    const rPRisValid2 = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rPRAddress).call()
+    const rARisValid2 = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rARAddress).call()
+    const iBRisValid2 = await tokenFarmFacet.methods.isValidNFTForPool(poolid, iBRAddress).call()
+    assert.equal(rPRisValid2, true)
+    assert.equal(rARisValid2, false)
+    assert.equal(iBRisValid2, true)
+  })
+  it("owner reenables the rAR to pool 1", async () => {
+    const rPRisValid = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rPRAddress).call()
+    const rARisValid = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rARAddress).call()
+    const iBRisValid = await tokenFarmFacet.methods.isValidNFTForPool(poolid, iBRAddress).call()
+    assert.equal(rPRisValid, true)
+    assert.equal(rARisValid, false)
+    assert.equal(iBRisValid, true)
+
+    await tokenFarmFacet.methods.changeValidNFTsForPool(poolid, [rARAddress],
+      [true]).send({from: owner})
+    
+    const rPRisValid2 = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rPRAddress).call()
+    const rARisValid2 = await tokenFarmFacet.methods.isValidNFTForPool(poolid, rARAddress).call()
+    const iBRisValid2 = await tokenFarmFacet.methods.isValidNFTForPool(poolid, iBRAddress).call()
+    assert.equal(rPRisValid2, true)
+    assert.equal(rARisValid2, true)
+    assert.equal(iBRisValid2, true)
+  })
+
   it("hacker tries to approve his NFT, but fails", async () => {
     try {
       await tokenFarmFacet.methods.changeValidNFTsForPool(poolid, [fakeReward._address], [true]).send({from: hacker})
