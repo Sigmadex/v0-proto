@@ -1,7 +1,24 @@
 import React  from 'react' 
 import DepositFarmForm from 'components/Farm/DepositFarmForm'
+import { useGetValidNFTsForPool } from 'hooks/useTokenFarmFacet'
+import { useGetUserNFTs } from 'hooks/useNFTs'
+import { useParams } from 'react-router-dom'
+const Web3 =require('web3')
 
 const DepositFarm = () => {
+  const { id } = useParams()
+  console.log('id', id)
+  const validNFTs = useGetValidNFTsForPool(id)
+  const userNFTs = useGetUserNFTs()
+  console.log(validNFTs)
+  console.log(userNFTs)
+
+  const nftsUserCanUse = userNFTs.filter((nft) => {
+    const contract = Web3.utils.toChecksumAddress(nft.nft.contract.id)
+    return validNFTs.includes(contract) 
+    
+  })
+  console.log(nftsUserCanUse)
   return (
     <>
       <div className="row">

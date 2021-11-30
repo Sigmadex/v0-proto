@@ -21,19 +21,22 @@ services:
       - "8545:8545"
   
   hardhat-deploy:
+    user: $UID
     depends_on:
       - ganache-cli
     build:
       context: ./hardhat
     volumes:
+      - ./hardhat:/hardhat
       - ./subgraph:/subgraph
-      - ./web:/web
+      - ./web:/web:rw
     links:
       - ganache-cli
     command: npm run deploy:docker
     #command: tail -f /dev/null
 
   graph-node:
+    user: $UID
     image: graphprotocol/graph-node:latest
     ports:
       - '8000:8000'
@@ -80,7 +83,7 @@ services:
       - graph-node
       - ipfs
       - postgres
-    build:  
+    build: 
       context: ./subgraph
     volumes:
       - ./subgraph:/subgraph
@@ -91,10 +94,11 @@ services:
 
 
   client:
+    user: $UID
     build:
       context: ./web
     volumes:
-      - ./web:/web
+      - ./web:/web:rw
     ports:
       - "3000:3000"
     command: npm start

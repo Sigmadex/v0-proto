@@ -129,3 +129,33 @@ export const useWithdrawFarm = (
 
   return { onWithdraw: handleWithdraw }
 }
+
+
+export const useGetValidNFTsForPool = (pid: string) => {
+  const [validNFTs, setValidNFTs] = useState([])
+
+  const { account, library } = useWeb3React()
+
+  const fetchValidNFTsForPool = useCallback(async () => {
+    console.log('fetchValidNFTsForPool')
+    const tokenFarmFacet = getTokenFarmFacet(library)
+    try {
+      console.log(tokenFarmFacet)
+      const validNFTsForPool = await tokenFarmFacet.methods.validNFTsForPool(pid).call({from: account})
+      console.log(validNFTsForPool)
+      setValidNFTs(validNFTsForPool)
+
+    } catch (e) {
+      console.log(e)
+    }
+
+
+  }, [account, pid, library])
+
+  useEffect(() => {
+    if (account && library) {
+      fetchValidNFTsForPool()
+    }
+  }, [account, fetchValidNFTsForPool, library])
+  return validNFTs
+}

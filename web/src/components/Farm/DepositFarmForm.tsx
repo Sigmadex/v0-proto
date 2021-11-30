@@ -55,6 +55,11 @@ const DepositFarmForm: FC = () => {
     }
   }, [amountB, allowanceB])
 
+  // if apply NFT reward clicked
+  // Loading circle
+  // Fetch NFTsbyUser
+  // Filter by Valid NFT
+
   const { onApprove:onApproveA } = useSetAllowance(addressA, amountA)
   const { onApprove:onApproveB } = useSetAllowance(addressB, amountB)
 
@@ -139,6 +144,8 @@ const DepositFarmForm: FC = () => {
       console.log(e)
     }
   }, [onDeposit])
+
+
   return (
     <>
     <div className="card">
@@ -209,6 +216,20 @@ const DepositFarmForm: FC = () => {
               </div>
               <div className="col-4 text-end">
                 <br />
+              </div>
+            </div>
+          </div>
+        </div>{/* /.card */}
+        <div className="card bg-light mt-2">
+          <div className="card-body">
+            <div className="row">
+              <div className="col-12 d-grid gap-2">
+                <button className="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userValidNFTs" aria-controls="userValidNFTs">
+                  Apply NFT Reward 
+                </button>
+                </div>
+                <div className="collapse" id="userValidNFTs">
+                  hi
               </div>
             </div>
           </div>
