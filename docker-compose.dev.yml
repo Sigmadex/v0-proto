@@ -28,6 +28,7 @@ services:
       context: ./hardhat
     volumes:
       - ./hardhat:/hardhat
+      - /hardhat/node_modules
       - ./subgraph:/subgraph
       - ./web:/web:rw
     links:
@@ -94,11 +95,12 @@ services:
 
 
   client:
-    user: $UID
+    #user: $UID
     build:
       context: ./web
     volumes:
       - ./web:/web:rw
+      - /web/node_modules
     ports:
       - "3000:3000"
     command: npm start
