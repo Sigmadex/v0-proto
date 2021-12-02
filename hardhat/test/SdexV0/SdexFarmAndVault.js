@@ -447,14 +447,14 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
       BN(state5.accSdexRewardPool))).toString(), 2
     )
 
-    const reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     console.log(reductionAmount1)
 
-    const reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(2).call()
+    const reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRAmount(2).call()
     console.log(reductionAmount2)
-    const reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(3).call()
+    const reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRAmount(3).call()
     console.log(reductionAmount3)
-    const reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    const reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
     console.log(reductionAmount4)
 
     console.log(BN(reductionAmount2.amount).add(BN(reductionAmount4.amount)).toString(), state5.accSdexRewardPool)
@@ -494,7 +494,7 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
     await sdexVaultFacet.methods.depositVault(
       stakeAmountA, blocksToStake, reducedPenaltyReward._address, 1).send({from:alice})
 
-    const state2ReductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const state2ReductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     const state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
     console.log('===========alice: 1/10, bob: 0/10==========')
     console.log('alice ', state2[alice].sdex)
@@ -606,10 +606,10 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
     assert.equal(BN(state5[bob].sdex).sub(BN(state4[bob].sdex)).toString(), stakeAmountB)
     assert.equal(BN(state4[alice].sdex).sub(BN(state3[alice].sdex)).toString(), stakeAmountA)
 
-    let reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
-    let reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(2).call()
-    let reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(3).call()
-    let reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    let reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
+    let reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRAmount(2).call()
+    let reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRAmount(3).call()
+    let reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
 
 
     assert.equal(BN(reductionAmount2.amount).add(BN(reductionAmount4.amount)).toString(), state5.accSdexRewardPool)
@@ -723,10 +723,10 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
       BN(state9.accSdexPenaltyPool)).add(
       BN(state9.accSdexRewardPool))).toString(), 2
     )
-    reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
-    reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(2).call()
-    reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(3).call()
-    reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
+    reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRAmount(2).call()
+    reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRAmount(3).call()
+    reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
     console.log(reductionAmount1, reductionAmount2, reductionAmount3, reductionAmount4)
 
     assert.equal(BN(reductionAmount2.amount).add(BN(reductionAmount4.amount)).toString(), state9.accSdexRewardPool)
@@ -751,10 +751,10 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
 
     await sdexVaultFacet.methods.withdrawVault(state10[alice].vUserInfo.positions.length-1).send({from: alice})
 
-    reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
-    reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(2).call()
-    reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(3).call()
-    reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    reductionAmount1 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
+    reductionAmount2 = await reducedPenaltyRewardFacet.methods.rPRAmount(2).call()
+    reductionAmount3 = await reducedPenaltyRewardFacet.methods.rPRAmount(3).call()
+    reductionAmount4 = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
 
     const state11 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
 

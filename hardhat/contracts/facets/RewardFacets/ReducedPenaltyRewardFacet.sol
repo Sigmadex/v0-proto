@@ -57,16 +57,11 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
       amount: amount,
       rewardPool: rewardPool 
     });
-    console.log('rPRReward::reward::test2');
     s.rPRAmounts[s.rPRNextId] = reductionAmount;
-    console.log('rPRReward::reward::test3');
     bytes memory data = 'data';
     IERC1155(s.reducedPenaltyReward).mint(to, s.rPRNextId, 1, data);
-    console.log('rPRReward::reward::test4');
     s.rPRNextId++;
-    console.log('rPRReward::reward::test5');
     emit RewardNFT(to, token, amount);
-    console.log('rPRReward::reward::test6');
   }
 
   /**
@@ -74,7 +69,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
   * @param id the nft id 
   * @return RPRAmount the amount of reduction it can provide in what token
   */
-  function rPRReductionAmount(uint256 id) external returns (RPRAmount memory) {
+  function rPRAmount(uint256 id) external returns (RPRAmount memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.rPRAmounts[id];
   }

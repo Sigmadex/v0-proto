@@ -22,7 +22,6 @@ export const useGetPoolInfos = () => {
         tmp.push(info)
         //setPoolInfo([...poolInfo, info])
       }
-      console.log('tmp', tmp)
       setPoolInfo(tmp)
 
     } catch (e) {
@@ -57,7 +56,6 @@ export const useGetUserInfo = () => {
         tmp.push(info)
         //setUserInfo([...userInfo, info])
       }
-      console.log('tmp', tmp)
       setUserInfo(tmp)
 
     } catch (e) {
@@ -132,7 +130,7 @@ export const useWithdrawFarm = (
 
 
 export const useGetValidNFTsForPool = (pid: string) => {
-  const [validNFTs, setValidNFTs] = useState([])
+  const [validNFTs, setValidNFTs] = useState({})
 
   const { account, library } = useWeb3React()
 
@@ -140,10 +138,16 @@ export const useGetValidNFTsForPool = (pid: string) => {
     console.log('fetchValidNFTsForPool')
     const tokenFarmFacet = getTokenFarmFacet(library)
     try {
-      console.log(tokenFarmFacet)
       const validNFTsForPool = await tokenFarmFacet.methods.validNFTsForPool(pid).call({from: account})
-      console.log(validNFTsForPool)
-      setValidNFTs(validNFTsForPool)
+      const poolInfo = await tokenFarmFacet.methods.poolInfo(pid).call({from: account})
+      const validTokens = poolInfo.tokenData.map((tokenData) => {
+        return tokenData.token
+      })
+      const returnData = {
+        validNFTsForPool,
+        validTokens
+      }
+      setValidNFTs(returnData)
 
     } catch (e) {
       console.log(e)

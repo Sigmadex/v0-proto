@@ -209,8 +209,8 @@ contract("TokenFarmFacet", (accounts) => {
     //Reduced Penalty Rewards
     assert.equal(aliceRPRSdex1, 1)
     assert.equal(aliceRPRSdex2, 1)
-    const reductionAmountSdex1 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
-    const reductionAmountSdex2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(2).call()
+    const reductionAmountSdex1 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
+    const reductionAmountSdex2 = await reducedPenaltyRewardFacet.methods.rPRAmount(2).call()
     const rAS1BN = BN(reductionAmountSdex1.amount)
     const rAS2BN = BN(reductionAmountSdex2.amount)
     //assert.equal(rAS1BN.add(rAS2BN).toString(), sdexNFTReward.toString())
@@ -223,7 +223,7 @@ contract("TokenFarmFacet", (accounts) => {
 
     let aliceRPid = 1
     let aliceRPAmount = await reducedPenaltyReward.methods.balanceOf(alice, aliceRPid).call()
-    let reductionAmount = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(aliceRPid).call()
+    let reductionAmount = await reducedPenaltyRewardFacet.methods.rPRAmount(aliceRPid).call()
     assert.equal(diamondAddress, reductionAmount.token)
 
     await tokenFarmFacet.methods.deposit(
@@ -283,7 +283,7 @@ contract("TokenFarmFacet", (accounts) => {
 
 
     //Reduced Penalty Rewards
-    const reductionSdexmountSdex = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const reductionSdexmountSdex = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     assert.equal(reductionSdexmountSdex.amount, 0)
   })
 })

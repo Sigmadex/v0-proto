@@ -314,7 +314,7 @@ contract("SdexVaultSingle", (accounts) => {
     
     // NFT
     assert.equal(await reducedPenaltyReward.methods.balanceOf(alice, 1).call(), 1)
-    const reduction = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const reduction = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     assert.equal(reduction.amount, state3.rewardGlobals[diamondAddress].rewarded);
     assert.equal(reduction.amount, state2.rewardGlobals[diamondAddress].penalties);
   })
@@ -364,7 +364,7 @@ contract("SdexVaultSingle", (accounts) => {
     const accruedSdex = currentAmount.sub(positionAmount)
     const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(blocksToStake/2 + 1, blocksToStake, accruedSdex) 
 
-    const reduction2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const reduction2 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     const reduction2BN =  BN(reduction2.amount)
 
     await advanceBlocks(blocksToStake/2) // 1800 seconds, 0 block
@@ -394,7 +394,7 @@ contract("SdexVaultSingle", (accounts) => {
 
     const totalSdex3 = await sdexFacet.methods.totalSupply().call()
 
-    const reduction3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const reduction3 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     const reduction3BN =  BN(reduction3.amount)
     //Alice Sdex
     assert.equal(BN(state1[alice].sdex).sub(BN(stakeAmount)).toString(), state2[alice].sdex)
@@ -497,7 +497,7 @@ contract("SdexVaultSingle", (accounts) => {
     await sdexVaultFacet.methods.depositVault(
       stakeAmount, blocksToStake, reducedPenaltyReward._address, 4).send({from:alice})
     
-    const reduction = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    const reduction = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
     console.log(reduction)
     console.log(reduction.amount.toString())
 
@@ -549,7 +549,7 @@ contract("SdexVaultSingle", (accounts) => {
     )
     console.log('============================')
 
-    const reduction2 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    const reduction2 = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
     console.log(reduction2)
 
     positionid = 5
@@ -587,7 +587,7 @@ contract("SdexVaultSingle", (accounts) => {
     console.log('============================')
 
 
-    const reduction3 = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(4).call()
+    const reduction3 = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
     console.log(reduction3)
 
   })

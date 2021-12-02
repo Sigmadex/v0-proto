@@ -365,9 +365,9 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(aliceRPRA, 1)
     assert.equal(aliceRPRB, 1)
     assert.equal(aliceRPRSdex, 1)
-    const reductionAmountA = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
-    const reductionAmountB = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(2).call()
-    const reductionAmountSdex = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(3).call()
+    const reductionAmountA = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
+    const reductionAmountB = await reducedPenaltyRewardFacet.methods.rPRAmount(2).call()
+    const reductionAmountSdex = await reducedPenaltyRewardFacet.methods.rPRAmount(3).call()
     assert.equal(reductionAmountA.amount, tokenARewardAmount.toString())
     assert.equal(reductionAmountB.amount, tokenBRewardAmount.toString())
     assert.equal(reductionAmountSdex.amount, sdexNFTReward.toString())
@@ -382,7 +382,7 @@ contract("TokenFarmFacet", (accounts) => {
   it("can deposit using reduced penalty reward", async () => {
     let aliceRPid = 1
     let aliceRPAmount = await reducedPenaltyReward.methods.balanceOf(alice, aliceRPid).call()
-    let reductionAmount = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(aliceRPid).call()
+    let reductionAmount = await reducedPenaltyRewardFacet.methods.rPRAmount(aliceRPid).call()
     assert.equal(tokenA._address, reductionAmount.token)
 
     await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -488,7 +488,7 @@ contract("TokenFarmFacet", (accounts) => {
 
   //Reduced Penalty Rewards
     assert.equal(aliceRPRA, 1)
-    const reductionAmountA = await reducedPenaltyRewardFacet.methods.rPRReductionAmount(1).call()
+    const reductionAmountA = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     assert.equal(reductionAmountA.amount, 0)
   })
 })

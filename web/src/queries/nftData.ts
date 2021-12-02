@@ -18,7 +18,9 @@ export const getUserNFTs = async (user:string) =>  {
   `
   try {
     let results = await request(process.env.REACT_APP_SUBGRAPH_URL, query, {owner: user})
-    return results.ownerships
+    return results.ownerships.map((ownership) => {
+      return ownership.nft
+    })
   }  catch (e) {
     console.log(e)
     return []

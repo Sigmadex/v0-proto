@@ -6,7 +6,7 @@ const ListNFTs:FC = () => {
   const userNFTs = useGetUserNFTs()
 
   const nfts = userNFTs.map((nft, i) => {
-    return (<NFTCard key={i} data={nft.nft} />)
+    return (<NFTCard key={i} data={nft} />)
   })
   return (
     <>

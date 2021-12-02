@@ -48,24 +48,17 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     REWARDPOOL rewardPool
     
   ) external onlyDiamond {
-    console.log('rARReward::reward::test');
     AppStorage storage s = LibAppStorage.diamondStorage();
     RARAmount memory amplificationAmount = RARAmount({
       token: token,
       amount: amount,
       rewardPool: rewardPool 
     });
-    console.log('rARReward::reward::test2');
     s.rARAmounts[s.rARNextId] = amplificationAmount;
-    console.log('rARReward::reward::test3');
     bytes memory data = 'data';
     IERC1155(s.rewardAmplifierReward).mint(to, s.rARNextId, 1, data);
-    console.log('rARReward::reward::test4');
     s.rARNextId++;
-    console.log('rARReward::reward::test5');
-
     emit RewardNFT(to, token, amount);
-    console.log('rARReward::reward::test6');
   }
 
   function reqReward(address to, address token, uint256 blockAmount, uint256 bonus) private {

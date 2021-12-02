@@ -56,16 +56,11 @@ contract IncreasedBlockRewardFacet is  Modifiers {
       amount: amount,
       rewardPool: rewardPool 
     });
-    console.log('iBRReward::reward::test2');
     s.iBRAmounts[s.iBRNextId] = reductionAmount;
-    console.log('iBRReward::reward::test3');
     bytes memory data = 'data';
     IERC1155(s.increasedBlockReward).mint(to, s.iBRNextId, 1, data);
-    console.log('iBRReward::reward::test4');
     s.iBRNextId++;
-    console.log('iBRReward::reward::test5');
     emit RewardNFT(to, token, amount);
-    console.log('iBRReward::reward::test6');
   }
 
   /**

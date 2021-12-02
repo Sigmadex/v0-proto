@@ -7,23 +7,19 @@ const Web3 =require('web3')
 
 const DepositFarm = () => {
   const { id } = useParams()
-  console.log('id', id)
   const validNFTs = useGetValidNFTsForPool(id)
   const userNFTs = useGetUserNFTs()
-  console.log(validNFTs)
-  console.log(userNFTs)
-
-  const nftsUserCanUse = userNFTs.filter((nft) => {
-    const contract = Web3.utils.toChecksumAddress(nft.nft.contract.id)
-    return validNFTs.includes(contract) 
-    
+  const usersValidNFTs = userNFTs.filter((nft) => {
+    const nftAddr = Web3.utils.toChecksumAddress(nft.nft.contract.id)
+    const tokenAddr = nft.amounts.token
+    return validNFTs.validNFTsForPool.includes(nftAddr) && validNFTs.validTokens.includes(tokenAddr)
   })
-  console.log(nftsUserCanUse)
+  console.log(usersValidNFTs)
   return (
     <>
       <div className="row">
         <div className="col-6">
-          <DepositFarmForm />
+          <DepositFarmForm usersValidNFTs={usersValidNFTs}/>
         </div>{/* /.col-6 */}
         <div className="col-6">
           <div className="card">

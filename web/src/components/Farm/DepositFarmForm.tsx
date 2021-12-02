@@ -11,8 +11,11 @@ import { CheckLg } from 'react-bootstrap-icons';
 
 const Web3 = require('web3')
 
+interface DepositFarmFormProps {
+  usersValidNFTs: object[]
+}
 
-const DepositFarmForm: FC = () => {
+const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs}) => {
   
   const addressA = Static.addresses.tokenA
   const addressB = Static.addresses.tokenB
@@ -21,6 +24,8 @@ const DepositFarmForm: FC = () => {
   const [amountA, setAmountA] = useState(0)
   const [amountB, setAmountB] = useState(0)
   const [blocksStake, setBlocksStake] = useState(0)
+  const [nftAddr, setNFTAddr] = useState(Static.addresses.ZERO)
+  const [nftid, setNFTid] = useState(0)
   
   // Will need a getTokenStatic.addressesByFarmid
 
@@ -59,6 +64,16 @@ const DepositFarmForm: FC = () => {
   // Loading circle
   // Fetch NFTsbyUser
   // Filter by Valid NFT
+  const handleNFT = (event) => {
+    if (event.target.value === 'Choose NFT') {
+      setNFTAddr(Static.addresses.ZERO)
+      setNFTid(0)
+      return
+    }
+    const nftData = (usersValidNFTs[event.target.value])
+    setNFTAddr(nftData.nft.contract.id)
+    setNFTid(nftData.nft.tokenID)
+  }
 
   const { onApprove:onApproveA } = useSetAllowance(addressA, amountA)
   const { onApprove:onApproveB } = useSetAllowance(addressB, amountB)
@@ -126,17 +141,17 @@ const DepositFarmForm: FC = () => {
     1, // pull this later from url params
     [amountA, amountB],
     blocksStake,
-    Static.addresses.ZERO, // no nft for now
-    0
+    nftAddr, // no nft for now
+    nftid
   )
   const [depositPending, setDepositPending] = useState(false)
   const [depositSuccess, setDepositSuccess] = useState(false)
+
   const deposit = useCallback(async () => {
     try {
       setDepositPending(true)
       const status = await onDeposit()
       setDepositPending(false)
-      console.log(status)
       if (status) {
         setDepositSuccess(true)
       } 
@@ -145,7 +160,9 @@ const DepositFarmForm: FC = () => {
     }
   }, [onDeposit])
 
-
+  const nfts = usersValidNFTs.map((validNFT, i) => {
+    return (<option key={i} value={i}>{validNFT.nft.contract.name}</option>)
+  })
   return (
     <>
     <div className="card">
@@ -229,7 +246,10 @@ const DepositFarmForm: FC = () => {
                 </button>
                 </div>
                 <div className="collapse" id="userValidNFTs">
-                  hi
+                  <select onChange={handleNFT} className="form-control" id="nftRewards">
+                    <option selected>Choose NFT</option>
+                    {nfts}
+                  </select>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, {FC} from "react"
 
+const Web3 = require('web3')
 interface NFTCardProps {
   data: object
 }
@@ -11,17 +12,16 @@ const NFTCard:FC<NFTCardProps> = ({data}) => {
         <div className="card-body">
           <h6 className="card-title">
             <span className="badge bg-primary me-2">NFT</span>
-            {data.contract.name}
+            {data.nft.contract.name}
           </h6>
           <p className="card-text">
-            <strong>One time use:</strong>
-            No transaction fees when swapping any tokens.
+            {data.description}
           </p>
           <dl className="row mb-0">
-            <dt className="col-7 fw-normal">One time use:</dt>
-            <dd className="col-5 text-end fw-bold">yes</dd>
-            <dt className="col-7 fw-normal">Status:</dt>
-            <dd className="col-5 text-end fw-bold"><small>Owned (3)</small></dd>
+            <dt className="col-7 fw-normal">Underlying Asset: </dt>
+            <dd className="col-5 text-end fw-bold">{data.tokenName}</dd>
+            <dt className="col-7 fw-normal">Amount</dt>
+            <dd className="col-5 text-end fw-bold">{Web3.utils.fromWei(data.amounts.amount, 'ether')}</dd>
           </dl>
         </div>
       </div>
