@@ -17,6 +17,11 @@ const Farm: FC = () => {
               <Link to='deposit'>
               <button className="btn btn-outline-primary">Create a Position</button>
               </Link>
+              { id === '0' ?
+                <Link to="vault/deposit">
+                  <button className="m-2 btn btn-outline-primary">Create a Position in the Vault</button>
+                </Link> : null
+              }
               <button className="btn btn-outline-primary m-2 disabled">Swap Now</button>
               <button className="btn btn-outline-primary disabled">Pool Now</button>
             </div>

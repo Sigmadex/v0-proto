@@ -6,6 +6,7 @@ import  { useGetTokenBalance } from 'hooks/useERC20'
 
 import WalletModal from 'components/WalletModal'
 import ListPositions from 'components/Portfolio/ListPositions'
+import ListVaultPositions from 'components/Portfolio/ListVaultPositions'
 import ListNFTs from 'components/Portfolio/ListNFTs'
 
 const Web3 = require('web3')
@@ -128,7 +129,7 @@ const Portfolio: React.FC = () => {
 
       <div className="row mb-2">
         <div className="col-12">
-          <h3>Liquidity Positions</h3>
+          <h3>Farm Positions</h3>
         </div>
         <div className="col-4">
           Open positions = <strong>5</strong>
@@ -139,6 +140,19 @@ const Portfolio: React.FC = () => {
         </div>
       </div>{/* /.row */}
       <ListPositions listenForWithdrawEvt={listenForWithdrawEvt}/>
+      <div className="row mb-2">
+        <div className="col-12">
+          <h3>Sdex Vault Positions</h3>
+        </div>
+        <div className="col-4">
+          Open positions = <strong>5</strong>
+        </div>
+        <div className="col-8 text-end">
+          <span className="me-2">Total Amount Staked (USD) = <strong>$250,000.00</strong></span>
+          <span>Unrealized Rewards = <strong>$91,529</strong></span>
+        </div>
+      </div>{/* /.row */}
+      <ListVaultPositions listenForWithdrawEvt={listenForWithdrawEvt}/>
       <div className="row">
         <div className="col-12 mb-2">
           <h3>NFTs</h3>

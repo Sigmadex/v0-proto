@@ -1,6 +1,7 @@
 import Static from 'config/Static.json'
 import SdexFacet from 'config/artifacts/contracts/facets/SdexFacet.sol/SdexFacet.json'
 import TokenFarmFacet from 'config/artifacts/contracts/facets/TokenFarmFacet.sol/TokenFarmFacet.json'
+import SdexVaultFacet from 'config/artifacts/contracts/facets/SdexVaultFacet.sol/SdexVaultFacet.json'
 
 import RewardFacet from 'config/artifacts/contracts/facets/RewardFacet.sol/RewardFacet.json'
 
@@ -20,6 +21,10 @@ export const getERC20 = (web3:any, address:string) => {
 
 export const getTokenFarmFacet = (web3:any) => {
   return new web3.eth.Contract(TokenFarmFacet.abi, Static.addresses.diamond)
+}
+
+export const getSdexVaultFacet = (web3:any) => {
+  return new web3.eth.Contract(SdexVaultFacet.abi, Static.addresses.diamond)
 }
 
 export const getRewardFacet = (web3:any) => {

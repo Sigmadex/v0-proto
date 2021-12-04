@@ -16,7 +16,7 @@ Next ``cd web && cp .env.example .env`` the default values should work unless on
 
 Next ``export UID`` to be able to delete the files that the images create
 
-Next ``docker-compose -f docker-compose.dev.yml up``
+Next ``./start-docker.sh``
 
 When finishing up, insure to run ``./clean-docker.sh`` to reset the state for next run
 

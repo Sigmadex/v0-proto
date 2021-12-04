@@ -8,6 +8,7 @@ import Farms from './views/Farms'
 import Farm from './views/Farm'
 import Swap from './views/Swap'
 import DepositFarm from './views/DepositFarm'
+import DepositVault from './views/DepositVault'
 
 import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
 
@@ -38,6 +39,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/farms" element={<Farms />}/>
           <Route path="/farms/:id" element={<Farm />} />
+          <Route path="/farms/0/vault/deposit" element={<DepositVault />} />
           <Route path="/farms/:id/deposit" element={<DepositFarm />} />
           <Route path="/swap" element={<Swap />} />
           <Route path="/portfolio" element={<Portfolio />} />
