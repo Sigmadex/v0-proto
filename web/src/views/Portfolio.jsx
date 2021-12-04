@@ -21,15 +21,15 @@ const Portfolio: React.FC = () => {
   const {
     balance:tokenABalance,
     fetchBalance:fetchTokenABalance,
-  }  = useGetTokenBalance(Static.addresses.tokenA)
+  }  = useGetTokenBalance(Static.addresses.DOT)
   const {
     balance:tokenBBalance,
     fetchBalance:fetchTokenBBalance,
-  }  = useGetTokenBalance(Static.addresses.tokenB)
+  }  = useGetTokenBalance(Static.addresses.WBTC)
   const {
     balance:tokenCBalance,
     fetchBalance:fetchTokenCBalance,
-  }  = useGetTokenBalance(Static.addresses.tokenC)
+  }  = useGetTokenBalance(Static.addresses.USDT)
 
   useEffect(() => {
     if (withdrawEvt) {

@@ -83,12 +83,15 @@ export const useDepositFarm = (
   const {account, library } = useWeb3React()
 
   const handleDeposit = useCallback(async() => {
+    amounts = amounts.map((amount) => {
+      return Web3.utils.toWei(String(amount), 'ether')
+    })
     console.log('handleDeposit')
     const contract = getTokenFarmFacet(library)
     try{
       const deposit = await contract.methods.deposit(
         poolid,
-        [Web3.utils.toWei(String(amounts[0]), 'ether'), Web3.utils.toWei(String(amounts[1]), 'ether')],
+        amounts,
         blocksToStake,
         nftAddress,
         nftid

@@ -12,7 +12,6 @@ const NFTCarousel: FC<NFTCarouselProps> = ({nfts, tokens}) => {
   let items = []
   if (nfts && tokens) {
   const tokenChits = tokens.map((token, i) => {
-    console.log(token)
     let name = Object.keys(Static.addresses).find(key => Static.addresses[key] === token)
     return (<span key={i} className="ms-2 badge bg-success">{name}</span>)
   })
@@ -79,7 +78,6 @@ const NFTCarousel: FC<NFTCarouselProps> = ({nfts, tokens}) => {
 			</div>
 		)})
   }
-  console.log(nfts)
 
 	return (
 		<div id="carouselExampleIndicators" className="carousel carousel-dark slide" data-bs-ride="carousel">

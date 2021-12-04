@@ -16,7 +16,7 @@ interface DepositFarmFormProps {
   farmid: string
 }
 
-const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => {
+const DepositSdexFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => {
   const farm = Static.farms[farmid]
   
 
@@ -24,12 +24,11 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
     return (Object.values(token)[0])
   })
   const addressA = addresses[0]
-  const addressB = addresses[1]
 
+  console.log('addresses', addresses)
 
   // Form 
   const [amountA, setAmountA] = useState(0)
-  const [amountB, setAmountB] = useState(0)
   const [blocksStake, setBlocksStake] = useState(0)
   const [nftAddr, setNFTAddr] = useState(Static.addresses.ZERO)
   const [nftid, setNFTid] = useState(0)
@@ -37,10 +36,8 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
   // Will need a getTokenStatic.addressesByFarmid
 
   const allowanceA = useGetAllowance(addressA)
-  const allowanceB = useGetAllowance(addressB)
   
   const [isApprovedA, setIsApprovedA] = useState(ApprovalStatus.FALSE)
-  const [isApprovedB, setIsApprovedB] = useState(ApprovalStatus.FALSE)
 
 
   useEffect(() => {
@@ -54,18 +51,6 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
       }
     }
   }, [amountA, allowanceA])
-  
-  useEffect(() => {
-    if (amountB > 0) {
-      const amountWei = Web3.utils.toWei(String(amountB), 'ether')
-
-      if (amountWei > Number(allowanceB)) {
-        setIsApprovedB(ApprovalStatus.FALSE)
-      } else {
-        setIsApprovedB(ApprovalStatus.TRUE)
-      }
-    }
-  }, [amountB, allowanceB])
 
   // if apply NFT reward clicked
   // Loading circle
@@ -83,7 +68,6 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
   }
 
   const { onApprove:onApproveA } = useSetAllowance(addressA, amountA)
-  const { onApprove:onApproveB } = useSetAllowance(addressB, amountB)
 
   const handleApproveA = useCallback(async () => {
     try {
@@ -99,22 +83,6 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
     }
   }, [onApproveA])
 
-  const handleApproveB = useCallback(async () => {
-    try {
-      setIsApprovedB(ApprovalStatus.PENDING)
-      const status = await onApproveB()
-      if (status) {
-        setIsApprovedB(ApprovalStatus.TRUE)
-      } else {
-        setIsApprovedB(ApprovalStatus.FALSE)
-      }
-    } catch (e) {
-      console.error(e)
-    }
-  }, [onApproveB])
-
-
-
   function renderApproveButtonA() {
     switch (isApprovedA) {
       case ApprovalStatus.FALSE:
@@ -129,24 +97,10 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
         return (<span>'Approve'</span>)
     }
   }
-  function renderApproveButtonB() {
-    switch (isApprovedB) {
-      case ApprovalStatus.FALSE:
-        return 'Approve'
-      case ApprovalStatus.PENDING:
-        return (<div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>)
-      case ApprovalStatus.TRUE:
-        return <CheckLg/>
-      default:
-        return (<span>'Approve'</span>)
-    }
-  }
   
   const {onDeposit} = useDepositFarm(
-    Number(farmid), // pull this later from url params
-    [amountA, amountB],
+    0, // pull this later from url params
+    [amountA],
     blocksStake,
     nftAddr, // no nft for now
     nftid
@@ -208,29 +162,6 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
             <i className="bi bi-arrow-down fs-5"></i>
           </div>
         </div>
-        <div className="card bg-light">
-          <div className="card-body">
-            <div className="row">
-              <div className="col-8">
-                Add:
-                <input type="text" name="from" className="form-control" placeholder="0.0" value={amountB} onChange={e => setAmountB(e.target.value)}/>
-              </div>
-              <div className="col-4 text-end">
-                <br />
-                <div className="btn-group">
-                  <button type="button" className="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i className="bi-coin"></i> SDEX
-                  </button>
-                  <ul className="dropdown-menu dropdown-menu-end">
-                    <li><a className="dropdown-item" href="#">Coin</a></li>
-                    <li><a className="dropdown-item" href="#">FarmAnother Coin</a></li>
-                    <li><a className="dropdown-item" href="#">Something else here</a></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>{/* /.card */}
         <div className="card bg-light mt-2">
           <div className="card-body">
             <div className="row">
@@ -262,20 +193,15 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
           </div>
         </div>{/* /.card */}
         <div className="row my-4">
-          <div className="col-6 d-grid gap-2">
+          <div className="col-12 d-grid gap-2">
             <button disabled={(isApprovedA !== ApprovalStatus.FALSE) || amountA == 0} className="btn btn-outline-primary" onClick={handleApproveA}>
             {renderApproveButtonA()}
               </button>
           </div>
-          <div className="col-6 d-grid gap-2">
-            <button disabled={(isApprovedB !== ApprovalStatus.FALSE) || amountB == 0} className="btn btn-outline-primary" onClick={handleApproveB}>
-            {renderApproveButtonB()}
-            </button>
-          </div>
         </div>
         <div className="row my-4">
           <div className="col-12 d-grid gap-2">
-            <button className="btn btn-outline-primary" disabled={!isApprovedA && !isApprovedB} onClick={deposit}>
+            <button className="btn btn-outline-primary" disabled={!isApprovedA} onClick={deposit}>
               { depositPending ?
                 <div className="spinner-border text-primary" role="status">
                   <span className="visually-hidden">Loading...</span>
@@ -297,4 +223,4 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
     </>
   )
 }
-export default DepositFarmForm
+export default DepositSdexFarmForm

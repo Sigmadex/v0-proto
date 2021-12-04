@@ -18,14 +18,20 @@ export const useGetTokenBalance = (address:string) => {
   const fetchBalance = useCallback(async () => {
     console.log('fetching balance')
     const erc20 = getERC20(library, address)
-    setBalance(await erc20.methods.balanceOf(account).call({from:account}))
+    try {
+      setBalance(await erc20.methods.balanceOf(account).call({from:account}))
+
+    } catch (e) {
+      console.log(e)
+      setBalance('0')
+    }
   }, [account, address, library])
 
   useEffect(() => {
-    if (account) {
+    if (account && library) {
       fetchBalance()
     }
-  }, [account, fetchBalance])
+  }, [account, library, fetchBalance])
 
   return {balance, fetchBalance}
 }

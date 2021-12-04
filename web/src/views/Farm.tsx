@@ -5,7 +5,6 @@ import { useParams, Link } from "react-router-dom";
 
 const Farm: FC = () => {
   const { id } = useParams()
-  console.log('hi')
   return (
     <>
       <div className="row mb-4">
