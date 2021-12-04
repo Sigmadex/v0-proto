@@ -1,4 +1,4 @@
-import React, { FC,useEffect, useCallback } from 'react'
+import React, { FC, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 
 interface DepositSuccessModalProps {

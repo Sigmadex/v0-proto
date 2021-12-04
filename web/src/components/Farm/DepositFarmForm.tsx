@@ -13,12 +13,21 @@ const Web3 = require('web3')
 
 interface DepositFarmFormProps {
   usersValidNFTs: object[]
+  farmid: string
 }
 
-const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs}) => {
+const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => {
+  const farm = Static.farms[farmid]
+  console.log(farm)
   
-  const addressA = Static.addresses.tokenA
-  const addressB = Static.addresses.tokenB
+
+  const addresses = Static.farms[farmid].map((token) => {
+    return (Object.values(token)[0])
+  })
+  const addressA = addresses[0]
+  const addressB = addresses[1]
+
+  console.log('addresses', addresses)
 
   // Form 
   const [amountA, setAmountA] = useState(0)

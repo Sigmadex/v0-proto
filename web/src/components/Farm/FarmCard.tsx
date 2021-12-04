@@ -7,7 +7,6 @@ interface FarmCardProps {
 }
 
 const FarmCard:FC<FarmCardProps> = ({pid, poolInfo}) => {
-  console.log(poolInfo)
   return (
     <>
     <div className="col-3">

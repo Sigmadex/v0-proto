@@ -30,9 +30,9 @@ async function deployTestnetScaffold() {
   const tokenB = await deploy(owner, MockERC20, ['Wrapped BTC', 'WBTC', erc20TotalSupply ])
   const tokenC = await deploy(owner, MockERC20, ['USD Tether', 'USDT', erc20TotalSupply ])
 
-  Static.addresses['tokenA'] = tokenA._address
-  Static.addresses['tokenB'] = tokenB._address
-  Static.addresses['tokenC'] = tokenC._address
+  Static.addresses['DOT'] = tokenA._address
+  Static.addresses['WBTC'] = tokenB._address
+  Static.addresses['USDT'] = tokenC._address
 
   const amount = web3.utils.toWei('2000', 'ether')
   await tokenA.methods.transfer(alice, amount).send({ from: owner });

@@ -6,9 +6,7 @@ import { useGetPoolInfos } from 'hooks/useTokenFarmFacet'
 
 
 const ListFarms: FC = () => {
-
   const poolInfos = useGetPoolInfos()
-  console.log(poolInfos)
 
   const poolCards = poolInfos.map((poolInfo, i:number) => {
     return (<FarmCard key={i} pid={i} poolInfo={poolInfo} />)
