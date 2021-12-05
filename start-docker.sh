@@ -1,4 +1,5 @@
 #!/bin/bash
+export UID
 
 IS_DOCKER=$(grep IS_DOCKER ./hardhat/.env | cut -d '=' -f 2-)
 
@@ -8,13 +9,20 @@ then
   exit 1
 fi
 
-export UID
 
-SUBGRAPH_ENV=/subgraph/.env
+SUBGRAPH_ENV=${pwd}/subgraph/.env
 
 if [ -f $SUBGRAPH_ENV ]
 then
   rm -f $SUBGRAPH_ENV
+fi
+
+DATA_DIR=${pwd}/data
+
+if [ -d $DATA_DIR ]
+then
+  echo 'Need sudo to remove psql and ipfs dirs for subgraph not to fail'
+  sudo rm -rf $DATA_DIR
 fi
 
 docker-compose -f docker-compose.dev.yml up

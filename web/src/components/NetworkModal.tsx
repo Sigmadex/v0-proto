@@ -1,6 +1,16 @@
-import React, { FC, useCallback } from 'react'
+import React, { FC, useCallback, useState } from 'react'
 
 import { useWeb3React } from '@web3-react/core'
+
+import { MDBBtn,
+  MDBModal,
+  MDBModalDialog,
+  MDBModalContent,
+  MDBModalHeader,
+  MDBModalTitle,
+  MDBModalBody,
+  MDBModalFooter,
+} from 'mdb-react-ui-kit';
 
 const chainData = {
   // cant use this to add chain unfortunately, metamask requires an https:// for this,
@@ -31,15 +41,13 @@ const chainData = {
 }
 
 const NetworkModal: FC  = () => {
-  const closeRef = React.createRef()
+  const [basicModal, setBasicModal] = useState(false);
+  const toggleShow = () => setBasicModal(!basicModal);
 
   const {chainId, connector, account } = useWeb3React()
 
   const [networkName, setNetworkName] = React.useState('Network Unsupported')
 
-  const clickModal = useCallback(() => {
-    closeRef.current.click()
-  }, [closeRef])
   React.useEffect(() => {
     console.log('use effect triggered ')
     if (chainId) {
@@ -64,9 +72,8 @@ const NetworkModal: FC  = () => {
         setNetworkName('Network Unknown')
       }
     }
-    clickModal()
 
-  }, [chainId, account, clickModal])
+  }, [chainId, account])
 
 
   async function requestChain(chain) {
@@ -113,38 +120,44 @@ const NetworkModal: FC  = () => {
 
   return (
     <>
-      <button type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#networkModal"> { networkName }
-      </button>
-
-
-      <div className="modal fade" id="networkModal" tabIndex="-1" aria-labelledby="networkModalLabel" aria-hidden="true">
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="networkModalLabel">Select Network</h5>
-              <button ref={closeRef} type="button" id="close" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div className="modal-body">
+      <MDBBtn
+        className="text-nowrap"
+        outline
+        rounded
+        onClick={toggleShow} color={account ? 'info': 'warning'}>
+        { networkName }
+      </MDBBtn> 
+      <MDBModal show={basicModal} setShow={setBasicModal} tabIndex='-1'>
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>ConnectWallet</MDBModalTitle>
+              <MDBBtn className='btn-close' color='none' onClick={toggleShow}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
               <div className="d-grid gap-2">
-                <button className="btn btn-outline-primary"  type="button"
-                  onClick={async () => {
-                    await requestChain('localhost')
-                  }}
-                >Localhost (8545)</button>
-                <button className="btn btn-outline-primary"  type="button"
-                  onClick={async () => {
-                    await requestChain('bsc')
-                  }}
-                >Binance Smart Chain</button>
+                <MDBBtn color="light" onClick={async() => {
+                  await requestChain('localhost')
+                  toggleShow()
+                }}>Localhost</MDBBtn>
+                <MDBBtn color="light" onClick={async() => {
+                  await requestChain('bsc')
+                  toggleShow()
+                }}>Binance Smart Chain</MDBBtn>
               </div>
-              <div className="text-center">
-              </div>	
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
+              </MDBModalBody>
+                <MDBModalFooter>
+                  <MDBBtn color='secondary' onClick={toggleShow}>
+                    Close
+                  </MDBBtn>
+                </MDBModalFooter>
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
 
-export default NetworkModal
+      </>
+              )
+              }
+
+              export default NetworkModal
+

@@ -10,6 +10,8 @@ import Swap from './views/Swap'
 import DepositFarm from './views/DepositFarm'
 import DepositVault from './views/DepositVault'
 
+import { MDBContainer } from 'mdb-react-ui-kit';
+
 import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
 
 import { useEagerConnect, useInactiveListener} from './hooks/Connect';
@@ -34,7 +36,7 @@ function App() {
   return (
     <>
       <NavBar />
-      <div className="container">
+      <MDBContainer>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/farms" element={<Farms />}/>
@@ -44,7 +46,7 @@ function App() {
           <Route path="/swap" element={<Swap />} />
           <Route path="/portfolio" element={<Portfolio />} />
         </Routes>
-      </div>
+      </MDBContainer>
       <Footer />
     </>
   )
