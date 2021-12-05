@@ -14,8 +14,6 @@ Next ``cd hardhat && cp .env.example .env`` and fillout, this will need the same
 
 Next ``cd web && cp .env.example .env`` the default values should work unless one plans on deeper subgraph development
 
-Next ``export UID`` to be able to delete the files that the images create
-
 Next ``./start-docker.sh``
 
 When finishing up, insure to run ``./clean-docker.sh`` to reset the state for next run
