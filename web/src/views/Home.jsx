@@ -1,6 +1,8 @@
 import React from "react"
 import WalletModal from '../components/WalletModal'
 
+import { MDBBtn } from 'mdb-react-ui-kit'
+
 const Home: React.FC = () => {
   return (
     <>
@@ -13,7 +15,7 @@ const Home: React.FC = () => {
           </p>
             <div>
               <span className="pe-2"><WalletModal/></span>
-              <button className="btn btn-outline-primary">Trade Now</button>
+              <MDBBtn outline disabled >Trade Now</MDBBtn>
             </div>
         </div>
       </div>

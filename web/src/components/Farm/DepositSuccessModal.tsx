@@ -1,32 +1,59 @@
-import React, { FC, useEffect, useCallback } from 'react'
+import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+
+import { MDBBtn,
+  MDBModal,
+  MDBModalDialog,
+  MDBModalContent,
+  MDBModalHeader,
+  MDBModalTitle,
+  MDBModalBody,
+  MDBModalFooter,
+} from 'mdb-react-ui-kit';
+import { MDBCard, MDBCardTitle, MDBCardText, MDBCardOverlay, MDBCardImage  } from 'mdb-react-ui-kit';
 
 interface DepositSuccessModalProps {
   success: boolean
 }
 const DepositSuccessModal: FC<DepositSuccessModalProps> = ({success}) => {
-
-  const clickModal = () => {
-    console.log('trying to click')
-    const element = document.querySelector('button[id="trigger"]');
-    console.log('element', element)
-    element.dispatchEvent(
-      new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: true,
-        buttons: 1
-      })
-    )
-  }
-
+  const [basicModal, setBasicModal] = useState(false);
+  const toggleShow = useCallback(() => {
+   setBasicModal(!basicModal)
+  }, [basicModal]);
+  
   useEffect(() => {
-    if (success) clickModal()
+    if (success) setBasicModal(true)
+    
   }, [success])
-
 
 return (
   <>
+  <MDBModal show={basicModal} setShow={setBasicModal} tabIndex='-1'>
+    <MDBModalDialog>
+      <MDBModalContent>
+        <MDBModalHeader>
+          <MDBModalTitle>Success!</MDBModalTitle>
+          <MDBBtn className='btn-close' color='none' onClick={toggleShow}></MDBBtn>
+        </MDBModalHeader>
+        <MDBModalBody>
+          <MDBBtn href="/portfolio">View In Portfolio</MDBBtn>
+        </MDBModalBody>
+        <MDBModalFooter>
+          <MDBBtn color='secondary' onClick={toggleShow}>
+            Close
+          </MDBBtn>
+        </MDBModalFooter>
+        </MDBModalContent>
+      </MDBModalDialog>
+    </MDBModal>
+  </>
+)
+}
+
+export default DepositSuccessModal
+
+/*
+ *
     <button style={{display: "none"}}  id="trigger" type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#depositSuccessModal"  >
     </button>
 
@@ -50,8 +77,5 @@ return (
         </div>
       </div>
     </div>
-  </>
-)
-}
 
-export default DepositSuccessModal
+ */

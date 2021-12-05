@@ -1,6 +1,9 @@
 import React from 'react' 
 import ListFarms from 'components/Farm/ListFarms'
 import WalletModal from 'components/WalletModal'
+
+import { MDBBtn } from 'mdb-react-ui-kit'
+
 const Farms: React.FC = () => {
   return (
     <>
@@ -9,7 +12,7 @@ const Farms: React.FC = () => {
           <h1>Farms</h1>
           <p>Stake various tokens to earn limited NFTs and other rewards.</p>
             <span className="pe-2"><WalletModal/></span>
-            <button className="btn btn-outline-primary">Learn More</button>
+            <MDBBtn outline disabled>Learn More</MDBBtn>
         </div>
       </div>
 
