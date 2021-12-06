@@ -177,16 +177,13 @@ const DepositSdexVaultForm: FC<DepositVaultFormProps> = ({usersValidNFTs, farmid
           <div className="card-body">
             <div className="row">
               <div className="col-12 d-grid gap-2">
-                <button className="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userValidNFTs" aria-controls="userValidNFTs">
-                  Apply NFT Reward 
-                </button>
-                </div>
-                <div className="collapse" id="userValidNFTs">
+                <div id="userValidNFTs">
                   <select onChange={handleNFT} className="form-control" id="nftRewards">
                     <option selected>Choose NFT</option>
                     {nfts}
                   </select>
               </div>
+                </div>
             </div>
           </div>
         </div>{/* /.card */}
