@@ -9,7 +9,11 @@ import ListPositions from 'components/Portfolio/ListPositions'
 import ListVaultPositions from 'components/Portfolio/ListVaultPositions'
 import ListNFTs from 'components/Portfolio/ListNFTs'
 
+import { MDBBtn } from 'mdb-react-ui-kit'
+
 const Web3 = require('web3')
+
+
 
 const Portfolio: React.FC = () => {
   const [withdrawEvt, setWithdrawEvt] = useState(false)
@@ -56,18 +60,10 @@ const Portfolio: React.FC = () => {
           <p>View your past and present liquidity positions, owned NFTs, and more</p>
           <div>
             <span className="pe-2"><WalletModal/></span>
-            <button className="btn btn-outline-primary">Trade Now</button>
+            <MDBBtn outline disabled>Trade Now</MDBBtn>
           </div>
         </div>
       </div>
-
-      <div className="row">
-        <div className="col-12">
-          <h3>Wallet</h3>
-          <h5>{account ? `${account.substring(0, 6)}...${account.substring(account.length - 4)}` : 'Connect Wallet'}
-</h5>
-        </div>
-      </div>{/* /.row */}
 
       <div className="row mb-4">
         <div className="col-3">
