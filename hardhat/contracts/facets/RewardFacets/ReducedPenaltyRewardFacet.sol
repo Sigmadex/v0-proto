@@ -84,7 +84,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     PoolInfo storage pool = s.poolInfo[pid];
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
-   
+    IERC1155(s.reducedPenaltyReward).incrementActive(position.nftid, false);
     uint256 totalAmountShares = 0;
     //Manage Tokens 
     for (uint j=0; j < user.tokenData.length; j++) {
@@ -182,6 +182,9 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
     require(position.shares > 0, "Nothing to withdraw");
+    
+    IERC1155(s.reducedPenaltyReward).incrementActive(position.nftid, false);
+    
     uint256 shares = position.shares;
     uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
     uint256 currentAmount = position.shares * vaultBalance / s.vTotalShares;

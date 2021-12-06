@@ -322,13 +322,16 @@ contract("SdexVaultSingle", (accounts) => {
   it("can deposit with an NFT", async () => {
 
     let positionid = 2
+    const nftid = 1
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     const totalSdex1 = await sdexFacet.methods.totalSupply().call()
     
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, reducedPenaltyReward._address, 1).send({from:alice})
+      stakeAmount, blocksToStake, reducedPenaltyReward._address, nftid).send({from:alice})
+    let actives = await reducedPenaltyReward.methods.actives(nftid).call()
+    assert.equal(actives, 1)
     
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
@@ -369,6 +372,8 @@ contract("SdexVaultSingle", (accounts) => {
 
     await advanceBlocks(blocksToStake/2) // 1800 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
+    actives = await reducedPenaltyReward.methods.actives(nftid).call()
+    assert.equal(actives, 0)
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     console.log('===========withdrawVault==========')

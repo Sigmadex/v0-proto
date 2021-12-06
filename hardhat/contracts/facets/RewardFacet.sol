@@ -140,7 +140,6 @@ contract RewardFacet is Modifiers {
         seed = 1;
         seedNext = 1;
       }
-      console.log('loop');
     }
     s.seed = seed;
     s.seedNext = seedNext;

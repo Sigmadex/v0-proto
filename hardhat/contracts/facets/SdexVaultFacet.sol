@@ -1,5 +1,6 @@
 pragma solidity 0.8.10;
 
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserTokenData, UserInfo, Reward, VaultUserInfo, VaultUserPosition } from '../libraries/LibAppStorage.sol';
 import '../interfaces/IERC1155.sol';
 import './AutoSdexFarmFacet.sol';
@@ -11,6 +12,7 @@ import './RewardFacet.sol';
  * @dev the {SdexVaultFacet} provides additional functionality to the native SDEX pool.  If one stakes their SDEX through here, their tokens are automatically restaked for compounding SDEX.  Insure not to withdrawal your position until the stakeTime expires, or a you will be penalized!
  */
 contract SdexVaultFacet {
+  using EnumerableSet for EnumerableSet.AddressSet;
   event Deposit(address indexed sender, uint256 amount, uint256 shares, uint256 lastDepositedTime);
   event Withdraw(address indexed sender, uint256 amount, uint256 shares);
   event Harvest(address indexed sender, uint256 performanceFee, uint256 callFee);
@@ -67,7 +69,9 @@ contract SdexVaultFacet {
     });
     if (nftReward != address(0)) {
       // FLAG might now work in diamond //
+      require(s.setValidNFTsForPool[0].contains(nftReward), 'chosen NFT is not part of the list of valid ones for this pool');
       require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
+      IERC1155(nftReward).incrementActive(nftid, true);
       newPosition.nftReward = nftReward;
       newPosition.nftid = nftid;
     }

@@ -8,6 +8,8 @@ import '@openzeppelin/contracts/token/ERC1155/presets/ERC1155PresetMinterPauser.
 * @dev the Reduced Penalty Reward NFT provides the user a reduced penalty in the event of a premature withdraw on the position in question.  It comes with a reductionAmount for a specific token (such as USDT), and when applied to a pool containing that token, will provide an increased refund, up to that reduction amount.  Is only consumed in the event of a premature withdraw, so it can make a good insurance policy on that token
 */
 contract ReducedPenaltyReward is ERC1155PresetMinterPauser {
+  event IncrementActive(uint256 indexed id, uint256 currentAmountActive);
+  mapping (uint256 => uint256) public actives;
   address diamond;
   constructor(
     address _diamond
@@ -28,5 +30,14 @@ contract ReducedPenaltyReward is ERC1155PresetMinterPauser {
   */
   function mint(address to, uint256 id, uint256 amount, bytes calldata data) public override onlyDiamond {
     _mint(to, id, amount, data);
+  }
+  
+  function incrementActive(uint256 id, bool isPositive) public onlyDiamond {
+    if (isPositive) {
+      actives[id]++;
+    } else {
+      actives[id]--;
+      }
+    emit IncrementActive(id, actives[id]);
   }
 }

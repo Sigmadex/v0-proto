@@ -1,7 +1,8 @@
 pragma solidity 0.8.10;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC1155/IERC1155.sol';
+//import '@openzeppelin/contracts/token/ERC1155/IERC1155.sol';
+import '../interfaces/IERC1155.sol';
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { AppStorage, LibAppStorage, Modifiers, PoolInfo, PoolTokenData, UserPosition, UserTokenData, UserInfo, Reward } from '../libraries/LibAppStorage.sol';
@@ -52,8 +53,7 @@ contract TokenFarmFacet is Modifiers {
         accSdexPerShare: 0
       }));
     }
-    for (uint j=0; j <validNFTs.length; j++) {
-      //s.validNFTsForPool[pid][validNFTs[j]] = true;
+    for (uint j=0; j < validNFTs.length; j++) {
       s.setValidNFTsForPool[pid].add(validNFTs[j]);
     }
     s.poolLength++;
@@ -118,6 +118,7 @@ contract TokenFarmFacet is Modifiers {
     if (nftReward != address(0)) {
       require(s.setValidNFTsForPool[pid].contains(nftReward), 'chosen NFT is not part of the list of valid ones for this pool');
       require(IERC1155(nftReward).balanceOf(msg.sender, nftid) > 0, "User does not have this nft");
+      IERC1155(nftReward).incrementActive(nftid, true);
       newPosition.nftReward = nftReward;
       newPosition.nftid = nftid;
     }

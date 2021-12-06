@@ -242,10 +242,14 @@ contract("RewardAmplifier", (accounts) => {
 
     await tokenFarmFacet.methods.deposit(
       poolid, [stakeAmount, stakeAmount], blocksToStake, rARAddress, nftid).send({from:alice})
-
+    
+    let actives = await rewardAmplifierReward.methods.actives(nftid).call()
+    assert.equal(actives, 1)
     await advanceBlocks(blocksToStake)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
+    actives = await rewardAmplifierReward.methods.actives(nftid).call()
+    assert.equal(actives, 0)
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
     logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 

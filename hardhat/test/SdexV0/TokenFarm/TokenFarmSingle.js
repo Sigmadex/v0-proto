@@ -394,6 +394,8 @@ contract("TokenFarmFacet", (accounts) => {
       poolid, [stakeAmount, stakeAmount], blocksToStake,
       reducedPenaltyReward._address, aliceRPid).send({from:alice})
 
+    let actives = await reducedPenaltyReward.methods.actives(aliceRPid).call()
+    assert.equal(actives, 1)
     const blocksAhead = blocksToStake / 2
     await advanceBlocks(blocksAhead) 
 
@@ -409,6 +411,8 @@ contract("TokenFarmFacet", (accounts) => {
 
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
+    actives = await reducedPenaltyReward.methods.actives(aliceRPid).call()
+    assert.equal(actives, 0)
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
     let aliceRPRA = await reducedPenaltyReward.methods.balanceOf(alice, 1).call()

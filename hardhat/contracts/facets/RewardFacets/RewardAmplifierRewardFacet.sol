@@ -110,6 +110,9 @@ contract RewardAmplifierRewardFacet is  Modifiers {
 
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
+
+    IERC1155(s.rewardAmplifierReward).incrementActive(position.nftid, false);
+
     PoolInfo storage pool = s.poolInfo[pid];
 
     uint256 totalAmountShares = 0;
@@ -190,6 +193,9 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     VaultUserPosition storage position = vUser.positions[positionid];
     uint256 shares = position.shares;
     require(position.shares > 0, "Nothing to withdraw");
+    
+    IERC1155(s.rewardAmplifierReward).incrementActive(position.nftid, false);
+    
     //uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
     uint256 currentAmount = position.shares * SdexVaultFacet(address(this)).vaultBalance() / s.vTotalShares;
     vUser.shares -= position.shares;

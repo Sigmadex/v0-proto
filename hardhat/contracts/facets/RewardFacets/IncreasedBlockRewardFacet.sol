@@ -11,43 +11,43 @@ import '../SdexVaultFacet.sol';
 import '../SdexFacet.sol';
 
 /**
-  * @title IncreasedBlockRewardFacet
-  * @dev The {IncreasedBlockRewardFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {MultiplierReward} NFT.    
-*/
+ * @title IncreasedBlockRewardFacet
+ * @dev The {IncreasedBlockRewardFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {MultiplierReward} NFT.    
+ */
 contract IncreasedBlockRewardFacet is  Modifiers {
   event RewardNFT(address to, address token, uint256 amount);
   event WithdrawVault(address indexed sender, uint256 amount, uint256 shares);
   constructor() {
   }
   /**
-    * the multiplier Address is the address of the NFT
-    * @return address location of NFT on blockchain
-  */
+   * the multiplier Address is the address of the NFT
+   * @return address location of NFT on blockchain
+   */
   function iBRAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.increasedBlockReward;
   }
   /**
-  * Return the next id to be minted of this nft class, thus number -1 can be thought of as total supply
-  * @return uint256 the next id to be consumed
-  */
+   * Return the next id to be minted of this nft class, thus number -1 can be thought of as total supply
+   * @return uint256 the next id to be consumed
+   */
   function iBRNextId() public returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.iBRNextId;
   }
 
   /**
-    * multiplier Reward is charged with minting the multiplier NFT as a reward
-    * @param to address of the user receiving the reward
-    * @param token the underlying asset the reduced penalty provides (eg USDT)
-    * @param amount the amount of the underlying asset that the NFT that can be multipliered too
-  */
+   * multiplier Reward is charged with minting the multiplier NFT as a reward
+   * @param to address of the user receiving the reward
+   * @param token the underlying asset the reduced penalty provides (eg USDT)
+   * @param amount the amount of the underlying asset that the NFT that can be multipliered too
+   */
   function iBRReward(
     address to,
     address token,
     uint256 amount,
     REWARDPOOL rewardPool
-    
+
   ) external onlyDiamond {
     console.log('iBRReward::reward::test');
     AppStorage storage s = LibAppStorage.diamondStorage();
@@ -64,28 +64,28 @@ contract IncreasedBlockRewardFacet is  Modifiers {
   }
 
   /**
-    * returns {RPAmount} for the nft id in question
-    * @param id the nft id 
-    * @return RPAmount the amount of reduction it can provide in what token
-  */
+  * returns {RPAmount} for the nft id in question
+  * @param id the nft id 
+  * @return RPAmount the amount of reduction it can provide in what token
+   */
   function iBRAmount(uint256 id) external returns (IBRAmount memory) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.iBRAmounts[id];
   }
-  
+
   /**
-    * reduced Penalty Withdraw substitutes for the withdraw function of {TokenFarm} when withdrawing a {UserPosition} that has the {ReducedPenaltyReward} nft address associated with it.  Provides compensating the user the reduction amount in the even of an early withdraw
-    * @param pid the poolid of the pool in question
-    * @param positionid the position id in question, retreived from the array postion of {UserInfo}
-  */
+   * reduced Penalty Withdraw substitutes for the withdraw function of {TokenFarm} when withdrawing a {UserPosition} that has the {ReducedPenaltyReward} nft address associated with it.  Provides compensating the user the reduction amount in the even of an early withdraw
+   * @param pid the poolid of the pool in question
+   * @param positionid the position id in question, retreived from the array postion of {UserInfo}
+   */
   function iBRWithdraw(uint256 pid, uint256 positionid) public  {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    console.log('IncreasedBlockRewardFacet::hello');
-
     ToolShedFacet(address(this)).updatePool(pid);
 
     UserInfo storage user = s.userInfo[pid][msg.sender];
     UserPosition storage position = user.positions[positionid];
+
+    IERC1155(s.increasedBlockReward).incrementActive(position.nftid, false);
 
     PoolInfo storage pool = s.poolInfo[pid];
     uint256 totalAmountShares = 0;
@@ -122,7 +122,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
       pool.tokenData[j].supply -= position.amounts[j];
       position.amounts[j] = 0;
       position.rewardDebts[j] = 0;
-                
+
     }
 
     //Manage SDEX
@@ -152,6 +152,9 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
+    
+    IERC1155(s.increasedBlockReward).incrementActive(position.nftid, false);
+    
     uint256 shares = position.shares;
     require(shares > 0, "Nothing to withdraw");
     uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
@@ -250,7 +253,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     }
     console.log('IBRewardFacet::bonus', bonus);
     iBRAmount.amount -= bonus;
-     
+
     if (s.iBRAmounts[nftid].rewardPool == REWARDPOOL.BASE) {
       s.tokenRewardData[address(this)].rewarded -= bonus;
       s.tokenRewardData[address(this)].paidOut += bonus;

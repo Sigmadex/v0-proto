@@ -12,6 +12,10 @@ pragma solidity ^0.8.0;
  */
 interface IERC1155  {
 
+  /** Non Standard
+  *
+  */
+  function incrementActive(uint256 nftid, bool isPositive) external;
 
   /**
    * @dev Emitted when `value` tokens of token type `id` are transferred from `from` to `to` by `operator`.

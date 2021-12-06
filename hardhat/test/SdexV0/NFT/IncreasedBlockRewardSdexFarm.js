@@ -138,13 +138,19 @@ contract("SdexVaultFacet", (accounts) => {
   it("alice uses nft reward", async () => {
     const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
-    
-    let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(1).call()
+    const nftid = 1  
+    let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, 1).send({from:alice})
+      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
+
+    let actives  = await increasedBlockReward.methods.actives(nftid).call()
+    assert.equal(actives, 1)
+
     await tokenFarmFacet.methods.withdraw(poolid, 1).send({from: alice})
+    actives  = await increasedBlockReward.methods.actives(nftid).call()
+    assert.equal(actives, 0)
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
   
