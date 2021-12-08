@@ -78,7 +78,6 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
 
-
   subgraph-init:
     depends_on:
       - graph-node
@@ -93,7 +92,6 @@ services:
       - graph-node
     command: ./start.sh
 
-
   client:
     #user: $UID
     build:
@@ -104,4 +102,3 @@ services:
     ports:
       - "3000:3000"
     command: npm start
-    

@@ -63,3 +63,5 @@ web/src/config/Static.json
 
 subgraph/subgraph.yaml
 
+docker-compose.nash.yml
+

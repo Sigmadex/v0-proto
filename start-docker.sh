@@ -25,6 +25,6 @@ then
   sudo rm -rf $DATA_DIR
 fi
 
-docker-compose -f docker-compose.dev.yml up
+docker-compose up
 
 
