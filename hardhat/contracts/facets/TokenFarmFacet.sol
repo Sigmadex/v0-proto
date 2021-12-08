@@ -18,7 +18,7 @@ contract TokenFarmFacet is Modifiers {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   event Add(uint256 indexed pid, address[] tokens, address[] validNFTs, uint256 allocPoint);
-  event Deposit(address indexed user, uint256 indexed pid, uint256[] amounts);
+  event Deposit(address indexed user, uint256 indexed pid, uint256 indexed positionid, uint256 startBlock, uint256 endBlock, uint256[] amounts, address nftAddr, uint256 nftid);
   event Withdraw(address indexed user, uint256 indexed pid, uint256 indexed positionid);
   event PoolUpdateNFT(uint256 indexed pid, address[] nfts, bool[] newStates);
 
@@ -149,7 +149,7 @@ contract TokenFarmFacet is Modifiers {
     if (pid == 0) {
       //s.vShares[msg.sender] += newPosition.amounts[0];
     }
-    emit Deposit(msg.sender, pid, amounts);
+    emit Deposit(msg.sender, pid, user.positions.length - 1,block.number, block.number+blocksAhead, amounts, nftReward, nftid);
   }
   /**
     * Withdraws a users tokens from a pool by position. Currently a no partial liquiditations are permitted, a withdraw before the stake time is subject to a penalty.  If only 50% of time has passed, only 50% of funds are returned, and all these tokens, and accrued SDEX is sent to the penalty pool as a gift for future stakers who complete their stakeTime.  Withdrawing after the stake time returns all tokens, accrued Sdex and an NFT gift from the penalty pool 

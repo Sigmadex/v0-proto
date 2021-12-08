@@ -78,3 +78,29 @@ dataSources:
         - event: URI(string,indexed uint256)
           handler: handleURI
       file: ./src/rewardAmplifierReward.ts
+  
+  - kind: ethereum/contract
+    name: TokenFarmFacet
+    network: mainnet
+    source:
+      address: ${diamondAddress}
+      abi: TokenFarmFacet
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Farm
+        - UserPosition
+        - PositionOwnership
+        - NftContract
+        - Nft
+      abis:
+        - name: TokenFarmFacet
+          file: ./abis/TokenFarmFacet.json
+      eventHandlers:
+        - event: Deposit(indexed address,indexed uint256,indexed uint256,uint256,uint256,uint256[],address,uint256)
+          handler: handleTokenFarmDeposit
+        - event: Add(indexed uint256,address[],address[],uint256)
+          handler: handleAddFarm
+      file: ./src/tokenFarmFacet.ts

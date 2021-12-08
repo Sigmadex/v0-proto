@@ -24,8 +24,33 @@ type Ownership @entity {
   quantity: BigInt!
 }
 
+type PositionOwnership @entity {
+  id: ID!
+  owner: Bytes!
+  userPosition: UserPosition!
+}
+
 enum Platform {
   ReducedPenaltyReward
   RewardAmplifierReward
   IncreasedBlockReward
+}
+
+
+type Farm @entity {
+  id: ID!
+  pid: BigInt!
+  tokens: [Bytes!]!
+  validNFTs: [Bytes!]!
+  allocPoint: BigInt!
+}
+
+type UserPosition @entity {
+  id: ID!
+  farm: Farm!
+  ownership: PositionOwnership! @derivedFrom(field:"userPosition")
+  startBlock: BigInt!
+  endBlock: BigInt!
+  amounts: [BigInt!]!
+  nftReward: Nft!
 }

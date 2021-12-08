@@ -13,7 +13,7 @@ import './RewardFacet.sol';
  */
 contract SdexVaultFacet {
   using EnumerableSet for EnumerableSet.AddressSet;
-  event Deposit(address indexed sender, uint256 amount, uint256 shares, uint256 lastDepositedTime);
+  event Deposit(address indexed sender, uint256 indexed positionid, uint256 amount, uint256 shares, uint256 lastDepositedTime);
   event Withdraw(address indexed sender, uint256 amount, uint256 shares);
   event Harvest(address indexed sender, uint256 performanceFee, uint256 callFee);
   event Pause();
@@ -79,7 +79,7 @@ contract SdexVaultFacet {
 
     earn();
 
-    emit Deposit(msg.sender, amount, currentShares, block.timestamp);
+    emit Deposit(msg.sender, s.vUserInfo[msg.sender].positions.length - 1, amount, currentShares, block.timestamp);
   }
 
   /**

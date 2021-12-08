@@ -117,6 +117,7 @@ async function deployDiamond () {
   reducedPenaltyReward=${reducedPenaltyReward._address}
   increasedBlockReward=${increasedBlockReward._address}
   rewardAmplifierReward=${rewardAmplifierReward._address}
+  diamondAddress=${diamond._address}
   `
 
   const destSubGraph = (process.env.IS_DOCKER === 'true') ? '/subgraph/.env': '../subgraph/.env'
