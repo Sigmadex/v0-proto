@@ -26,8 +26,11 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 * @dev Holds the initialization function for SDEX's internal state, which is defined in {AppStorage}
 */
 contract DiamondInit {
+
   AppStorage internal s;
   using EnumerableSet for EnumerableSet.AddressSet;
+  
+  event Add(uint256 indexed pid, address[] tokens, address[] validNFTs, uint256 allocPoint);
   // You can add parameters to this function in order to pass in 
   // data to set your own state variables
 
@@ -77,6 +80,11 @@ contract DiamondInit {
       s.setValidNFTsForPool[0].add(nftAddresses[j]);
 
     }
+    
+    address[] memory tokens = new address[](1);
+    tokens[0] = address(this);
+    emit Add(0, tokens, nftAddresses, s.poolInfo[0].allocPoint);
+    
     s.userInfo[0][address(this)].tokenData.push(
       UserTokenData({
         amount:0,
@@ -84,7 +92,7 @@ contract DiamondInit {
       }) 
     );
     s.poolLength = 1;
-    s.totalAllocPoint = 1000;
+    s.totalAllocPoint = s.poolInfo[0].allocPoint;
     // SDEX
     s.sdexTotalSupply = 0;
     s.sdexName = 'Sigmadex';

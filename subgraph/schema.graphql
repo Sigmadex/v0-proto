@@ -36,6 +36,10 @@ enum Platform {
   IncreasedBlockReward
 }
 
+type FarmingData @entity {
+  id: ID!
+  totalActivePositions: BigInt
+}
 
 type Farm @entity {
   id: ID!
@@ -43,6 +47,7 @@ type Farm @entity {
   tokens: [Bytes!]!
   validNFTs: [Bytes!]!
   allocPoint: BigInt!
+  activePositions: BigInt
 }
 
 type UserPosition @entity {
@@ -52,5 +57,6 @@ type UserPosition @entity {
   startBlock: BigInt!
   endBlock: BigInt!
   amounts: [BigInt!]!
-  nftReward: Nft!
+  nftReward: Nft
+  isActive: Boolean!
 }
