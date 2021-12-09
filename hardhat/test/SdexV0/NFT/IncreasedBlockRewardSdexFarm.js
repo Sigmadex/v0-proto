@@ -45,7 +45,7 @@ function logState(state, tag, alice, bob, diamondAddress) {
               BN(state.accSdexRewardPool))).toString(), 1
   )
 }
-contract("SdexVaultFacet", (accounts) => {
+contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
   let owner = accounts[0]
   let alice = accounts[1]
   let bob = accounts[2]

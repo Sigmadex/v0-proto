@@ -78,7 +78,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
    * @param pid the poolid of the pool in question
    * @param positionid the position id in question, retreived from the array postion of {UserInfo}
    */
-  function iBRWithjraw(uint256 pid, uint256 positionid) public  {
+  function iBRWithdraw(uint256 pid, uint256 positionid) public  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     ToolShedFacet(address(this)).updatePool(pid);
 

@@ -16,7 +16,7 @@ const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 
 // Testing staking both manual and vault
-contract("TokenFarmFacet", (accounts) => {
+contract("SdexVaultMany", (accounts) => {
   let owner = accounts[0]
   let alice = accounts[1]
   let bob = accounts[2]
