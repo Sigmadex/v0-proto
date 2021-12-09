@@ -3,9 +3,36 @@ import { useWeb3React } from '@web3-react/core'
 import { getTokenFarmFacet } from 'utils/contractHelpers'
 import Static from 'config/Static.json'
 
-import { getActivePositions } from 'queries/positionData'
+import { getActivePositions, getActivePositionsForFarm } from 'queries/positionData'
 const Web3 = require('web3')
 
+export const useGetPoolInfo = (id:string) => {
+  const [poolInfo, setPoolInfo] = useState([])
+
+  const { account, library } = useWeb3React()
+
+  const fetchPoolInfo = useCallback(async () => {
+    console.log('fetchPoolInfo')
+    const tokenFarmFacet = getTokenFarmFacet(library)
+    try {
+        const info = await tokenFarmFacet.methods.poolInfo(id).call({from: account})
+        //setPoolInfo([...poolInfo, info])
+      setPoolInfo(info)
+
+    } catch (e) {
+      console.log(e)
+    }
+
+
+  }, [account, library, id])
+
+  useEffect(() => {
+    if (account && library) {
+      fetchPoolInfo()
+    }
+  }, [account, fetchPoolInfo, library])
+  return poolInfo
+}
 
 export const useGetPoolInfos = () => {
   const [poolInfo, setPoolInfo] = useState([])
@@ -186,4 +213,23 @@ export const useGetTotalActivePositions = () => {
     }
   })
   return totalActivePositions
+}
+
+export const useGetActivePositionsForFarm = (farmid:string) => {
+  const [activePositions, setActivePositions] = useState(0)
+
+  const { account, library } = useWeb3React()
+
+  const fetchActivePositionsForFarm = useCallback(async () => {
+    const data = await getActivePositionsForFarm(farmid)
+    setActivePositions(data)
+
+  }, [farmid])
+
+  useEffect(() => {
+    if (account && library) {
+      fetchActivePositionsForFarm()
+    }
+  }, [fetchActivePositionsForFarm, library, account])
+  return activePositions
 }
