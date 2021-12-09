@@ -3,7 +3,10 @@ import WalletModal from '../components/WalletModal'
 
 import { MDBBtn } from 'mdb-react-ui-kit'
 
+import {useGetTotalActivePositions} from 'hooks/useTokenFarmFacet'
 const Home: React.FC = () => {
+  const activePositions = useGetTotalActivePositions()
+  console.log(activePositions)
   return (
     <>
       <div className="row mb-4">
@@ -24,10 +27,10 @@ const Home: React.FC = () => {
         <div className="col-3">
           <div className="card">
             <div className="card-body">
-              <h5 className="card-title">6,499</h5>
+              <h5 className="card-title">{activePositions}</h5>
               <p className="card-text">
                 <i className="bi-file-text text-info"></i>
-                Active Contracts
+                Active Positions
               </p>
             </div>
           </div>

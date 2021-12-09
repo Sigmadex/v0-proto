@@ -3,6 +3,7 @@ import { useWeb3React } from '@web3-react/core'
 import { getTokenFarmFacet } from 'utils/contractHelpers'
 import Static from 'config/Static.json'
 
+import { getActivePositions } from 'queries/positionData'
 const Web3 = require('web3')
 
 
@@ -117,6 +118,7 @@ export const useWithdrawFarm = (
     console.log('handleWithdraw')
     const contract = getTokenFarmFacet(library)
     try{
+      console.log(poolid, positionid)
       const withdraw = await contract.methods.withdraw(
         poolid,
         positionid
@@ -165,4 +167,23 @@ export const useGetValidNFTsForPool = (pid: string) => {
     }
   }, [account, fetchValidNFTsForPool, library])
   return validNFTs
+}
+
+export const useGetTotalActivePositions = () => {
+  const [totalActivePositions, setTotalActivePositions] = useState(0)
+
+  const { account, library } = useWeb3React()
+
+  const fetchTotalActivePositions = useCallback(async () => {
+    const data = await getActivePositions()
+    setTotalActivePositions(data)
+
+  }, [])
+
+  useEffect(() => {
+    if (account && library) {
+      fetchTotalActivePositions()
+    }
+  })
+  return totalActivePositions
 }

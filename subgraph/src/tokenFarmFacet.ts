@@ -21,8 +21,10 @@ export function handleTokenFarmDeposit(event: Deposit): void {
   let farmingData  = FarmingData.load('0')
   if (farmingData == null) {
     farmingData = new FarmingData('0')
+    farmingData.totalActivePositions = BigInt.fromI32(1)
+  } else {
+    farmingData.totalActivePositions = farmingData.totalActivePositions + BigInt.fromI32(1)
   }
-  farmingData.totalActivePositions = farmingData.totalActivePositions + BigInt.fromI32(1)
   farmingData.save()
 
   let positionid = event.params.user.toHexString() + '/' + event.params.pid.toString() + '/' + event.params.positionid.toString()
