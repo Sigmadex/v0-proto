@@ -2,6 +2,7 @@ import Static from 'config/Static.json'
 import SdexFacet from 'config/artifacts/contracts/facets/SdexFacet.sol/SdexFacet.json'
 import TokenFarmFacet from 'config/artifacts/contracts/facets/TokenFarmFacet.sol/TokenFarmFacet.json'
 import SdexVaultFacet from 'config/artifacts/contracts/facets/SdexVaultFacet.sol/SdexVaultFacet.json'
+import ToolShedFacet from 'config/artifacts/contracts/facets/ToolShedFacet.sol/ToolShedFacet.json'
 
 import RewardFacet from 'config/artifacts/contracts/facets/RewardFacet.sol/RewardFacet.json'
 
@@ -29,6 +30,10 @@ export const getSdexVaultFacet = (web3:any) => {
 
 export const getRewardFacet = (web3:any) => {
   return new web3.eth.Contract(RewardFacet.abi, Static.addresses.diamond)
+}
+
+export const getToolShedFacet = (web3:any) => {
+  return new web3.eth.Contract(ToolShedFacet.abi, Static.addresses.diamond)
 }
 
 export const getIBRFacet = (web3:any) => {

@@ -3,6 +3,7 @@ import React, {FC} from 'react'
 import { useParams, Link } from "react-router-dom";
 import Static from 'config/Static.json'
 import { useGetActivePositionsForFarm, useGetPoolInfo } from 'hooks/useTokenFarmFacet'
+import {useGetRewardDataForFarm} from 'hooks/useToolShedFacet'
 
 import { 
   MDBContainer,
@@ -27,9 +28,23 @@ const Farm: FC = () => {
   let supplies;
   if (poolInfo.tokenData) {
     supplies = poolInfo.tokenData.map((td, i) => {
-      return (<h5 className="card-title">{Web3.utils.fromWei(td.supply, 'ether')} {tokenSymbols[i]}</h5>)
+      return (<h5 key={i} className="card-title">{Web3.utils.fromWei(td.supply, 'ether')} {tokenSymbols[i]}</h5>)
     })
   }
+
+  const rewardData = useGetRewardDataForFarm(id)
+  console.log('rewarddata', rewardData)
+  let rewardPool = []
+  let penaltyPool = []
+  if (rewardData.length) {
+    rewardPool = rewardData.map((rd, i) => {
+      return (<h5 key={i} className="card-title">{Web3.utils.fromWei(rd.rewarded, 'ether')} {tokenSymbols[i]}</h5>)
+    })
+    penaltyPool = rewardData.map((rd, i) => {
+      return (<h5 key={i} className="card-title">{Web3.utils.fromWei(rd.penalties, 'ether')} {tokenSymbols[i]}</h5>)
+    })
+  }
+
 
   return (
     <>
@@ -75,8 +90,7 @@ const Farm: FC = () => {
           <div className="card">
             <div className="card-body">
               <h5 className="card-title">$30.8 M+</h5>
-              <h5 className="card-title">500 ETH</h5>
-              <h5 className="card-title">256 DOT</h5>
+              {rewardPool}
               <p className="card-text">
                 <i className="bi-gift text-warning"></i>
                 Total Outstanding Rewards
@@ -88,8 +102,7 @@ const Farm: FC = () => {
           <div className="card">
             <div className="card-body">
               <h5 className="card-title">$714,933</h5>
-              <h5 className="card-title">256 ETH</h5>
-              <h5 className="card-title">1000 DOT</h5>
+              {penaltyPool}
               <p className="card-text">
                 <i className="bi-exclamation-triangle-fill text-danger"></i>
                 Total Penalties To be Claimed

@@ -3,6 +3,7 @@ pragma solidity 0.8.10;
 import { LibDiamond } from "../libraries/LibDiamond.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 struct TokenRewardData {
   uint256 blockAmountGlobal;
   uint256 rewarded;
