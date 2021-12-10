@@ -16,6 +16,15 @@ do
   sleep 1
 done
 rm -rf /subgraph/.env
-npm run codegen
-npm run create-local:docker
-npm run deploy-local:docker
+npm run codegen 
+
+# Sometimes the graph-node container is not ready 
+# so we wrapped the deployment command in the following block to automatically 
+# retry on connection failure.
+RETRIES=0
+until [ "$RETRIES" -ge 5 ]
+do
+  npm run create-local:docker && npm run deploy-local:docker && break
+  RETRIES=$((RETRIES+1))
+  sleep 5
+done
