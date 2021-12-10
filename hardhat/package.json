@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx hardhat test",
-    "docgen": "npx solidity-docgen --solc-module solc-0.8 -o '../docusaur/docs/API Specification' -t ../docusaur/docgen-template",
-    "deploy:docker": "npxd hardhat run ./scripts/deploy.js --network docker && npxd hardhat run ./scripts/scaffold-testnet.js --network docker"
+    "test": "hardhat test",
+    "docgen": "solidity-docgen --solc-module solc-0.8 -o '../docusaur/docs/API Specification' -t ../docusaur/docgen-template",
+    "deploy:docker": "hardhat run ./scripts/deploy.js --network docker && hardhat run ./scripts/scaffold-testnet.js --network docker"
   },
   "keywords": [],
   "author": "",

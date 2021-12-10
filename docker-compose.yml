@@ -26,6 +26,8 @@ services:
       - ganache-cli
     build:
       context: ./hardhat
+    environment:
+      - IS_DOCKER=true
     volumes:
       - ./hardhat:/hardhat
       - /hardhat/node_modules
@@ -34,7 +36,6 @@ services:
     links:
       - ganache-cli
     command: npm run deploy:docker
-    #command: tail -f /dev/null
 
   graph-node:
     user: $UID
@@ -60,12 +61,14 @@ services:
       GRAPH_LOG: info
     extra_hosts:
       - "host.docker.internal:172.17.0.1"
+
   ipfs:
     image: ipfs/go-ipfs:v0.4.23
     ports:
       - '5001:5001'
     volumes:
       - ./data/ipfs:/data/ipfs
+
   postgres:
     image: postgres
     ports:
@@ -78,7 +81,6 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
 
-
   subgraph-init:
     depends_on:
       - graph-node
@@ -88,14 +90,14 @@ services:
       context: ./subgraph
     volumes:
       - ./subgraph:/subgraph
+      - /subgraph/node_modules
     links:
       - ipfs
       - graph-node
     command: ./start.sh
 
-
   client:
-    #user: $UID
+    user: $UID
     build:
       context: ./web
     volumes:
@@ -103,5 +105,4 @@ services:
       - /web/node_modules
     ports:
       - "3000:3000"
-    command: npm start
-    
+    command: ./start.sh

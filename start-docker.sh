@@ -1,14 +1,8 @@
 #!/bin/bash
-export UID
 
-IS_DOCKER=$(grep IS_DOCKER ./hardhat/.env | cut -d '=' -f 2-)
-
-if [ $IS_DOCKER == "false" ]
-then
-  echo "Please set the IS_DOCKER env variable in ./hardhat to true"
-  exit 1
+if [[ "$OSTYPE" != "darwin"* ]]; then 
+  export UID
 fi
-
 
 SUBGRAPH_ENV=${pwd}/subgraph/.env
 
@@ -25,6 +19,8 @@ then
   sudo rm -rf $DATA_DIR
 fi
 
-docker-compose -f docker-compose.dev.yml up
+rm -rf web/src/config
+
+docker-compose up
 
 
