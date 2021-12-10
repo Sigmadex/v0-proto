@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.yml down
 echo "need sudo to clean /data/postgres and /data/ipfs"
 sudo rm -rf ./data
 rm -rf ./web/src/config/artifacts
