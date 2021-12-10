@@ -26,6 +26,8 @@ services:
       - ganache-cli
     build:
       context: ./hardhat
+    environment:
+      - IS_DOCKER=true
     volumes:
       - ./hardhat:/hardhat
       - /hardhat/node_modules
