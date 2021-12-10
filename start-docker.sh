@@ -1,5 +1,8 @@
 #!/bin/bash
-export UID
+
+if [[ "$OSTYPE" != "darwin"* ]]; then 
+  export UID
+fi
 
 IS_DOCKER=$(grep IS_DOCKER ./hardhat/.env | cut -d '=' -f 2-)
 
@@ -24,6 +27,8 @@ then
   echo 'Need sudo to remove psql and ipfs dirs for subgraph not to fail'
   sudo rm -rf $DATA_DIR
 fi
+
+rm -rf web/src/config
 
 docker-compose up
 
