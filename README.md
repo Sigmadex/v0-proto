@@ -10,7 +10,7 @@ A development environment can be created in a single line using `docker-compose`
 
 To begin ``cp .env.example .env`` and fill out with a test mnenmonic also placed in metamask
 
-Next ``cd hardhat && cp .env.example .env`` and fillout, this will need the same mnemonic as in the base .env.  Additionally, ensure ``IS_DOCKER=true``
+Next ``cd hardhat && cp .env.example .env`` and fillout, this will need the same mnemonic as in the base .env
 
 Next ``cd web && cp .env.example .env`` the default values should work unless one plans on deeper subgraph development
 
@@ -32,7 +32,6 @@ cp .env.example .env
 npm install
 npx hardhat compile
 ```
-in the .env file, ensure `IS_DOCKER=false`
 
 #### Running the Tests
 ```
