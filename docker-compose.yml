@@ -103,4 +103,4 @@ services:
       - /web/node_modules
     ports:
       - "3000:3000"
-    command: npm start
+    command: ./start.sh
