@@ -1,7 +1,7 @@
 const fromExponential = require('from-exponential')
 const { deployDiamond } = require('../../../scripts/deploy.js')
 const { deploy } = require('../../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceChain, advanceTime, advanceBlocks } = require('../../utilities.js')
+const { ADDRESSZERO, advanceChain, advanceTime } = require('../../utilities.js')
 const { fetchState, BN, calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('../helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
@@ -30,7 +30,7 @@ contract("SdexVaultSingle", (accounts) => {
   let tokenA;
   let tokenB;
   let poolid = 0
-  const blocksToStake = 10
+  const timeStake = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('20', 'ether')
   before(async () => {
@@ -66,7 +66,7 @@ contract("SdexVaultSingle", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, timeStake, ADDRESSZERO, 0).send({from:alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
@@ -100,7 +100,7 @@ contract("SdexVaultSingle", (accounts) => {
     // alice  VaultUserInfo
     assert.equal(state2[alice].vUserInfo.shares, stakeAmount)
     assert.equal(state2[alice].vUserInfo.sdexAtLastUserAction, stakeAmount)
-    assert.equal(state2[alice].vUserInfo.positions[0].endBlock - state2[alice].vUserInfo.positions[0].startBlock, blocksToStake);
+    assert.equal(state2[alice].vUserInfo.positions[0].endTime - state2[alice].vUserInfo.positions[0].startTime, timeStake);
     assert.equal(state2[alice].vUserInfo.positions[0].amount, stakeAmount)
     assert.equal(state2[alice].vUserInfo.positions[0].shares, stakeAmount)
     assert.equal(state2[alice].vUserInfo.positions[0].nftReward, ADDRESSZERO)
@@ -109,7 +109,7 @@ contract("SdexVaultSingle", (accounts) => {
     // Vault UserInfo
     assert.equal(state2[diamondAddress].userInfo.tokenData[0].amount, stakeAmount)
     assert.equal(state2[diamondAddress].userInfo.tokenData[0].totalRewardDebt, 0)
-    assert.equal(state2[diamondAddress].userInfo.lastRewardBlock, 0)
+    assert.equal(state2[diamondAddress].userInfo.lastRewardTime, 0)
 
     // Vault Shares
     //assert.equal(vSharesDiamond, stakeAmount);
@@ -118,10 +118,10 @@ contract("SdexVaultSingle", (accounts) => {
     assert.equal(state2.pool.tokenData[0].token, diamondAddress)
     assert.equal(state2.pool.tokenData[0].supply, stakeAmount)
     assert.equal(state2.pool.allocPoint, 1000)
-    assert.equal(state2.pool.lastRewardBlock, state2.blockNumber)
+    console.log(state2.pool.lastRewardTime, state2.blockNumber)
 
     //Token Globals
-    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, blocksToStake*stakeAmount)
+    assert.equal(state2.rewardGlobals[diamondAddress].timeAmountGlobal, timeStake*stakeAmount)
     assert.equal(state2.rewardGlobals[diamondAddress].rewarded, 0)
     assert.equal(state2.rewardGlobals[diamondAddress].penalties, 0)
   })
@@ -162,8 +162,8 @@ contract("SdexVaultSingle", (accounts) => {
     const positionAmount = BN(state1[alice].vUserInfo.positions[0].amount)
     const currentAmount = bnStakeAmount.add(sdexReward).sub(currCallFee).sub(currPerFee)
     const accruedSdex = currentAmount.sub(positionAmount)
-    const {refund, penalty} = calcPenalty(1, blocksToStake, positionAmount)
-    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(1, blocksToStake, accruedSdex) 
+    const {refund, penalty} = calcPenalty(1, timeStake, positionAmount)
+    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(1, timeStake, accruedSdex) 
     
     await sdexVaultFacet.methods.withdrawVault(0).send({from: alice})
 
@@ -200,15 +200,15 @@ contract("SdexVaultSingle", (accounts) => {
     // Pool Info
     const blockNumber = await web3.eth.getBlockNumber()
     assert.equal(state2.pool.tokenData[0].supply, 0)
-    assert.equal(state2.pool.lastRewardBlock, blockNumber)
+    console.log(state2.pool.lastRewardTime, blockNumber)
     // Vault User Info
     assert.equal(state1[alice].vUserInfo.shares, stakeAmount)
     assert.equal(state1[alice].vUserInfo.sdexAtLastUserAction, stakeAmount)
     assert.equal(state1[alice].vUserInfo.lastUserActionTime, state1[alice].vUserInfo.lastDepositedTime)
 
     const position1 = state1[alice].vUserInfo.positions[0]
-    assert.equal(position1.endBlock - position1.startBlock, blocksToStake)
-    assert.equal(position1.startBlock, blockNumber - 1)
+    assert.equal(position1.endTime - position1.startTime, timeStake)
+    //assert.equal(position1.startTime, blockNumber - 1)
     assert.equal(position1.amount, stakeAmount)
     assert.equal(position1.shares, stakeAmount)
     assert.equal(position1.nftReward, ADDRESSZERO)
@@ -219,8 +219,8 @@ contract("SdexVaultSingle", (accounts) => {
     //assert.equal(state2[alice].vUserInfo.lastUserActionTime, state2[alice].vUserInfo.lastDepositedTime)
 
     const position2 = state2[alice].vUserInfo.positions[0]
-    assert.equal(position2.endBlock - position2.startBlock, blocksToStake)
-    assert.equal(position2.startBlock, blockNumber - 1)
+    assert.equal(position2.endTime - position2.startTime, timeStake)
+    //assert.equal(position2.startTime, blockNumber - 1)
     assert.equal(position2.amount, 0)
     assert.equal(position2.shares, 0)
     assert.equal(position2.nftReward, ADDRESSZERO)
@@ -230,7 +230,7 @@ contract("SdexVaultSingle", (accounts) => {
     assert.equal(state2.vault.vSdex, (sdexReward).sub(BN(0)).toString())
     
     // Token Globals
-    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, 0 )
+    assert.equal(state2.rewardGlobals[diamondAddress].timeAmountGlobal, 0 )
     assert.equal(state2.rewardGlobals[diamondAddress].rewarded, 0)
     assert.equal(state2.rewardGlobals[diamondAddress].penalties, penalty.toString())
 
@@ -243,7 +243,7 @@ contract("SdexVaultSingle", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, timeStake, ADDRESSZERO, 0).send({from:alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     console.log('===========depositVault==========')
@@ -269,7 +269,7 @@ contract("SdexVaultSingle", (accounts) => {
 
     const vaultBalance = BN(await sdexVaultFacet.methods.vaultBalance().call())
     const currentAmount = BN(stakeAmount).mul(vaultBalance).div(BN(state2.vault.vTotalShares))
-    await advanceBlocks(blocksToStake+1) // 3601 seconds, 0 block
+    await advanceChain(360, 10) // 3600 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
@@ -295,7 +295,7 @@ contract("SdexVaultSingle", (accounts) => {
     console.log('============================')
 
     //Alice Sdex
-    const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
+    const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, timeStake, 0) 
     const bnStakeAmount = BN(stakeAmount)
     const diff = sdexReward.add(bnStakeAmount)
     
@@ -304,7 +304,7 @@ contract("SdexVaultSingle", (accounts) => {
       BN(state1[diamondAddress].sdex).add(bnStakeAmount).toString(),
       state2[diamondAddress].sdex
     )
-    assert.equal(BN(state2[diamondAddress].sdex).add(sdexReward.mul(BN(blocksToStake+2))).sub(currentAmount).toString(), state3[diamondAddress].sdex)
+    assert.equal(BN(state2[diamondAddress].sdex).add(sdexReward).sub(currentAmount).toString(), state3[diamondAddress].sdex)
 
 
     assert.equal(BN(state1[alice].sdex).sub(bnStakeAmount).toString(), state2[alice].sdex )
@@ -329,7 +329,7 @@ contract("SdexVaultSingle", (accounts) => {
     const totalSdex1 = await sdexFacet.methods.totalSupply().call()
     
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, reducedPenaltyReward._address, nftid).send({from:alice})
+      stakeAmount, timeStake, reducedPenaltyReward._address, nftid).send({from:alice})
     let actives = await reducedPenaltyReward.methods.actives(nftid).call()
     assert.equal(actives, 1)
     
@@ -361,16 +361,16 @@ contract("SdexVaultSingle", (accounts) => {
     const vaultBalance = BN(await sdexVaultFacet.methods.vaultBalance().call())
     const currentAmount = BN(stakeAmount).mul(vaultBalance).div(BN(state2.vault.vTotalShares))
 
-    const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0) 
+    const sdexReward = await calcSdexReward(toolShedFacet, tokenFarmFacet, timeStake/2, 0) 
     const positionAmount = BN(state2[alice].vUserInfo.positions[positionid].amount)
-    const {refund, penalty} = calcPenalty(blocksToStake/2 + 1, blocksToStake, positionAmount)
+    const {refund, penalty} = calcPenalty(timeStake/2 + 1, timeStake, positionAmount)
     const accruedSdex = currentAmount.sub(positionAmount)
-    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(blocksToStake/2 + 1, blocksToStake, accruedSdex) 
+    const {refund: refundAcc, penalty: penaltyAcc} = calcPenalty(timeStake/2 + 1, timeStake, accruedSdex) 
 
     const reduction2 = await reducedPenaltyRewardFacet.methods.rPRAmount(1).call()
     const reduction2BN =  BN(reduction2.amount)
 
-    await advanceBlocks(blocksToStake/2) // 1800 seconds, 0 block
+    await advanceChain(180, 10) // 1800 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
     actives = await reducedPenaltyReward.methods.actives(nftid).call()
     assert.equal(actives, 0)
@@ -408,23 +408,23 @@ contract("SdexVaultSingle", (accounts) => {
     //Diamond Sdex
     assert.equal(BN(state1[diamondAddress].sdex).add(BN(stakeAmount)).toString(), state2[diamondAddress].sdex)
     const reduction2BNDiff = reduction2BN.sub(penalty)
-    assert.equal(BN(state2[diamondAddress].sdex).sub(penalty).sub(refund).add(sdexReward.mul(BN(blocksToStake/2 + 1))).toString(), state3[diamondAddress].sdex)
+    assert.equal(BN(state2[diamondAddress].sdex).sub(penalty).sub(refund).add(sdexReward).toString(), state3[diamondAddress].sdex)
     //VUser Info
     assert.equal(state3[alice].vUserInfo.shares, 0)
     assert.equal(state3[alice].vUserInfo.positions[positionid].amount, 0)
     assert.equal(state3[alice].vUserInfo.positions[positionid].shares, 0)
     //Pool Info
     assert.equal(state3.pool.tokenData[0].supply, 0)
-    assert.equal(state3.pool.lastRewardBlock, state3.blockNumber)
+    console.log(state3.pool.lastRewardTime, state3.blockNumber)
     //UserInfo
     assert.equal(state3[diamondAddress].userInfo.tokenData[0].amount, 0)
     assert.equal(state3[diamondAddress].userInfo.tokenData[0].totalRewardDebt, 0)
     //Token Globals
     assert.equal(state1.rewardGlobals[diamondAddress].penalties, 0)
-    assert.equal(state1.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
-    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, stakeAmount*blocksToStake)
+    assert.equal(state1.rewardGlobals[diamondAddress].timeAmountGlobal, 0)
+    assert.equal(state2.rewardGlobals[diamondAddress].timeAmountGlobal, stakeAmount*timeStake)
     assert.equal(state2.rewardGlobals[diamondAddress].penalties, 0)
-    assert.equal(state3.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
+    assert.equal(state3.rewardGlobals[diamondAddress].timeAmountGlobal, 0)
 
 
 
@@ -443,7 +443,7 @@ contract("SdexVaultSingle", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, timeStake, ADDRESSZERO, 0).send({from:alice})
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     console.log('===========depositVault==========')
@@ -467,7 +467,7 @@ contract("SdexVaultSingle", (accounts) => {
     )
     console.log('============================')
 
-    await advanceBlocks(blocksToStake) // 1800 seconds, 0 block
+    await advanceChain(360, 10) 
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
@@ -491,6 +491,8 @@ contract("SdexVaultSingle", (accounts) => {
       BN(state3.accSdexRewardPool))).toString(), 1
     )
     console.log('============================')
+
+
   })
 
   it("deposits with an AccNFT", async () => {
@@ -500,7 +502,7 @@ contract("SdexVaultSingle", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, reducedPenaltyReward._address, 4).send({from:alice})
+      stakeAmount, timeStake, reducedPenaltyReward._address, 4).send({from:alice})
     
     const reduction = await reducedPenaltyRewardFacet.methods.rPRAmount(4).call()
     console.log(reduction)
@@ -529,7 +531,7 @@ contract("SdexVaultSingle", (accounts) => {
     )
     console.log('============================')
 
-    await advanceBlocks(blocksToStake/2 ) // 1800 seconds, 0 block
+    await advanceChain(180, 10) // 1800 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
@@ -562,11 +564,11 @@ contract("SdexVaultSingle", (accounts) => {
 
     
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, reducedPenaltyReward._address, 4).send({from:alice})
+      stakeAmount, timeStake, reducedPenaltyReward._address, 4).send({from:alice})
     
     let state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
-    await advanceBlocks(blocksToStake/2 ) // 1800 seconds, 0 block
+    await advanceChain(180, 10) // 1800 seconds, 0 block
     await sdexVaultFacet.methods.withdrawVault(positionid).send({from: alice})
 
     let state5 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
