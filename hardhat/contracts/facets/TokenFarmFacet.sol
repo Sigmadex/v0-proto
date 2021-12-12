@@ -18,7 +18,7 @@ contract TokenFarmFacet is Modifiers {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   event Add(uint256 indexed pid, address[] tokens, address[] validNFTs, uint256 allocPoint);
-  event Deposit(address indexed user, uint256 indexed pid, uint256 indexed positionid, uint256 startBlock, uint256 endBlock, uint256[] amounts, address nftAddr, uint256 nftid);
+  event Deposit(address indexed user, uint256 indexed pid, uint256 indexed positionid, uint256 startTime, uint256 endTime, uint256[] amounts, address nftAddr, uint256 nftid);
   event Withdraw(address indexed user, uint256 indexed pid, uint256 indexed positionid);
   event PoolUpdateNFT(uint256 indexed pid, address[] nfts, bool[] newStates);
 
@@ -39,11 +39,11 @@ contract TokenFarmFacet is Modifiers {
     if (withUpdate) {
       ToolShedFacet(address(this)).massUpdatePools();
     }
-    uint256 lastRewardBlock = block.number > s.startBlock ? block.number : s.startBlock;
+    uint256 lastRewardTime = block.timestamp > s.startTime ? block.timestamp : s.startTime;
     s.totalAllocPoint += allocPoint;
     uint256 pid = s.poolLength;
     s.poolInfo[pid].allocPoint = allocPoint;
-    s.poolInfo[pid].lastRewardBlock = lastRewardBlock;
+    s.poolInfo[pid].lastRewardTime = lastRewardTime;
     address[] memory tokenAddrs = new address[](tokens.length);
     for (uint j=0; j < tokens.length; j++) {
       tokenAddrs[j] = address(tokens[j]);
@@ -93,14 +93,14 @@ contract TokenFarmFacet is Modifiers {
     * Used to deposit a users tokens in a pool for a specific time. Opens up a position in the pool for the amounts given for the time staked.  Users with NFT rewards attach here.
     * @param pid Pool Id
     * @param amounts Array of amounts of each token, consult pool at pid for order and number
-    * @param blocksAhead the number of blocks in the future one wants to commit
+    * @param timeAhead amount of seconds in the future one wants to commit
     * @param nftReward address of nft reward token, address(0) for no NFT
     * @param nftid The id of the nft at the nft address, 0 for noNFT
   */
   function deposit(
     uint256 pid,
     uint256[] memory amounts,
-    uint256 blocksAhead,
+    uint256 timeAhead,
     address nftReward,
     uint256 nftid
   ) public { 
@@ -110,8 +110,8 @@ contract TokenFarmFacet is Modifiers {
     UserPosition memory newPosition  = UserPosition({
       amounts: amounts,
       rewardDebts: new uint256[](2),
-      startBlock: block.number,
-      endBlock: block.number + blocksAhead,
+      startTime: block.timestamp,
+      endTime: block.timestamp + timeAhead,
       nftReward: address(0),
       nftid: 0
     });
@@ -141,7 +141,7 @@ contract TokenFarmFacet is Modifiers {
       );
       user.tokenData[j].amount += amounts[j];
       pool.tokenData[j].supply += amounts[j];
-      s.tokenRewardData[address(pool.tokenData[j].token)].blockAmountGlobal += amounts[j]*blocksAhead;
+      s.tokenRewardData[address(pool.tokenData[j].token)].timeAmountGlobal += amounts[j]*timeAhead;
       newPosition.rewardDebts[j] = newPosition.amounts[j]*pool.tokenData[j].accSdexPerShare; 
       user.tokenData[j].totalRewardDebt = user.tokenData[j].amount*pool.tokenData[j].accSdexPerShare;
     }
@@ -149,7 +149,7 @@ contract TokenFarmFacet is Modifiers {
     if (pid == 0) {
       //s.vShares[msg.sender] += newPosition.amounts[0];
     }
-    emit Deposit(msg.sender, pid, user.positions.length - 1,block.number, block.number+blocksAhead, amounts, nftReward, nftid);
+    emit Deposit(msg.sender, pid, user.positions.length - 1,block.timestamp, block.timestamp+timeAhead, amounts, nftReward, nftid);
   }
   /**
     * Withdraws a users tokens from a pool by position. Currently a no partial liquiditations are permitted, a withdraw before the stake time is subject to a penalty.  If only 50% of time has passed, only 50% of funds are returned, and all these tokens, and accrued SDEX is sent to the penalty pool as a gift for future stakers who complete their stakeTime.  Withdrawing after the stake time returns all tokens, accrued Sdex and an NFT gift from the penalty pool 
@@ -193,10 +193,9 @@ contract TokenFarmFacet is Modifiers {
       //Manage Tokens 
       for (uint j=0; j < user.tokenData.length; j++) {
         IERC20 token = pool.tokenData[j].token;
-        //uint256 stakeTime = position.timeEnd - position.timeStart;
-        uint256 blocksAhead = position.endBlock - position.startBlock;
+        uint256 stakeTime = position.endTime - position.startTime;
         totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
-        if (position.endBlock <= block.number) {
+        if (position.endTime <= block.timestamp) {
           //past expiry date
           //return tokens
           token.transfer(
@@ -205,17 +204,17 @@ contract TokenFarmFacet is Modifiers {
           );
           //request nft Reward
           RewardFacet(address(this)).requestReward(
-            msg.sender, address(token), blocksAhead*position.amounts[j]
+            msg.sender, address(token), stakeTime*position.amounts[j]
           );
         } else {
           (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-            position.startBlock, position.endBlock, position.amounts[j]
+            position.startTime, position.endTime, position.amounts[j]
           );
           token.transfer(
             msg.sender,
             refund
           );
-          s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
+          s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
           s.tokenRewardData[address(token)].penalties += penalty;
         }
         user.tokenData[j].amount -= position.amounts[j];
@@ -228,11 +227,11 @@ contract TokenFarmFacet is Modifiers {
       //Manage SDEX
       uint256 pending = totalAmountShares / s.unity;
       if (pending >0) {
-        if (position.endBlock <= block.number) {
+        if (position.endTime <= block.timestamp) {
           //Past Expiry Date
           SdexFacet(address(this)).transfer(msg.sender, pending);
           RewardFacet(address(this)).requestSdexReward(
-            msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
+            msg.sender, position.startTime, position.endTime, pool.allocPoint, pending
           );
         } else {
           s.accSdexPenaltyPool += pending;

@@ -5,7 +5,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 struct TokenRewardData {
-  uint256 blockAmountGlobal;
+  uint256 timeAmountGlobal;
   uint256 rewarded;
   uint256 penalties;
   uint256 paidOut;
@@ -20,13 +20,13 @@ struct PoolTokenData {
 struct PoolInfo {
   PoolTokenData[] tokenData;
   uint256 allocPoint;
-  uint256 lastRewardBlock;
+  uint256 lastRewardTime;
 }
 
 struct UserInfo {
   UserTokenData[] tokenData;
   UserPosition[] positions;
-  uint256 lastRewardBlock;
+  uint256 lastRewardTime;
 }
 
 struct UserTokenData {
@@ -34,8 +34,10 @@ struct UserTokenData {
   uint256 totalRewardDebt;
 }
 struct UserPosition {
-  uint256 startBlock;
-  uint256 endBlock;
+  uint256 startTime;
+  uint256 endTime;
+  //uint256 startBlock;
+  //uint256 endBlock;
   uint256[] amounts;
   uint256[] rewardDebts;
   address nftReward;
@@ -43,8 +45,10 @@ struct UserPosition {
 }
 
 struct VaultUserPosition {
-  uint256 startBlock;
-  uint256 endBlock;
+  uint256 startTime;
+  uint256 endTime;
+  //uint256 startBlock;
+  //uint256 endBlock;
   uint256 amount;
   uint256 shares;
   address nftReward;
@@ -103,10 +107,10 @@ struct AppStorage {
   uint256 poolLength;
   mapping(uint256 => PoolInfo) poolInfo;
   //address devAddress;
-  uint256 sdexPerBlock;
+  uint256 sdexPerMinute;
   uint256 BONUS_MULTIPLIER;
   uint256 totalAllocPoint;
-  uint256 startBlock;
+  uint256 startTime;
   //uint256 sdexRewarded;
 
   //SDEX

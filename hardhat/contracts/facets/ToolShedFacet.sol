@@ -17,7 +17,7 @@ contract ToolShedFacet is Modifiers{
 	function updatePool(uint256 pid) public onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     PoolInfo storage pool = s.poolInfo[pid];
-		if (block.number <= pool.lastRewardBlock) {
+		if (block.timestamp <= pool.lastRewardTime) {
 			return;
 		}
 		uint256[] memory supplies = new uint256[](pool.tokenData.length);
@@ -27,18 +27,18 @@ contract ToolShedFacet is Modifiers{
 			supplySum += pool.tokenData[j].supply;
 		}
 		if (supplySum == 0) {
-			pool.lastRewardBlock = block.number;
+			pool.lastRewardTime = block.timestamp;
 			return;
 		}
   
-    uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-		uint256 sdexReward = multiplier * s.sdexPerBlock *pool.allocPoint / s.totalAllocPoint;
+    uint256 multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
+		uint256 sdexReward = multiplier * s.sdexPerMinute *pool.allocPoint / s.totalAllocPoint;
     //https://eip2535diamonds.substack.com/p/how-to-share-functions-between-facets
     SdexFacet(address(this)).mint(address(this), sdexReward);
 		for (uint j=0; j < pool.tokenData.length; j++) {
 			pool.tokenData[j].accSdexPerShare += sdexReward* s.unity / (pool.tokenData.length*supplies[j]);
 		}
-		pool.lastRewardBlock = block.number;
+		pool.lastRewardTime = block.timestamp;
 	}
 
   /**
@@ -78,7 +78,10 @@ contract ToolShedFacet is Modifiers{
   */ 
 	function getMultiplier(uint256 from, uint256 to) public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-		return to - from * s.BONUS_MULTIPLIER;
+    uint256 emission = (to - from) / 60;
+    console.log('ToolShedFacet::getMultiplier::emission', emission);
+    return emission;
+		//return to - from * s.BONUS_MULTIPLIER;
 	}
   /**
   * totalAllocPoint returns the total allocation points over all pools.  This number is divided against to determine which proportion of the block emission goes to each pool
@@ -90,11 +93,11 @@ contract ToolShedFacet is Modifiers{
   }
   /**
   * returns how many SDEX tokens are being emitted per block, remember to pair with the getMultiplier function if the bonus multiplier is not 1
-  * @return uint256 amount of SDEX emitted per block
+  * @return uint256 amount of SDEX emitted per minute
   */
-  function sdexPerBlock() public view returns (uint256) {
+  function sdexPerMinute() public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    return s.sdexPerBlock;
+    return s.sdexPerMinute;
   }
   /**
   * tokenRewardData returns the inner tally of information that is kept on each token on the platform that concerns the distribution of rewards of each of these tokens from the penalty pool
@@ -135,17 +138,18 @@ contract ToolShedFacet is Modifiers{
  
   /**
      * calcRefund returns the refund and penalty of an amount of a token given a startBlock (often the current Time) and the blockEnd (often the end of a stake) to determine how much is penalized and how much is refunded.  Generally if one makes it through 50% of the take, one is refunded 50% of the tokens
-     * @param startBlock the block where this position started
-     * @param blockEnd  the block where this position is no longer penalized for withdrawing
+     * @param startTime the timestamp where this position started
+     * @param endTime  the timestampwhere this position is no longer penalized for withdrawing
      * @param amount the amount of a token in question
      * @return refund how much is refunded if withdrawing at start time given endTime and how much is penalized
      * @return penalty how much one is penalized
   */ 
-	function calcRefund(uint256 startBlock, uint256 blockEnd, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
+	function calcRefund(uint256 startTime, uint256 endTime, uint256 amount) public view returns (uint256 refund, uint256 penalty) {
     AppStorage storage s = LibAppStorage.diamondStorage();
-		uint256 blocksElapsed = block.number - startBlock;
-		uint256 blockTotal = blockEnd - startBlock;
-		uint256 proportion = blocksElapsed * s.unity / blockTotal;
+		uint256 timeElapsed = block.timestamp - startTime;
+    console.log('ToolShedFacet::calcRefund::timeElapsed', timeElapsed);
+		uint256 timeTotal = endTime - startTime;
+		uint256 proportion = timeElapsed * s.unity / timeTotal;
 		uint256 refund = amount * proportion / s.unity;
 		uint256 penalty = amount - refund;
 		require(amount == penalty + refund, 'calc fund is leaking rounding errors');

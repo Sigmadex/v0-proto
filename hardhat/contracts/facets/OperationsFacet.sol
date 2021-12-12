@@ -14,10 +14,10 @@ contract OperationsFacet is Modifiers {
     emit UpdateBonusMultiplier(multiplier);
   }
 
-  function setSdexPerBlock(uint256 newBlockRate) public onlyOwner {
+  function setSdexPerMinute(uint256 newRate) public onlyOwner {
     AppStorage storage s = LibAppStorage.diamondStorage();
-    s.sdexPerBlock = newBlockRate;
-    emit UpdateSdexPerBlock(newBlockRate);
+    s.sdexPerMinute = newRate;
+    emit UpdateSdexPerBlock(newRate);
   }
 
   //Vault

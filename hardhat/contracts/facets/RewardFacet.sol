@@ -57,14 +57,14 @@ contract RewardFacet is Modifiers {
   * requestReward is called by the {TokenFarmFacet} and {SdexVaultFacet} upon the withdrawal of a successful position in a given pool by the user.  It is responsibile for calculating what proportion of the penalty pool the user receives in the form of an NFT reward.  The algorithm awards the proportion (timeStaked x amountStaked)/(totalStaked x totalTimeStaked) of the penalties pools current holding.
   * @param to the address of the future Reward NFT holder
   * @param token the address of the token being withdrawed (such as USDT)
-  * @param blockAmount (blocksAhead*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool 
+  * @param timeAmount (timeAhead*amountStaked) the product of the amount staked and how long.  Used to to determine what proportion the user receives from the penalty pool 
    */
-  function requestReward(address to, address token, uint256 blockAmount) public onlyDiamond {
+  function requestReward(address to, address token, uint256 timeAmount) public onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData storage tokenRewardData = s.tokenRewardData[token];
-    uint256 proportio = blockAmount * s.unity / tokenRewardData.blockAmountGlobal;
+    uint256 proportio = timeAmount * s.unity / tokenRewardData.timeAmountGlobal;
     uint256 rewardAmount = proportio * tokenRewardData.penalties / s.unity;
-    s.tokenRewardData[address(token)].blockAmountGlobal -= blockAmount;
+    s.tokenRewardData[address(token)].timeAmountGlobal -= timeAmount;
     s.tokenRewardData[address(token)].rewarded += rewardAmount;
     s.tokenRewardData[address(token)].penalties -= rewardAmount;
     mintReward(to, token, rewardAmount, REWARDPOOL.BASE);
@@ -73,15 +73,15 @@ contract RewardFacet is Modifiers {
   /**
    * Internally two penalty pools for Sdex are kept, one for penalties lost on staking Sdex itself, and another for penalites derived from lost block rewards. For example a premature withdraw on USDT-ETH results in a loss of accrued Sdex from block rewards, while an SDEX-ETH pair premature withdraw results in both a loss of accrued block rewards, and the SDEX originally staked as well. requestSdexReward mints NFT rewards based on penalties accrued only from lost block rewards.
    * @param to the address of the user receiving the reward
-   * @param startBlock the block the position started accruing sdex block rewards
-   * @param endBlock the block the position was commited to
+   * @param startTime the time the position started accruing sdex block rewards
+   * @param endTime the time the position was commited to
    * @param poolAllocPoint the allocation points of the specific pool. Divided by the totalAllocPoint of the farm to determine which proportion of the block rewards go to that pool
    * @param amountAccumulated the amount of Sdex this position accrued as block rewards. Divided by the total amound of block rewards for the pool in the same time frame to determine what proportion of the SDEX block rewards pool is given
    */
   function requestSdexReward(
     address to,
-    uint256 startBlock,
-    uint256 endBlock,
+    uint256 startTime,
+    uint256 endTime,
     uint256 poolAllocPoint,
     uint256 amountAccumulated
   ) public onlyDiamond {
@@ -91,8 +91,8 @@ contract RewardFacet is Modifiers {
     // totalSdexEmission
     //uint256 blocksAhead = endBlock - startBlock;
     // sdex emission
-    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startBlock, block.number);
-    uint256 totalSdexEmission = (multiplier * s.sdexPerBlock);
+    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startTime, block.timestamp);
+    uint256 totalSdexEmission = (multiplier * s.sdexPerMinute);
     uint256 sdexEmittedForPool = totalSdexEmission * poolAllocPoint / s.totalAllocPoint;
     uint256 proportion = amountAccumulated * s.unity / sdexEmittedForPool;
     if (amountAccumulated > sdexEmittedForPool) {

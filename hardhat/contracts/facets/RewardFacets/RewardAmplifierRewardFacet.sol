@@ -61,13 +61,13 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     emit RewardNFT(to, token, amount);
   }
 
-  function reqReward(address to, address token, uint256 blockAmount, uint256 bonus) private {
+  function reqReward(address to, address token, uint256 timeAmount, uint256 bonus) private {
     AppStorage storage s = LibAppStorage.diamondStorage();
     TokenRewardData storage tokenRewardData = s.tokenRewardData[token];
 
-    uint256 proportio = blockAmount * s.unity / tokenRewardData.blockAmountGlobal;
+    uint256 proportio = timeAmount * s.unity / tokenRewardData.timeAmountGlobal;
     uint256 rewardAmount = proportio * tokenRewardData.penalties / s.unity;
-    s.tokenRewardData[address(token)].blockAmountGlobal -= blockAmount;
+    s.tokenRewardData[address(token)].timeAmountGlobal -= timeAmount;
     //s.tokenRewardData[address(token)].rewarded += rewardAmount + bonus;
     s.tokenRewardData[address(token)].rewarded += rewardAmount;
     s.tokenRewardData[address(token)].penalties -= rewardAmount;
@@ -76,8 +76,8 @@ contract RewardAmplifierRewardFacet is  Modifiers {
 
   function reqSdexReward(
     address to,
-    uint256 startBlock,
-    uint256 endBlock,
+    uint256 startTime,
+    uint256 endTime,
     uint256 poolAllocPoint,
     uint256 amountAccumulated,
     uint256 bonus
@@ -86,14 +86,14 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     TokenRewardData memory tokenRewardData = s.tokenRewardData[address(this)];
 
     // totalSdexEmission
-    //uint256 blocksAhead = endBlock - startBlock;
+    //uint256 timeStaked = endTime - startTime;
     // sdex emission
-    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startBlock, block.number);
-    uint256 totalSdexEmission = (multiplier * s.sdexPerBlock);
+    uint256 multiplier = ToolShedFacet(address(this)).getMultiplier(startTime, block.timestamp);
+    uint256 totalSdexEmission = (multiplier * s.sdexPerMinute);
     uint256 sdexEmittedForPool = totalSdexEmission * poolAllocPoint / s.totalAllocPoint;
     uint256 proportion = amountAccumulated * s.unity / sdexEmittedForPool;
     if (amountAccumulated > sdexEmittedForPool) {
-      // odd edge case bug when single user is 100 percent of pool withdrawing between 1-3 blocks after endBlock
+      // odd edge case bug when single user is 100 percent of pool withdrawing between 1-3 blocks after endTime
       proportion = s.unity;
     }
     uint256 reward = proportion * s.accSdexPenaltyPool / s.unity;
@@ -123,9 +123,9 @@ contract RewardAmplifierRewardFacet is  Modifiers {
 
       IERC20 token = pool.tokenData[j].token;
       //uint256 stakeTime = position.timeEnd - position.timeStart;
-      uint256 blocksAhead = position.endBlock - position.startBlock;
+      uint256 timeStaked = position.endTime - position.startTime;
       totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.timestamp) {
         //past expiry date
         //return tokens
         token.transfer(
@@ -134,7 +134,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
         );
         //request nft Reward
         if (rewardAmount.token == address(token) && rewardAmount.rewardPool == REWARDPOOL.BASE) {
-          reqReward(msg.sender, address(token), blocksAhead*position.amounts[j], rewardAmount.amount);
+          reqReward(msg.sender, address(token), timeStaked*position.amounts[j], rewardAmount.amount);
           rewardAmount.amount = 0;
           // just gets readded in rARRequest, commenting for reminder but saving gas
           //s.tokenRewardData[address(token)].rewarded -= rewardAmount.amount;
@@ -142,18 +142,18 @@ contract RewardAmplifierRewardFacet is  Modifiers {
 
         } else {
           RewardFacet(address(this)).requestReward(
-            msg.sender, address(token), blocksAhead*position.amounts[j]
+            msg.sender, address(token), timeStaked*position.amounts[j]
           );
         }
       } else {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, position.amounts[j]
+          position.startTime, position.endTime, position.amounts[j]
         );
         token.transfer(
           msg.sender,
           refund
         );
-        s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
+        s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * timeStaked;
         s.tokenRewardData[address(token)].penalties += penalty;
       }
       user.tokenData[j].amount -= position.amounts[j];
@@ -166,18 +166,18 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     //Manage SDEX
     uint256 pending = totalAmountShares / s.unity;
     if (pending >0) {
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.number) {
         //Past Expiry Date
         SdexFacet(address(this)).transfer(msg.sender, pending);
 
         if (rewardAmount.token == address(this) && rewardAmount.rewardPool == REWARDPOOL.ACC) {
-          reqSdexReward(msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending, rewardAmount.amount);
+          reqSdexReward(msg.sender, position.startTime, position.endTime, pool.allocPoint, pending, rewardAmount.amount);
           rewardAmount.amount = 0;
           //s.accSdexRewardPool -= rewardAmount.amount;
           //s.accSdexPaidOut += rewardAmount.amount;
         } else {
           RewardFacet(address(this)).requestSdexReward(
-            msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
+            msg.sender, position.startTime, position.endTime, pool.allocPoint, pending
           );
         }
       } else {
@@ -221,9 +221,9 @@ contract RewardAmplifierRewardFacet is  Modifiers {
       vUser.sdexAtLastUserAction = 0;
     }
     vUser.lastUserActionTime = block.timestamp;
-    uint256 blocksAhead = position.endBlock - position.startBlock;
+    uint256 timeStaked = position.endTime - position.startTime;
     uint256 accruedSdex = currentAmount - position.amount;
-    if (position.endBlock <= block.number) {
+    if (position.endTime <= block.number) {
       RARAmount storage rewardAmount = s.rARAmounts[position.nftid];
       SdexFacet(address(this)).transfer(
         msg.sender,
@@ -233,28 +233,28 @@ contract RewardAmplifierRewardFacet is  Modifiers {
       //request nft Reward
 
       if (rewardAmount.rewardPool == REWARDPOOL.BASE) {
-        reqReward(msg.sender, address(this), position.amount*blocksAhead, rewardAmount.amount);
+        reqReward(msg.sender, address(this), position.amount*timeStaked, rewardAmount.amount);
         //s.tokenRewardData[address(this)].rewarded -= rewardAmount.amount;
         //s.tokenRewardData[address(this)].paidOut += rewardAmount.amount;
         rewardAmount.amount = 0;
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
+          msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex
         );
       } else if (rewardAmount.rewardPool == REWARDPOOL.ACC) {
           RewardFacet(address(this)).requestReward(
-            msg.sender, address(this), position.amount * blocksAhead
+            msg.sender, address(this), position.amount * timeStaked
           );
-          reqSdexReward(msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex, rewardAmount.amount);
+          reqSdexReward(msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex, rewardAmount.amount);
           //s.accSdexRewardPool -= rewardAmount.amount;
           //s.accSdexPaidOut += rewardAmount.amount;
           rewardAmount.amount = 0;
       }
     } else {
       (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-        position.startBlock, position.endBlock, position.amount
+        position.startTime, position.endTime, position.amount
       );
       (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
-        position.startBlock, position.endBlock, accruedSdex
+        position.startTime, position.endTime, accruedSdex
       );
 
       SdexFacet(address(this)).transfer(
@@ -264,7 +264,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
       s.vSdex -= currentAmount;
 
       s.accSdexPenaltyPool += penaltyAcc + refundAcc;
-      s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
+      s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * timeStaked;
       s.tokenRewardData[address(this)].penalties += penalty;
     }
     position.amount = 0;

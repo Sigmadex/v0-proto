@@ -2,30 +2,32 @@ const fromExponential = require('from-exponential')
 
 const unity = new web3.utils.BN(fromExponential(1e27))
 
-async function calcSdexReward(toolShedFacet, tokenFarmFacet, blocksAhead, poolid) {
-  const sdexPerBlock = await toolShedFacet.methods.sdexPerBlock().call()
+async function calcSdexReward(toolShedFacet, tokenFarmFacet, timeAhead, poolid) {
+  const sdexPerMinute = await toolShedFacet.methods.sdexPerMinute().call()
   const totalAllocPoints = await toolShedFacet.methods.totalAllocPoint().call()
   const poolAllocPoints = (await tokenFarmFacet.methods.poolInfo(poolid).call()).allocPoint
   // only one block ahead, advance time doesn't jump block like one would think
-  let numer = (blocksAhead)*sdexPerBlock*poolAllocPoints
+  const mints = Math.floor(timeAhead/60)
+  let numer = (mints)*sdexPerMinute*poolAllocPoints
   const numerator = BN(fromExponential(numer))
   const denominator = BN(totalAllocPoints)
   const sdexReward = numerator.div(denominator)
   return sdexReward
 }
-function calcPenalty(elapsedTime, blocksToStake, stakeAmount) {
+function calcPenalty(elapsedTime, stakeTime, stakeAmount) {
+  console.log('helpers.js::calcPenalty::elapsedTime', elapsedTime)
   stakeAmount = BN(stakeAmount)
-  const proportion = unity.mul(BN(elapsedTime)).div(BN(blocksToStake))
+  const proportion = unity.mul(BN(elapsedTime)).div(BN(stakeTime))
   const refund = (BN(stakeAmount)).mul(proportion).div(unity)
   const penalty = (BN(stakeAmount)).sub(refund)
   return {refund, penalty}
 }
 
-async function calcNFTRewardAmount(token, toolShed, diamondAddress,  blocksToStake, stakeAmount) {
+async function calcNFTRewardAmount(token, toolShed, diamondAddress,  timeStake, stakeAmount) {
   const rewardData = await toolShed.methods.tokenRewardData(token._address).call()
   const penalties = BN(rewardData.penalties);
-  const gtaToken =  BN(rewardData.blockAmountGlobal)
-  const ltaToken = BN(blocksToStake).mul(BN(stakeAmount))
+  const gtaToken =  BN(rewardData.timeAmountGlobal)
+  const ltaToken = BN(timeStake).mul(BN(stakeAmount))
   console.log(ltaToken.toString())
   return ltaToken.mul(penalties).div(gtaToken)
 }
@@ -37,9 +39,9 @@ async function calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, 
 
   const poolAllocPoints = BN(poolInfo.allocPoint)
   const totalAllocPoints = BN(await toolShedFacet.methods.totalAllocPoint().call())
-  const sdexPerBlock = BN(await toolShedFacet.methods.sdexPerBlock().call())
+  const sdexPerMinute = BN(await toolShedFacet.methods.sdexPerMinute().call())
 
-  const sdexReward = BN(blocksAhead+1).mul(sdexPerBlock).mul(poolAllocPoints).div(totalAllocPoints)
+  const sdexReward = BN(blocksAhead+1).mul(sdexPerMinute).mul(poolAllocPoints).div(totalAllocPoints)
   let tAShares = [];
   for (let i=0; i < poolInfo.tokenData.length; i++) {
     const accZeroInit = BN(poolInfo.tokenData[i].accSdexPerShare)

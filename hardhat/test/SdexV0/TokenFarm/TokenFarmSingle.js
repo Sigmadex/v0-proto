@@ -1,7 +1,7 @@
 const fromExponential = require('from-exponential')
 const { deployDiamond } = require('../../../scripts/deploy.js')
 const { deploy } = require('../../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceBlocks } = require('../../utilities.js')
+const { ADDRESSZERO, advanceChain } = require('../../utilities.js')
 const { BN, fetchState, calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('../helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
@@ -31,7 +31,7 @@ contract("TokenFarmFacet", (accounts) => {
   let tokenA;
   let tokenB;
   let tokens;
-  const blocksToStake = 10
+  const secondsToStake = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('20', 'ether')
   let poolid;
@@ -73,6 +73,7 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(validRewardsSdex[0], rPRAddress)
   })
   it("adds pool", async () => {
+    const timeInit = Math.floor(new Date().getTime() /1000)
     let poolLength1 = await tokenFarmFacet.methods.poolLength().call()
     assert.equal(poolLength1, 1)
     let totalAllocPoints1 = await toolShedFacet.methods.totalAllocPoint().call()
@@ -101,7 +102,8 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(poolInfo.tokenData[1].supply, 0)
     assert.equal(poolInfo.tokenData[1].accSdexPerShare, 0)
     assert.equal(poolInfo.allocPoint, 2000)
-    assert.equal(poolInfo.lastRewardBlock, blockNumber)
+
+    //assert.equal(poolInfo.lastRewardTime, blockNumber)
     try {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],
@@ -144,7 +146,7 @@ contract("TokenFarmFacet", (accounts) => {
 
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], secondsToStake, ADDRESSZERO, 0).send({from:alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
@@ -156,19 +158,20 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2.pool.tokenData[1].supply, stakeAmount)
     assert.equal(state2.pool.tokenData[1].accSdexPerShare, 0)
     assert.equal(state2.pool.allocPoint, 2000)
-    assert.equal(state2.pool.lastRewardBlock, state2.blockNumber)
+    console.log(state2.pool.lastRewardTime)
+    //assert.equal(state2.pool.lastRewardBlock, state2.blockNumber)
 
     //User
     assert.equal(state2[alice].userInfo.tokenData[0].amount, stakeAmount)
     assert.equal(state2[alice].userInfo.tokenData[1].amount, stakeAmount)
     assert.equal(state2[alice].userInfo.tokenData[0].totalRewardDebt, 0)
     assert.equal(state2[alice].userInfo.tokenData[1].totalRewardDebt, 0)
-    assert.equal(state2[alice].userInfo.positions[0].endBlock - state2[alice].userInfo.positions[0].startBlock, blocksToStake)
+    assert.equal(state2[alice].userInfo.positions[0].endTime - state2[alice].userInfo.positions[0].startTime, secondsToStake)
     assert.equal(state2[alice].userInfo.positions[0].amounts[0], stakeAmount)
     assert.equal(state2[alice].userInfo.positions[0].amounts[1], stakeAmount)
     assert.equal(state2[alice].userInfo.positions[0].nftReward, ADDRESSZERO)
     assert.equal(state2[alice].userInfo.positions[0].nftid, 0)
-    assert.equal(state2[alice].userInfo.lastRewardBlock, 0)
+    console.log(state2[alice].userInfo.lastRewardTime, 0)
 
     //Tokens
     assert.equal(BN(state2[alice][tokenA._address]).toString(), BN(state1[alice][tokenA._address]).sub(BN(stakeAmount)).toString())
@@ -179,27 +182,29 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2[diamondAddress].sdex, 0)
 
     //Token reward Globals
-    assert.equal(state2.rewardGlobals[tokenA._address].blockAmountGlobal, BN(stakeAmount).mul(BN(blocksToStake)).toString())
+    assert.equal(state2.rewardGlobals[tokenA._address].timeAmountGlobal, BN(stakeAmount).mul(BN(secondsToStake)).toString())
     assert.equal(state2.rewardGlobals[tokenA._address].rewarded, 0)
     assert.equal(state2.rewardGlobals[tokenA._address].penalties, 0)
-    assert.equal(state2.rewardGlobals[tokenB._address].blockAmountGlobal, BN(stakeAmount).mul(BN(blocksToStake)).toString())
+    assert.equal(state2.rewardGlobals[tokenB._address].timeAmountGlobal, BN(stakeAmount).mul(BN(secondsToStake)).toString())
     assert.equal(state2.rewardGlobals[tokenB._address].rewarded, 0)
     assert.equal(state2.rewardGlobals[tokenB._address].penalties, 0)
   })
   it("Premature Withdraw is penalized", async () => {
     const positionid = 0
-    const blocksAhead = blocksToStake / 2
-    await advanceBlocks(blocksAhead) // half of the staked Time
+    const blocksAhead = 60
+    const timePerBlock = 30
+    await advanceChain(blocksAhead,timePerBlock) // half of the staked Time
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
     //+1 because its inclusive with the block used to withdraw
-    const sdexReward = await calcSdexReward(toolShedFacet,tokenFarmFacet, blocksAhead+1, poolid)
+    const sdexReward = await calcSdexReward(toolShedFacet,tokenFarmFacet, blocksAhead*timePerBlock, poolid)
     const accSdexPerShare = sdexReward.mul(unity).div(new web3.utils.BN(stakeAmount))
     const perPool = accSdexPerShare.div(new web3.utils.BN(2));
     const poolInfo1 = await tokenFarmFacet.methods.poolInfo(poolid).call()
     //+1 for test compute time, may be 2 on slower computers or local node
-    const {refund, penalty} = calcPenalty(blocksAhead+1, blocksToStake, stakeAmount)
+    const threadLagOffset = 1
+    const {refund, penalty} = calcPenalty(timePerBlock*blocksAhead + threadLagOffset, secondsToStake, stakeAmount)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
@@ -213,7 +218,7 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2.pool.tokenData[1].supply, 0)
     assert.equal(state2.pool.tokenData[1].accSdexPerShare, perPool.toString())
     assert.equal(state2.pool.allocPoint, 2000)
-    assert.equal(state2.pool.lastRewardBlock, state2.blockNumber)
+    console.log(state2.pool.lastRewardTime, state2.blockNumber)
 
     //User
 
@@ -221,7 +226,7 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2[alice].userInfo.tokenData[1].amount, 0)
     assert.equal(state2[alice].userInfo.tokenData[0].totalRewardDebt, 0)
     assert.equal(state2[alice].userInfo.tokenData[1].totalRewardDebt, 0)
-    assert.equal(state2[alice].userInfo.positions[0].endBlock - state2[alice].userInfo.positions[0].startBlock, blocksToStake)
+    assert.equal(state2[alice].userInfo.positions[0].endTime - state2[alice].userInfo.positions[0].startTime, secondsToStake)
     assert.equal(state2[alice].userInfo.positions[0].amounts[0], 0)
     assert.equal(state2[alice].userInfo.positions[0].amounts[1], 0)
     assert.equal(state2[alice].userInfo.positions[0].nftReward, ADDRESSZERO)
@@ -230,7 +235,8 @@ contract("TokenFarmFacet", (accounts) => {
     //Tokens
     const aliceDiffA = BN(state2[alice][tokenA._address]).sub(BN(state1[alice][tokenA._address]))
     const aliceDiffB = BN(state2[alice][tokenB._address]).sub(BN(state1[alice][tokenB._address]))
-
+    console.log('diff', aliceDiffA.toString())
+    console.log('refund', refund.toString())
     assert.equal(aliceDiffA.toString(), refund.toString())
     assert.equal(aliceDiffB.toString(), refund.toString())
 
@@ -245,13 +251,13 @@ contract("TokenFarmFacet", (accounts) => {
     let tokenBRewardData = await toolShedFacet.methods.tokenRewardData(tokenB._address).call()
     let sdexRewardData = await toolShedFacet.methods.tokenRewardData(diamondAddress).call()
     let accSdexPenaltyPool = await toolShedFacet.methods.accSdexPenaltyPool().call()
-    assert.equal(state2.rewardGlobals[tokenA._address].blockAmountGlobal, 0)
-    assert.equal(state2.rewardGlobals[tokenB._address].blockAmountGlobal, 0)
+    assert.equal(state2.rewardGlobals[tokenA._address].timeAmountGlobal, 0)
+    assert.equal(state2.rewardGlobals[tokenB._address].timeAmountGlobal, 0)
     assert.equal(state2.rewardGlobals[tokenA._address].rewarded, 0)
     assert.equal(state2.rewardGlobals[tokenB._address].rewarded, 0)
     assert.equal(state2.rewardGlobals[tokenA._address].penalties, penalty)
     assert.equal(state2.rewardGlobals[tokenB._address].penalties, penalty)
-    assert.equal(state2.rewardGlobals[diamondAddress].blockAmountGlobal, 0)
+    assert.equal(state2.rewardGlobals[diamondAddress].timeAmountGlobal, 0)
     assert.equal(state2.rewardGlobals[diamondAddress].rewarded, 0)
     assert.equal(state2.rewardGlobals[diamondAddress].penalties, 0)
     assert.equal(state2.accSdexPenaltyPool, sdexReward.toString())
@@ -274,27 +280,27 @@ contract("TokenFarmFacet", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], secondsToStake, ADDRESSZERO, 0).send({from:alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
     const positionid = state2[alice].userInfo.positions.length - 1
     const position = state2[alice].userInfo.positions[positionid]
-    assert.equal(position.endBlock - position.startBlock, blocksToStake)
+    assert.equal(position.endTime - position.startTime, secondsToStake)
     assert.equal(position.amounts[0], stakeAmount)
     assert.equal(position.amounts[1], stakeAmount)
     assert.equal(position.nftReward, ADDRESSZERO)
     assert.equal(position.nftid, 0)
 
-
-    await advanceBlocks(blocksToStake + 1)
+    
+    await advanceChain(10, 360)
 
     const tokenARewardAmount = 
-      await calcNFTRewardAmount(tokenA, toolShedFacet, diamondAddress, blocksToStake, stakeAmount)
+      await calcNFTRewardAmount(tokenA, toolShedFacet, diamondAddress, secondsToStake, stakeAmount)
     const tokenBRewardAmount = 
-      await calcNFTRewardAmount(tokenB, toolShedFacet, diamondAddress, blocksToStake, stakeAmount)
+      await calcNFTRewardAmount(tokenB, toolShedFacet, diamondAddress, secondsToStake, stakeAmount)
 
-    const sdexNFTReward = await calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, diamondAddress, poolid, blocksToStake +2, alice, positionid)
+    const sdexNFTReward = await calcSdexNFTRewardAmount(tokenFarmFacet, toolShedFacet,sdexFacet, diamondAddress, poolid, secondsToStake +2, alice, positionid)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
@@ -304,7 +310,7 @@ contract("TokenFarmFacet", (accounts) => {
     let aliceRPRB = await reducedPenaltyReward.methods.balanceOf(alice, 2).call()
     let aliceRPRSdex = await reducedPenaltyReward.methods.balanceOf(alice, 3).call()
 
-    const sdexReward = await calcSdexReward(toolShedFacet,tokenFarmFacet, blocksToStake+1+1, poolid)
+    const sdexReward = await calcSdexReward(toolShedFacet,tokenFarmFacet, secondsToStake+1+1, poolid)
     const accSdexPerShare1 = BN(state2.pool.tokenData[0].accSdexPerShare)
     const accSdexPerShare2 =accSdexPerShare1.add(sdexReward.mul(unity).div(BN(stakeAmount).mul(BN(2))))
     const perPool = accSdexPerShare2;
@@ -318,14 +324,14 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state3.pool.tokenData[1].supply, 0)
     assert.equal(state3.pool.tokenData[1].accSdexPerShare, perPool.toString())
     assert.equal(state3.pool.allocPoint, 2000)
-    assert.equal(state3.pool.lastRewardBlock, state3.blockNumber)
+    console.log(state3.pool.lastRewardTime, state3.blockNumber)
 
     // User
     assert.equal(state3[alice].userInfo.tokenData[0].amount, 0)
     assert.equal(state3[alice].userInfo.tokenData[1].amount, 0)
     //assert.equal(state3[alice].userInfo.tokenData[0].totalRewardDebt, 0)
     //assert.equal(state3[alice].userInfo.tokenData[1].totalRewardDebt, 0)
-    assert.equal(state3[alice].userInfo.positions[positionid].endBlock - state3[alice].userInfo.positions[positionid].startBlock, blocksToStake)
+    assert.equal(state3[alice].userInfo.positions[positionid].endTime - state3[alice].userInfo.positions[positionid].startTime, secondsToStake)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[0], 0)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[1], 0)
     assert.equal(state3[alice].userInfo.positions[positionid].nftReward, ADDRESSZERO)
@@ -346,8 +352,8 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state2[diamondAddress].sdex, state3[diamondAddress].sdex)
 
     //Token Globals
-    assert.equal(state3.rewardGlobals[tokenA._address].blockAmountGlobal, 0)
-    assert.equal(state3.rewardGlobals[tokenB._address].blockAmountGlobal, 0)
+    assert.equal(state3.rewardGlobals[tokenA._address].timeAmountGlobal, 0)
+    assert.equal(state3.rewardGlobals[tokenB._address].timeAmountGlobal, 0)
     assert.equal(state3.rewardGlobals[tokenA._address].rewarded, tokenARewardAmount.toString())
     assert.equal(state3.rewardGlobals[tokenB._address].rewarded, tokenBRewardAmount.toString())
     assert.equal(state3.rewardGlobals[tokenA._address].penalties, 0)
@@ -355,7 +361,7 @@ contract("TokenFarmFacet", (accounts) => {
 
     assert.equal(state3.rewardGlobals[diamondAddress].penalties, 0) 
     assert.equal(state3.rewardGlobals[diamondAddress].rewarded, 0) 
-    assert.equal(state3.rewardGlobals[diamondAddress].blockAmountGlobal, 0) 
+    assert.equal(state3.rewardGlobals[diamondAddress].timeAmountGlobal, 0) 
 
     assert.equal(state3.accSdexPenaltyPool, 0)
     console.log('rewardpoolamount', state3.accSdexRewardPool)
@@ -391,19 +397,20 @@ contract("TokenFarmFacet", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake,
+      poolid, [stakeAmount, stakeAmount], secondsToStake,
       reducedPenaltyReward._address, aliceRPid).send({from:alice})
 
     let actives = await reducedPenaltyReward.methods.actives(aliceRPid).call()
     assert.equal(actives, 1)
-    const blocksAhead = blocksToStake / 2
-    await advanceBlocks(blocksAhead) 
+    const blocksAhead = 180
+    const timePerBlock = 10
+    await advanceChain(blocksAhead, timePerBlock) 
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
     const positionid = state2[alice].userInfo.positions.length - 1
     const position = state2[alice].userInfo.positions[positionid]
-    assert.equal(position.endBlock - position.startBlock, blocksToStake)
+    assert.equal(position.endTime - position.startTime, secondsToStake)
     assert.equal(position.amounts[0], stakeAmount)
     assert.equal(position.amounts[1], stakeAmount)
     assert.equal(position.nftReward, reducedPenaltyReward._address)
@@ -420,7 +427,7 @@ contract("TokenFarmFacet", (accounts) => {
     let aliceRPRSdex = await reducedPenaltyReward.methods.balanceOf(alice, 3).call()
 
 
-    const sdexReward = await calcSdexReward(toolShedFacet,tokenFarmFacet, blocksAhead+1, poolid)
+    const sdexReward = await calcSdexReward(toolShedFacet,tokenFarmFacet, blocksAhead*timePerBlock+1, poolid)
     const accSdexPerShare1 = new web3.utils.BN(state2.pool.tokenData[0].accSdexPerShare)
     const accSdexPerShare2 =accSdexPerShare1.add(sdexReward.mul(unity).div(new web3.utils.BN(stakeAmount).mul(new web3.utils.BN(2))))
     const perPool = accSdexPerShare2;
@@ -432,14 +439,14 @@ contract("TokenFarmFacet", (accounts) => {
     assert.equal(state3.pool.tokenData[1].supply, 0)
     assert.equal(state3.pool.tokenData[1].accSdexPerShare, perPool.toString())
     assert.equal(state3.pool.allocPoint, 2000)
-    assert.equal(state3.pool.lastRewardBlock, state3.blockNumber)
+    console.log(state3.pool.lastRewardTime, state3.blockNumber)
 
   // User
     assert.equal(state3[alice].userInfo.tokenData[0].amount, 0)
     assert.equal(state3[alice].userInfo.tokenData[1].amount, 0)
   //assert.equal(state3[alice].userInfo.tokenData[0].totalRewardDebt, 0)
   //assert.equal(state3[alice].userInfo.tokenData[1].totalRewardDebt, 0)
-    assert.equal(state3[alice].userInfo.positions[positionid].endBlock - state3[alice].userInfo.positions[positionid].startBlock, blocksToStake)
+    assert.equal(state3[alice].userInfo.positions[positionid].endTime - state3[alice].userInfo.positions[positionid].startTime, secondsToStake)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[0], 0)
     assert.equal(state3[alice].userInfo.positions[positionid].amounts[1], 0)
     assert.equal(state3[alice].userInfo.positions[positionid].nftReward, reducedPenaltyReward._address)
@@ -447,7 +454,7 @@ contract("TokenFarmFacet", (accounts) => {
 
 
   // Tokens
-    const {refund, penalty} = calcPenalty(blocksAhead+1, blocksToStake, stakeAmount)
+    const {refund, penalty} = calcPenalty(blocksAhead*timePerBlock+1, secondsToStake, stakeAmount)
     const aliceTokenA2 = state2[alice][tokenA._address]
     const aliceTokenA3 = state3[alice][tokenA._address]
     const aliceTokenB2 = state2[alice][tokenB._address]
@@ -477,15 +484,15 @@ contract("TokenFarmFacet", (accounts) => {
     let tokenBRewardData = state3.rewardGlobals[tokenB._address]
     let sdexRewardData = state3.rewardGlobals[diamondAddress]
     
-    assert.equal(tokenARewardData.blockAmountGlobal, 0)
+    assert.equal(tokenARewardData.timeAmountGlobal, 0)
     assert.equal(tokenARewardData.penalties, penalty.sub(BN(reductionAmount.amount)))
     
-    assert.equal(tokenBRewardData.blockAmountGlobal, 0)
+    assert.equal(tokenBRewardData.timeAmountGlobal, 0)
     assert.equal(tokenBRewardData.penalties, penalty)
 
     assert.equal(sdexRewardData.penalties, 0)
     assert.equal(sdexRewardData.rewarded, 0)
-    assert.equal(sdexRewardData.blockAmountGlobal, 0)
+    assert.equal(sdexRewardData.timeAmountGlobal, 0)
 
     assert.equal(state3.accSdexPenaltyPool, sdexReward.toString())
     assert.equal(state2.accSdexRewardPool, state3.accSdexRewardPool)
