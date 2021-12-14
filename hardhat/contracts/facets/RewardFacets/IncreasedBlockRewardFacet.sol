@@ -234,16 +234,19 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     AppStorage storage s = LibAppStorage.diamondStorage();
     IBRAmount storage iBRAmount = s.iBRAmounts[nftid];
 
-    uint256 timeElapsed = block.timestamp - startTime;
-    uint256 rewardPerBlock = accSdex / timeElapsed;
+    uint256 mintsElapsed = (block.timestamp - startTime) / 60;
+    console.log('IncreasedBlockRewardFacet::calcBonus::mintsElapsed', mintsElapsed);
+    console.log('IncreasedBlockRewardFacet::calcBonus::iBRAmount.amount', iBRAmount.amount);
+    uint256 rewardPerMint = accSdex / mintsElapsed;
     // double rewardPerBlock until bonus is gone or left
-    uint256 blocksOfBonus = iBRAmount.amount / rewardPerBlock ;
+    uint256 blocksOfBonus = iBRAmount.amount / rewardPerMint ;
+    console.log('IncreasedBlockRewardFacet::calcBonus::blocksOfBonus', blocksOfBonus);
 
     uint256 bonus = 0;
-    if (timeElapsed > blocksOfBonus) {
+    if (mintsElapsed > blocksOfBonus) {
       bonus =  iBRAmount.amount;
     } else {
-      bonus = rewardPerBlock * timeElapsed;
+      bonus = rewardPerMint * mintsElapsed;
     }
     iBRAmount.amount -= bonus;
 
