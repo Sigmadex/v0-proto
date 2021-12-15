@@ -78,6 +78,7 @@ contract ToolShedFacet is Modifiers{
   */ 
 	function getMultiplier(uint256 from, uint256 to) public view returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
+    console.log('ToolShedFacet::getMultiplier::to-from', to - from);
     uint256 emission = (to - from) / 60;
     console.log('ToolShedFacet::getMultiplier::emission', emission);
     return emission;
