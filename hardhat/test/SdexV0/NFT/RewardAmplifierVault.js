@@ -70,7 +70,7 @@ contract("SdexVaultFacet", (accounts) => {
   let iBRAddress;
   let rARAddress
   let poolid = 0
-  const blocksToStake = 10
+  const stakeTime = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('20', 'ether')
   before(async () => {
@@ -115,19 +115,19 @@ contract("SdexVaultFacet", (accounts) => {
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:alice})
 
-    await advanceBlocks(blocksToStake - 2)
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:bob})
+      stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:bob})
 
+    await advanceChain(10, 10)
     await sdexVaultFacet.methods.withdrawVault(0).send({from: bob})
-
+    await advanceChain(350, 10)
     await sdexVaultFacet.methods.withdrawVault(0).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
-    logState(state3, 'state3::alice::withdraw', alice,bob, diamondAddress)
+    //logState(state3, 'state3::alice::withdraw', alice,bob, diamondAddress)
 
     let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , 1).call()
     let rewardAmount1 = await rewardAmplifierRewardFacet.methods.rARAmount(1).call()
@@ -143,23 +143,23 @@ contract("SdexVaultFacet", (accounts) => {
     assert.equal(rewardAmount2.rewardPool, 1) // ENBUm for accumulated Sdex Penalty Pool
   })
 
-  it('calculates correctly over 1 interval', async () => {
+  it('calculates correctly over a staking interval', async () => {
     const nftid = 1
     const positionid = 1
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 60, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1_1 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
-
+    console.log('rewardamount1_1', rewardAmount1_1)
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, rARAddress, nftid).send({from:alice})
+      stakeAmount, stakeTime, rARAddress, nftid).send({from:alice})
     
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    logState(state2, 'state2::alice::deposit', alice,bob, diamondAddress)
+    //logState(state2, 'state2::alice::deposit', alice,bob, diamondAddress)
 
-    await advanceBlocks(blocksToStake - 1)
+    await advanceChain(3600, 1)
     await sdexVaultFacet.methods.harvest().send({from:alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
@@ -168,9 +168,9 @@ contract("SdexVaultFacet", (accounts) => {
 
     let state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
-    logState(state4, 'state4::alice::withdraw', alice,bob, diamondAddress)
+    //logState(state4, 'state4::alice::withdraw', alice,bob, diamondAddress)
 
-    //const {refund, penalty} = calcPenalty(2, blocksToStake, stakeAmount) 
+    //const {refund, penalty} = calcPenalty(2, stakeTime, stakeAmount) 
     let rewardAmount1_2 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
     let rewardAmount3_2 = await rewardAmplifierRewardFacet.methods.rARAmount(3).call()
     assert.equal(BN(state1[alice].sdex).sub(BN(stakeAmount)).toString(), state2[alice].sdex)
@@ -180,7 +180,7 @@ contract("SdexVaultFacet", (accounts) => {
 
     const accruedSdex = BN(rewardPerBlock.mul(BN(2))).sub(harvestReward).sub(BN(state3.vault.vTreasury))
 
-    //const {refund:accSdexRefund, penalty:accSdexPenalty} = calcPenalty(2, blocksToStake, accruedSdex)
+    //const {refund:accSdexRefund, penalty:accSdexPenalty} = calcPenalty(2, stakeTime, accruedSdex)
 
     assert.equal(rewardAmount1_2.amount, 0)
     assert.equal(rewardAmount3_2.amount, rewardAmount1_1.amount)
@@ -203,19 +203,19 @@ contract("SdexVaultFacet", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, rARAddress, nftid).send({from:alice})
+      stakeAmount, stakeTime, rARAddress, nftid).send({from:alice})
     let actives = await rewardAmplifierReward.methods.actives(nftid).call()
     assert.equal(actives, 1)
     
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    logState(state2, 'state2::alice::deposit', alice,bob, diamondAddress)
+    //logState(state2, 'state2::alice::deposit', alice,bob, diamondAddress)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:bob})
+      stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:bob})
 
     await sdexVaultFacet.methods.withdrawVault(1).send({from: bob})
 
-    await advanceBlocks(blocksToStake - 3)
+    await advanceBlocks(stakeTime - 3)
     await sdexVaultFacet.methods.harvest().send({from:alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
@@ -226,9 +226,9 @@ contract("SdexVaultFacet", (accounts) => {
 
     let state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
-    logState(state4, 'state4::alice::withdraw', alice,bob, diamondAddress)
+    //logState(state4, 'state4::alice::withdraw', alice,bob, diamondAddress)
 
-    //const {refund, penalty} = calcPenalty(2, blocksToStake, stakeAmount) 
+    //const {refund, penalty} = calcPenalty(2, stakeTime, stakeAmount) 
     let rewardAmount1_2 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
     let rewardAmount3_2 = await rewardAmplifierRewardFacet.methods.rARAmount(5).call()
     
@@ -248,12 +248,12 @@ contract("SdexVaultFacet", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, rARAddress, nftid).send({from:alice})
+      stakeAmount, stakeTime, rARAddress, nftid).send({from:alice})
     
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    logState(state2, 'state2::alice::deposit', alice,bob, diamondAddress)
+    //logState(state2, 'state2::alice::deposit', alice,bob, diamondAddress)
 
-    await advanceBlocks(blocksToStake - 1)
+    await advanceBlocks(stakeTime - 1)
     await sdexVaultFacet.methods.harvest().send({from:alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
@@ -262,9 +262,9 @@ contract("SdexVaultFacet", (accounts) => {
 
     let state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
-    logState(state4, 'state4::alice::withdraw', alice,bob, diamondAddress)
+    //logState(state4, 'state4::alice::withdraw', alice,bob, diamondAddress)
 
-    //const {refund, penalty} = calcPenalty(2, blocksToStake, stakeAmount) 
+    //const {refund, penalty} = calcPenalty(2, stakeTime, stakeAmount) 
     let rewardAmount1_2 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
     let rewardAmount3_2 = await rewardAmplifierRewardFacet.methods.rARAmount(8).call()
     assert.equal(BN(state1[alice].sdex).sub(BN(stakeAmount)).toString(), state2[alice].sdex)
@@ -276,7 +276,7 @@ contract("SdexVaultFacet", (accounts) => {
 
     const accruedSdex = BN(rewardPerBlock.mul(BN(2))).sub(harvestReward).sub(BN(state3.vault.vTreasury))
 
-    //const {refund:accSdexRefund, penalty:accSdexPenalty} = calcPenalty(2, blocksToStake, accruedSdex)
+    //const {refund:accSdexRefund, penalty:accSdexPenalty} = calcPenalty(2, stakeTime, accruedSdex)
     console.log(state1.accSdexPenaltyPool, state4.accSdexPenaltyPool)
     //assert.equal(rewardAmount1_2.amount, 0)
     //assert.equal(state4.rewardGlobals[diamondAddress].rewarded, state1.rewardGlobals[diamondAddress].rewarded)

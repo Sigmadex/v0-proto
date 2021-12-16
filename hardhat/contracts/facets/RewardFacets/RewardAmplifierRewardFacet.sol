@@ -10,9 +10,9 @@ import '../SdexVaultFacet.sol';
 import '../SdexFacet.sol';
 
 /**
-  * @title RewardAmplifierFacet
-  * @dev The {RewardAmplifierFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {RewardAmplifier} NFT.    
-*/
+ * @title RewardAmplifierFacet
+ * @dev The {RewardAmplifierFacet}  implements the custom reward,withdraw, vaultWithdraw logic for the {RewardAmplifier} NFT.    
+ */
 contract RewardAmplifierRewardFacet is  Modifiers {
   event RewardNFT(address to, address token, uint256 amount);
   event WithdrawVault(address indexed sender, uint256 amount, uint256 shares);
@@ -20,9 +20,9 @@ contract RewardAmplifierRewardFacet is  Modifiers {
   }
 
   /**
-    * the multiplier Address is the address of the NFT
-    * @return address location of NFT on blockchain
-  */
+   * the multiplier Address is the address of the NFT
+   * @return address location of NFT on blockchain
+   */
   function rARAddress() public returns (address) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.rewardAmplifierReward;
@@ -30,7 +30,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
   /*
   * Return the next id to be minted of this nft class, thus number -1 can be thought of as total supply
   * @return uint256 the next id to be consumed
-  */
+   */
   function rARNextId() public returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     return s.rARNextId;
@@ -46,7 +46,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     address token,
     uint256 amount,
     REWARDPOOL rewardPool
-    
+
   ) external onlyDiamond {
     AppStorage storage s = LibAppStorage.diamondStorage();
     RARAmount memory amplificationAmount = RARAmount({
@@ -186,16 +186,16 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     }
   }
 
-  
+
   function rARWithdrawVault(uint256 positionid) external  {
     AppStorage storage s = LibAppStorage.diamondStorage();
     VaultUserInfo storage vUser = s.vUserInfo[msg.sender];
     VaultUserPosition storage position = vUser.positions[positionid];
     uint256 shares = position.shares;
     require(position.shares > 0, "Nothing to withdraw");
-    
+
     IERC1155(s.rewardAmplifierReward).incrementActive(position.nftid, false);
-    
+    console.log('RAR::vault::nftid', position.nftid);
     //uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
     uint256 currentAmount = position.shares * SdexVaultFacet(address(this)).vaultBalance() / s.vTotalShares;
     vUser.shares -= position.shares;
@@ -241,13 +241,13 @@ contract RewardAmplifierRewardFacet is  Modifiers {
           msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex
         );
       } else if (rewardAmount.rewardPool == REWARDPOOL.ACC) {
-          RewardFacet(address(this)).requestReward(
-            msg.sender, address(this), position.amount * timeStaked
-          );
-          reqSdexReward(msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex, rewardAmount.amount);
-          //s.accSdexRewardPool -= rewardAmount.amount;
-          //s.accSdexPaidOut += rewardAmount.amount;
-          rewardAmount.amount = 0;
+        RewardFacet(address(this)).requestReward(
+          msg.sender, address(this), position.amount * timeStaked
+        );
+        reqSdexReward(msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex, rewardAmount.amount);
+        //s.accSdexRewardPool -= rewardAmount.amount;
+        //s.accSdexPaidOut += rewardAmount.amount;
+        rewardAmount.amount = 0;
       }
     } else {
       (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
