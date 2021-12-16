@@ -1,7 +1,7 @@
 const fromExponential = require('from-exponential')
 const { deployDiamond } = require('../../../scripts/deploy.js')
 const { deploy } = require('../../../scripts/libraries/diamond.js')
-const { ADDRESSZERO, advanceChain, advanceTime, advanceBlocks } = require('../../utilities.js')
+const { ADDRESSZERO, advanceChain } = require('../../utilities.js')
 const { fetchState, BN, calcNFTRewardAmount, calcSdexReward, unity, calcPenalty, calcSdexNFTRewardAmount } = require('../helpers.js')
 
 const MockERC20 = artifacts.require('MockERC20')
@@ -79,7 +79,7 @@ contract("RewardAmplifier", (accounts) => {
   let rARAddress;
   let iBRAddress;
   let poolid = 1
-  const blocksToStake = 10
+  const stakeTime = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('20', 'ether')
 
@@ -154,7 +154,7 @@ contract("RewardAmplifier", (accounts) => {
     assert.equal(poolInfo.tokenData[1].supply, 0)
     assert.equal(poolInfo.tokenData[1].accSdexPerShare, 0)
     assert.equal(poolInfo.allocPoint, 2000)
-    assert.equal(poolInfo.lastRewardBlock, blockNumber)
+    console.log(poolInfo.lastRewardTime, blockNumber)
     try {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],
@@ -175,10 +175,10 @@ contract("RewardAmplifier", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:bob})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:bob})
+      poolid, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:bob})
 
     await tokenFarmFacet.methods.withdraw(poolid, 0).send({from: bob})
 
@@ -188,15 +188,15 @@ contract("RewardAmplifier", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
 
-    await advanceBlocks(blocksToStake)
+    await advanceChain(360, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, 0).send({from: alice})
 
     let state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
 
-    logState(state3, 'state3::alice::withdraw', alice,bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state3, 'state3::alice::withdraw', alice,bob, diamondAddress, tokenA._address, tokenB._address)
     
     let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , 1).call()
     let rewardAmount1 = await rewardAmplifierRewardFacet.methods.rARAmount(1).call()
@@ -235,23 +235,23 @@ contract("RewardAmplifier", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , nftid).call()
     let rewardAmount1A_1 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, rARAddress, nftid).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], stakeTime, rARAddress, nftid).send({from:alice})
     
     let actives = await rewardAmplifierReward.methods.actives(nftid).call()
     assert.equal(actives, 1)
-    await advanceBlocks(blocksToStake)
+    await advanceChain(360, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
     actives = await rewardAmplifierReward.methods.actives(nftid).call()
     assert.equal(actives, 0)
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let nft4A = await rewardAmplifierReward.methods.balanceOf(alice , 4).call()
     let rewardAmount4A_2 = await rewardAmplifierRewardFacet.methods.rARAmount(4).call()
@@ -274,31 +274,35 @@ contract("RewardAmplifier", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:bob})
-
-    const {refund, penalty:bobPenalty} = calcPenalty(1, blocksToStake, stakeAmount)
+      poolid, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:bob})
+    await advanceChain(1, 60)
+    const {refund, penalty:bobPenalty} = calcPenalty(61, stakeTime, stakeAmount)
+    console.log('bobpenalty', bobPenalty.toString())
 
     await tokenFarmFacet.methods.withdraw(poolid, 1).send({from: bob})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let nft4 = await rewardAmplifierReward.methods.balanceOf(alice , nftid).call()
     let rewardAmount4A_1 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, rARAddress, nftid).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], stakeTime, rARAddress, nftid).send({from:alice})
 
-    await advanceBlocks(blocksToStake)
+    await advanceChain(360, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let rewardAmount4A_2 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
     
     let nft7A = await rewardAmplifierReward.methods.balanceOf(alice , 7).call()
     let rewardAmount7A_2= await rewardAmplifierRewardFacet.methods.rARAmount(7).call()
+    console.log('4A_1.amount', rewardAmount4A_1.amount)
+    console.log('bobpenalty', bobPenalty.toString())
+    console.log('7A_2.amount', rewardAmount7A_2.amount)
     
     assert.equal(BN(rewardAmount4A_1.amount).add(bobPenalty).toString(), rewardAmount7A_2.amount)
     assert.equal(rewardAmount4A_2.amount, 0)
@@ -317,19 +321,19 @@ contract("RewardAmplifier", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , nftid).call()
     let rewardAmount1A_1 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, rARAddress, nftid).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], stakeTime, rARAddress, nftid).send({from:alice})
 
-    await advanceBlocks(blocksToStake/ 2)
+    await advanceChain(180, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let rewardAmount1A_2 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
 
@@ -346,19 +350,19 @@ contract("RewardAmplifier", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state1, 'state1', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let nft1 = await rewardAmplifierReward.methods.balanceOf(alice , nftid).call()
     let rewardAmount1A_1 = await rewardAmplifierRewardFacet.methods.rARAmount(nftid).call()
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, rARAddress, nftid).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], stakeTime, rARAddress, nftid).send({from:alice})
 
-    await advanceBlocks(blocksToStake)
+    await advanceChain(360, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid, tokens)
-    logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
+    //logState(state2, 'state2::withdraw', alice, bob, diamondAddress, tokenA._address, tokenB._address)
 
     let nft12A = await rewardAmplifierReward.methods.balanceOf(alice, 12).call()
     let rewardAmount12A_2 = await rewardAmplifierRewardFacet.methods.rARAmount(12).call()

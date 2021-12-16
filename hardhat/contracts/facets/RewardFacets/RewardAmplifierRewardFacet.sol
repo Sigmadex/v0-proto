@@ -166,7 +166,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     //Manage SDEX
     uint256 pending = totalAmountShares / s.unity;
     if (pending >0) {
-      if (position.endTime <= block.number) {
+      if (position.endTime <= block.timestamp) {
         //Past Expiry Date
         SdexFacet(address(this)).transfer(msg.sender, pending);
 
@@ -223,7 +223,7 @@ contract RewardAmplifierRewardFacet is  Modifiers {
     vUser.lastUserActionTime = block.timestamp;
     uint256 timeStaked = position.endTime - position.startTime;
     uint256 accruedSdex = currentAmount - position.amount;
-    if (position.endTime <= block.number) {
+    if (position.endTime <= block.timestamp) {
       RARAmount storage rewardAmount = s.rARAmounts[position.nftid];
       SdexFacet(address(this)).transfer(
         msg.sender,
