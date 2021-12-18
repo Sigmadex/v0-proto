@@ -61,7 +61,7 @@ contract("SdexVaultFacet Many Deposits", (accounts) => {
   let tokenA;
   let tokenB;
   let poolid = 0
-  const blocksToStake = 10
+  const stakeTime = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('5', 'ether')
 
@@ -97,7 +97,7 @@ contract("SdexVaultFacet Many Deposits", (accounts) => {
     const state0 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:alice})
     const state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
     let accSdex0 = rewardPerBlock
     let accSdex1;
@@ -105,7 +105,7 @@ contract("SdexVaultFacet Many Deposits", (accounts) => {
     logState(state1, 'state1', alice, diamondAddress)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:alice})
     
     accSdex0 = accSdex0.add(rewardPerBlock.div(BN(2)))
     accSdex1 = rewardPerBlock.div(BN(2))
@@ -113,7 +113,7 @@ contract("SdexVaultFacet Many Deposits", (accounts) => {
     logState(state2, 'state2', alice, diamondAddress)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     await sdexVaultFacet.methods.depositVault(
-      stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:alice})
     const state3 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)
 
     accSdex0 = accSdex0.add(rewardPerBlock.div(BN(3)))
@@ -121,7 +121,7 @@ contract("SdexVaultFacet Many Deposits", (accounts) => {
     accSdex2 = rewardPerBlock.div(BN(3))
     logState(state3, 'state3', alice, diamondAddress)
 
-    await advanceBlocks(4)
+    await advanceChain(24, 10)
     rewardPer5Block = rewardPerBlock.mul(BN(3))
     accSdex0 = accSdex0.add(rewardPer5Block.div(BN(3)))
     accSdex1 = accSdex1.add(rewardPer5Block.div(BN(3)))
@@ -129,7 +129,7 @@ contract("SdexVaultFacet Many Deposits", (accounts) => {
 
     //await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:bob})
     //await sdexVaultFacet.methods.depositVault(
-    //stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:bob})
+    //stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:bob})
     await sdexVaultFacet.methods.harvest().send({from:bob})
 
     const state4 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, 0)

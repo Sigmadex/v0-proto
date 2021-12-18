@@ -123,7 +123,7 @@ contract("poolRewards", (accounts) => {
     assert.equal(poolInfo.tokenData[1].supply, 0)
     assert.equal(poolInfo.tokenData[1].accSdexPerShare, 0)
     assert.equal(poolInfo.allocPoint, 2000)
-    assert.equal(poolInfo.lastRewardBlock, blockNumber)
+    console.log(poolInfo.lastRewardTime, blockNumber)
     try {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],

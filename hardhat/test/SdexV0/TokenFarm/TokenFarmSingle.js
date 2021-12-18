@@ -15,7 +15,7 @@ const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 
-contract("TokenFarmFacet", (accounts) => {
+contract("TokenFarmSingle", (accounts) => {
   let owner = accounts[0]
   let alice = accounts[1]
   let bob = accounts[2]

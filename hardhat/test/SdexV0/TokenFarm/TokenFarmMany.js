@@ -59,7 +59,7 @@ async function tokenRewardGlobals(toolShedFacet, tokens ) {
   )
 }
 
-contract("TokenFarmFacet", (accounts) => {
+contract("TokenFarmMany", (accounts) => {
   let owner = accounts[0]
   let alice = accounts[1]
   let bob = accounts[2]
