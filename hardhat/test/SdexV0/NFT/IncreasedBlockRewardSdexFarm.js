@@ -64,7 +64,7 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
   let rPRAddress;
   let iBRAddress;
   let poolid = 0
-  const blocksToStake = 10
+  const stakeTime = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('20', 'ether')
   before(async () => {
@@ -102,7 +102,7 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:bob})
+      poolid, [stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:bob})
 
     await tokenFarmFacet.methods.withdraw(poolid, 0).send({from: bob})
 
@@ -111,9 +111,9 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      poolid, [stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
 
-    await advanceBlocks(blocksToStake)
+    await advanceChain(360, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, 0).send({from: alice})
 
@@ -136,17 +136,20 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
   })
 
   it("alice uses nft reward", async () => {
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    console.log('=================alice uses nft reward================')
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 301, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     const nftid = 1  
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
 
     let actives  = await increasedBlockReward.methods.actives(nftid).call()
     assert.equal(actives, 1)
+
+    await advanceChain(30, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, 1).send({from: alice})
     actives  = await increasedBlockReward.methods.actives(nftid).call()
@@ -154,8 +157,10 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
   
-    const {refund, penalty} = calcPenalty(1, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(300 + 1, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(1).call()
+    console.log(rewardAmount1.amount, rewardAmount2.amount, 'rewardamounts')
+    console.log(rewardPerBlock.toString(), 'rewardperblock')
     assert.equal(BN(rewardAmount1.amount).sub(rewardPerBlock).toString(), rewardAmount2.amount)
     assert.equal(
       BN(state2.rewardGlobals[diamondAddress].rewarded).add(rewardPerBlock).toString(),
@@ -169,156 +174,99 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
       state2.accSdexPenaltyPool
     )
   })
-
   it('calculates correctly over a larger (1 - 3) interval', async () => {
     const nftid = 1
     const positionid = 2
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 601, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(1)
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
+    await advanceChain(60, 10)
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
 
-    const {refund, penalty} = calcPenalty(2, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(601, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
-    assert.equal(BN(rewardAmount1.amount).sub(rewardPerBlock.mul(BN(2))).toString(), rewardAmount2.amount)
+    assert.equal(BN(rewardAmount1.amount).sub(rewardPerBlock).toString(), rewardAmount2.amount)
     assert.equal(
-      BN(state2.rewardGlobals[diamondAddress].rewarded).add(rewardPerBlock.mul(BN(2))).toString(),
+      BN(state2.rewardGlobals[diamondAddress].rewarded).add(rewardPerBlock).toString(),
       state1.rewardGlobals[diamondAddress].rewarded
     )
     assert.equal(
       BN(state1.rewardGlobals[diamondAddress].penalties).add(penalty).toString(),
       state2.rewardGlobals[diamondAddress].penalties
     )
-    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(2))).add(rewardPerBlock.mul(BN(2))).toString(),
+    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock).add(rewardPerBlock).toString(),
       state2.accSdexPenaltyPool
     )
+    console.log('remaing funds on nftid=1')
+    console.log(rewardAmount2)
   })
 
-  it('calculates correctly over a larger (1 - 4) interval', async () => {
+  it('calculates correctly when overflowing', async () => {
     const nftid = 1
     const positionid = 3
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 701, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(2)
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
+    await advanceChain(70, 10)
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
-
-    const {refund, penalty} = calcPenalty(3, blocksToStake, stakeAmount) 
-    let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
-    assert.equal(BN(rewardAmount1.amount).sub(rewardPerBlock.mul(BN(3))).toString(), rewardAmount2.amount)
-    assert.equal(
-      BN(state2.rewardGlobals[diamondAddress].rewarded).add(rewardPerBlock.mul(BN(3))).toString(),
-      state1.rewardGlobals[diamondAddress].rewarded
-    )
-    assert.equal(
-      BN(state1.rewardGlobals[diamondAddress].penalties).add(penalty).toString(),
-      state2.rewardGlobals[diamondAddress].penalties
-    )
-    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(3))).add(rewardPerBlock.mul(BN(3))).toString(),
-      state2.accSdexPenaltyPool
-    )
-  })
-  it('calculates correctly over a larger (1 - 9) interval', async () => {
-    const nftid = 1
-    const positionid = 4
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
-    await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
-    
-    let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
-
-    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(7)
-    await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
-
-    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    
-
-    const {refund, penalty} = calcPenalty(8, blocksToStake, stakeAmount) 
-    let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
-    console.log(rewardAmount2)
-    assert.equal(BN(rewardAmount1.amount).sub(rewardPerBlock.mul(BN(8))).toString(), rewardAmount2.amount)
-    assert.equal(
-      BN(state2.rewardGlobals[diamondAddress].rewarded).add(rewardPerBlock.mul(BN(8))).toString(),
-      state1.rewardGlobals[diamondAddress].rewarded
-    )
-    assert.equal(
-      BN(state1.rewardGlobals[diamondAddress].penalties).add(penalty).toString(),
-      state2.rewardGlobals[diamondAddress].penalties
-    )
-    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(8))).add(rewardPerBlock.mul(BN(8))).toString(),
-      state2.accSdexPenaltyPool
-    )
-  })
-  it('calculates correctly when overflowing (1 - 5) interval', async () => {
-    const nftid = 1
-    const positionid = 5
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
-    await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
-    
-    let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
-
-    let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(4)
-    await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
-
-    let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
-    
-
-    const {refund, penalty} = calcPenalty(5, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(701, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
     console.log(rewardAmount2)
     assert.equal(0, rewardAmount2.amount)
+    assert.equal(0, state2.rewardGlobals[diamondAddress].rewarded)
     assert.equal(
-      BN(state2.rewardGlobals[diamondAddress].rewarded).add(rewardPerBlock.mul(BN(4))).toString(),
+      BN(state2.rewardGlobals[diamondAddress].rewarded).add(BN(rewardAmount1.amount)).toString(),
       state1.rewardGlobals[diamondAddress].rewarded
     )
     assert.equal(
       BN(state1.rewardGlobals[diamondAddress].penalties).add(penalty).toString(),
       state2.rewardGlobals[diamondAddress].penalties
     )
-    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(4))).add(rewardPerBlock.mul(BN(5))).toString(),
+
+    console.log('========')
+    console.log(state1.accSdexPenaltyPool)
+    console.log(rewardPerBlock.toString())
+    console.log(state2.accSdexPenaltyPool)
+    console.log('========')
+    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock).add(BN(rewardAmount1.amount)).toString(),
       state2.accSdexPenaltyPool
     )
+
   })
   it('calculates correctly when from accSdexVault', async () => {
     const nftid = 2
-    const positionid = 6
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const positionid = 4
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 301, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    //await advanceBlocks(1)
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
+    await advanceChain(30, 10)
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
 
-    const {refund, penalty} = calcPenalty(1, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(301, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
     console.log(rewardAmount1.amount, rewardAmount2.amount)
     console.log(state2.accSdexRewardPool, state1.accSdexRewardPool, 'rewardpool')
@@ -328,22 +276,21 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
       BN(state1.rewardGlobals[diamondAddress].penalties).add(penalty).toString(),
       state2.rewardGlobals[diamondAddress].penalties
     )
-    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(1))).add(rewardPerBlock.mul(BN(1))).toString(),
+    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(1))).toString(),
       state2.accSdexPenaltyPool
     )
   })
-
   it("reload new nfts for alice", async () => {
-    const positionid = 7
+    const positionid = 5
 
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:bob})
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:bob})
+      poolid, [stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:bob})
 
-    await advanceBlocks(2)
+    await advanceChain(2, 10)
 
     await tokenFarmFacet.methods.withdraw(poolid, 1).send({from: bob})
 
@@ -352,9 +299,9 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      poolid, [stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
 
-    await advanceBlocks(blocksToStake)
+    await advanceBlocks(stakeTime)
 
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
@@ -378,22 +325,21 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
 
   it('calculates correctly from vault when more over', async () => {
     const nftid = 4
-    const positionid = 8
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const positionid = 6
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 301, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
-
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(5)
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
+    await advanceChain(30, 10)
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
 
-    const {refund, penalty} = calcPenalty(6, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(301, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
     console.log(rewardAmount1.amount, rewardAmount2.amount)
     console.log(state2.accSdexRewardPool, state1.accSdexRewardPool, 'rewardpool')
@@ -403,64 +349,56 @@ contract("IncreasedBlockReward: SdexFarmFacet", (accounts) => {
       BN(state1.rewardGlobals[diamondAddress].penalties).add(penalty).toString(),
       state2.rewardGlobals[diamondAddress].penalties
     )
-    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock.mul(BN(6))).add(rewardPerBlock.mul(BN(6))).toString(),
+    assert.equal(BN(state1.accSdexPenaltyPool).add(rewardPerBlock).add(rewardPerBlock).toString(),
       state2.accSdexPenaltyPool
     )
   })
 
   it('calculates correctly from vault when more over', async () => {
     const nftid = 4
-    const positionid = 9
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const positionid = 7
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 2401, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(9)
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
+    await advanceChain(240, 10)
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
 
-    //const {refund, penalty} = calcPenalty(6, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(2401, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
     console.log(rewardAmount1.amount, rewardAmount2.amount)
-    assert.equal(BN(rewardAmount1.amount).sub(BN(rewardPerBlock).mul(BN(10))).toString(), rewardAmount2.amount)
-    console.log(BN(state2.accSdexRewardPool).sub((BN(rewardPerBlock).mul(BN(10)))).toString(), state1.accSdexRewardPool, 'rewardpool')
-    console.log(BN(state1.accSdexRewardPool).sub(BN(rewardPerBlock)).toString(), state2.accSdexRewardPool)
-    assert.equal(state1.rewardGlobals[diamondAddress].penalties, BN(state2.rewardGlobals[diamondAddress].rewarded).sub(BN(state1.rewardGlobals[diamondAddress].rewarded)).toString());
-    assert.equal(0, state2.rewardGlobals[diamondAddress].penalties)
-    assert.equal(0, state2.accSdexPenaltyPool)
-    assert.equal(state1.accSdexPenaltyPool, BN(state1.accSdexPenaltyPool).sub(BN(state2.accSdexPenaltyPool)).toString())
+    assert.equal(BN(rewardAmount1.amount).sub(BN(rewardPerBlock)).toString(), rewardAmount2.amount)
   })
+
   it('calculates correctly from vault when withdraw is greater than endBlock', async () => {
     const nftid = 4
-    const positionid = 10
-    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1, 0)
+    const positionid = 8
+    const rewardPerBlock  = await calcSdexReward(toolShedFacet, tokenFarmFacet, 1201, 0)
     await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
     
     let rewardAmount1 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
 
     let state1 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount], blocksToStake, iBRAddress, nftid).send({from:alice})
-    await advanceBlocks(35)
+      poolid, [stakeAmount], stakeTime, iBRAddress, nftid).send({from:alice})
+    await advanceChain(120, 10)
     await tokenFarmFacet.methods.withdraw(poolid, positionid).send({from: alice})
 
     let state2 = await fetchState(diamondAddress, sdexFacet, sdexVaultFacet, tokenFarmFacet, toolShedFacet, users, poolid)
     
 
-    //const {refund, penalty} = calcPenalty(6, blocksToStake, stakeAmount) 
+    const {refund, penalty} = calcPenalty(1201, stakeTime, stakeAmount) 
     let rewardAmount2 = await increasedBlockRewardFacet.methods.iBRAmount(nftid).call()
     console.log('this' ,rewardAmount1.amount, rewardAmount2.amount)
     assert.equal(rewardAmount2.amount, 0)
     assert.equal(BN(state1.accSdexRewardPool).sub(BN(rewardAmount1.amount)).toString(), state2.accSdexRewardPool)
-    assert.equal(0, state2.rewardGlobals[diamondAddress].penalties)
-    assert.equal(0, state2.accSdexPenaltyPool)
-    assert.equal(state1.accSdexPenaltyPool, BN(state1.accSdexPenaltyPool).sub(BN(state2.accSdexPenaltyPool)).toString())
   })
 })
 

@@ -30,7 +30,7 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
   // Form 
   const [amountA, setAmountA] = useState(0)
   const [amountB, setAmountB] = useState(0)
-  const [blocksStake, setBlocksStake] = useState(0)
+  const [timeStake, setTimeStake] = useState(0)
   const [nftAddr, setNFTAddr] = useState(Static.addresses.ZERO)
   const [nftid, setNFTid] = useState(0)
   
@@ -147,7 +147,7 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
   const {onDeposit} = useDepositFarm(
     Number(farmid), // pull this later from url params
     [amountA, amountB],
-    blocksStake,
+    timeStake,
     nftAddr, // no nft for now
     nftid
   )
@@ -235,8 +235,8 @@ const DepositFarmForm: FC<DepositFarmFormProps> = ({usersValidNFTs, farmid}) => 
           <div className="card-body">
             <div className="row">
               <div className="col-8">
-                Blocks to Stake:
-                <input type="text" name="from" className="form-control" placeholder="0.0" value={blocksStake} onChange={e => setBlocksStake(e.target.value)}/>
+                Time To Stake:
+                <input type="text" name="from" className="form-control" placeholder="0.0" value={timeStake} onChange={e => setTimeStake(e.target.value)}/>
               </div>
               <div className="col-4 text-end">
                 <br />

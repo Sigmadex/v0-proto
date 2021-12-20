@@ -32,7 +32,7 @@ export const useGetvUserInfo = () => {
 
 export const useDepositSdexVault = (
   amount: number,
-  blocksToStake: number,
+  timeToStake: number,
   nftAddress: string,
   nftid: number
 ) => {
@@ -44,7 +44,7 @@ export const useDepositSdexVault = (
     try {
       const deposit = await contract.methods.depositVault(
         Web3.utils.toWei(String(amount), 'ether'),
-        blocksToStake,
+        timeToStake,
         nftAddress,
         nftid
       ).send({from:account})
@@ -54,7 +54,7 @@ export const useDepositSdexVault = (
       console.log(e)
       return false
     }
-  },[account, library, amount, blocksToStake, nftAddress, nftid])
+  },[account, library, amount, timeToStake, nftAddress, nftid])
 
   return { onDeposit: handleDeposit  }
 }

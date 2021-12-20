@@ -16,7 +16,7 @@ const ReducedPenaltyRewardFacet = artifacts.require('ReducedPenaltyRewardFacet')
 const ReducedPenaltyReward = artifacts.require('ReducedPenaltyReward')
 
 // Testing the interplay between manual Sdex Farm, Auto Sdex Vault, and a Normal Farm
-contract("MultiFarm", (accounts) => {
+contract("MultiFarm2", (accounts) => {
   
   let owner = accounts[0]
   let alice = accounts[1]
@@ -34,7 +34,7 @@ contract("MultiFarm", (accounts) => {
   let tokenB;
   let tokenC;
   let tokens;
-  let blocksToStake = 10
+  let stakeTime = 3600
   let diamondAddress
   let ABAllocPoints = 2000
   let ACAllocPoints = 2000
@@ -44,7 +44,7 @@ contract("MultiFarm", (accounts) => {
   let poolAB = 1
   let poolAC = 2
   let poolAS = 3
-  let sdexPerBlock
+  let sdexPerMinute
   before(async () => {
     diamondAddress = await deployDiamond()
 
@@ -58,7 +58,7 @@ contract("MultiFarm", (accounts) => {
     rPRAddress = await reducedPenaltyRewardFacet.methods.rPRAddress().call()
     reducedPenaltyReward = new web3.eth.Contract(ReducedPenaltyReward.abi, rPRAddress)
     
-    sdexPerBlock = await toolShedFacet.methods.sdexPerBlock().call()
+    sdexPerMinute = await toolShedFacet.methods.sdexPerMinute().call()
 
     let erc20TotalSupply = web3.utils.toWei('1000000', 'ether')
     tokenA = await deploy(owner, MockERC20, ['ERC20A', 'ERC20A', erc20TotalSupply])
@@ -119,7 +119,7 @@ contract("MultiFarm", (accounts) => {
     assert.equal(poolInfo.tokenData[1].supply, 0)
     assert.equal(poolInfo.tokenData[1].accSdexPerShare, 0)
     assert.equal(poolInfo.allocPoint, 2000)
-    assert.equal(poolInfo.lastRewardBlock, blockNumber)
+    console.log(poolInfo.lastRewardTime, blockNumber)
     try {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],
@@ -165,9 +165,9 @@ contract("MultiFarm", (accounts) => {
       //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
       await tokenFarmFacet.methods.deposit(
-        poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+        poolAB, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       await tokenFarmFacet.methods.deposit(
-        poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:bob})
+        poolAB, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:bob})
 
     }
       await advanceBlocks(1)
@@ -182,9 +182,9 @@ contract("MultiFarm", (accounts) => {
     
     const totalAlloc = await toolShedFacet.methods.totalAllocPoint().call()
     const poolProportion = BN(stateI_AB.pool.allocPoint).mul(unity).div(BN(totalAlloc))
-    const rewardsForPool = BN(sdexPerBlock).mul(BN(firstDep)).mul(poolProportion).div(unity)
+    const rewardsForPool = BN(sdexPerMinute).mul(BN(firstDep)).mul(poolProportion).div(unity)
 
-    assert.equal(stateF_AB[diamondAddress].sdex, 10) // rounding err
+    assert.equal(stateF_AB[diamondAddress].sdex, 0) // rounding err
 
     assert.equal(BN(stateF_AB[alice].sdex).add(BN(stateF_AB[bob].sdex)).toString(),
     BN(stateI_AB[alice].sdex).add(BN(stateI_AB[bob].sdex)).add(BN(rewardsForPool)).sub(BN(stateF_AB[diamondAddress].sdex)).toString())
@@ -206,7 +206,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAB, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else {
 
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -215,7 +215,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAC, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAC, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       }
     }
     await advanceBlocks(1)
@@ -235,8 +235,8 @@ contract("MultiFarm", (accounts) => {
     const totalAlloc = await toolShedFacet.methods.totalAllocPoint().call()
     const poolProportionAB = BN(stateI_AB.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionAC = BN(stateI_AC.pool.allocPoint).mul(unity).div(BN(totalAlloc))
-    const rewardsForAB = BN(sdexPerBlock).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
-    const rewardsForAC = BN(sdexPerBlock).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
+    const rewardsForAB = BN(sdexPerMinute).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
+    const rewardsForAC = BN(sdexPerMinute).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
     console.log(stateF_AB[diamondAddress].sdex, 10)
     assert.equal(stateF_AB[alice].sdex, BN(stateI_AB[alice].sdex).add(BN(rewardsForAB)).add(BN(rewardsForAC)).sub(BN(4)).toString())
   })
@@ -257,7 +257,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAB, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else if (i % 3 == 1) {
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await tokenC.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -265,7 +265,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAC, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAC, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else {
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -273,7 +273,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAS, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAS, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       }
     }
     await advanceBlocks(1)
@@ -297,9 +297,9 @@ contract("MultiFarm", (accounts) => {
     const poolProportionAB = BN(stateI_AB.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionAC = BN(stateI_AC.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionAS = BN(stateI_AS.pool.allocPoint).mul(unity).div(BN(totalAlloc))
-    const rewardsForAB = BN(sdexPerBlock).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
-    const rewardsForAC = BN(sdexPerBlock).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
-    const rewardsForAS = BN(sdexPerBlock).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
+    const rewardsForAB = BN(sdexPerMinute).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
+    const rewardsForAC = BN(sdexPerMinute).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
+    const rewardsForAS = BN(sdexPerMinute).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
     assert.equal(stateF_AB[alice].sdex, 
       BN(stateI_AB[alice].sdex).add(BN(rewardsForAB)).add(BN(rewardsForAC)).add(BN(rewardsForAS)).sub(BN(0)).toString())
   })
@@ -321,7 +321,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAB, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else if (i % 4 == 1) {
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await tokenC.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -329,7 +329,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAC, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAC, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else  if (i % 4 == 2){
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -337,12 +337,12 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAS, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAS, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
 
       } else {
         await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await tokenFarmFacet.methods.deposit(
-          poolS, [stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolS, [stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       }
     }
     await advanceBlocks(1)
@@ -373,10 +373,10 @@ contract("MultiFarm", (accounts) => {
     const poolProportionAC = BN(stateI_AC.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionAS = BN(stateI_AS.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionS = BN(stateI_S.pool.allocPoint).mul(unity).div(BN(totalAlloc))
-    const rewardsForAB = BN(sdexPerBlock).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
-    const rewardsForAC = BN(sdexPerBlock).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
-    const rewardsForAS = BN(sdexPerBlock).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
-    const rewardsForS = BN(sdexPerBlock).mul(BN(firstDepS)).mul(poolProportionS).div(unity)
+    const rewardsForAB = BN(sdexPerMinute).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
+    const rewardsForAC = BN(sdexPerMinute).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
+    const rewardsForAS = BN(sdexPerMinute).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
+    const rewardsForS = BN(sdexPerMinute).mul(BN(firstDepS)).mul(poolProportionS).div(unity)
     console.log(stateF_AB[diamondAddress].sdex, 10 + 9)
     assert.equal(stateF_AB[alice].sdex, 
       BN(stateI_AB[alice].sdex).add(BN(rewardsForAB)).add(BN(rewardsForAC)).add(BN(rewardsForAS)).add(BN(rewardsForS)).sub(BN(9)).toString())
@@ -402,7 +402,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAB, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAB, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else if (i % 4 == 1) {
 
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -411,7 +411,7 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAC, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAC, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
       } else  if (i % 4 == 2){
         await tokenA.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
@@ -419,12 +419,12 @@ contract("MultiFarm", (accounts) => {
         //logState(state1, 'state1', alice, alice, diamondAddress, tokenA._address, tokenB._address)
 
         await tokenFarmFacet.methods.deposit(
-          poolAS, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          poolAS, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
 
       } else {
         await sdexFacet.methods.approve(diamondAddress, stakeAmount).send({from:alice})
         await sdexVaultFacet.methods.depositVault(
-          stakeAmount, blocksToStake, ADDRESSZERO, 0).send({from:alice})
+          stakeAmount, stakeTime, ADDRESSZERO, 0).send({from:alice})
       }
     }
     //await advanceBlocks(1)
@@ -457,10 +457,10 @@ contract("MultiFarm", (accounts) => {
     const poolProportionAC = BN(stateI_AC.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionAS = BN(stateI_AS.pool.allocPoint).mul(unity).div(BN(totalAlloc))
     const poolProportionS = BN(stateI_S.pool.allocPoint).mul(unity).div(BN(totalAlloc))
-    const rewardsForAB = BN(sdexPerBlock).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
-    const rewardsForAC = BN(sdexPerBlock).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
-    const rewardsForAS = BN(sdexPerBlock).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
-    const rewardsForS = BN(sdexPerBlock).mul(BN(firstDepS)).mul(poolProportionS).div(unity)
+    const rewardsForAB = BN(sdexPerMinute).mul(BN(firstDepAB)).mul(poolProportionAB).div(unity)
+    const rewardsForAC = BN(sdexPerMinute).mul(BN(firstDepAC)).mul(poolProportionAC).div(unity)
+    const rewardsForAS = BN(sdexPerMinute).mul(BN(firstDepAS)).mul(poolProportionAS).div(unity)
+    const rewardsForS = BN(sdexPerMinute).mul(BN(firstDepS)).mul(poolProportionS).div(unity)
     // vault does have a t-1 attitude
     assert.isBelow(Number(stateF_AB[diamondAddress].sdex), Number(web3.utils.toWei('1', 'ether')))
     console.log(web3.utils.fromWei(stateF_AB[diamondAddress].sdex, 'ether'), 10 + 9)

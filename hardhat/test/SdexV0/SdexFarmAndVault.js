@@ -156,7 +156,7 @@ contract("Sdex Farm and Vault Together", async (accounts) => {
           BN(state3.rewardGlobals[diamondAddress].penalties)).add(
             BN(state3.rewardGlobals[diamondAddress].rewarded)).add(
               BN(state3.accSdexPenaltyPool)).add(
-                BN(state3.accSdexRewardPool))).toString(), 1
+                BN(state3.accSdexRewardPool))).toString(), 0
     )
 
     await tokenFarmFacet.methods.deposit(

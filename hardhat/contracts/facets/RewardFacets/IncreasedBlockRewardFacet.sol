@@ -90,12 +90,12 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     PoolInfo storage pool = s.poolInfo[pid];
     uint256 totalAmountShares = 0;
     //Manage Tokens 
-    uint256 blocksElapsed = block.number - position.startBlock;
+    uint256 timeElapsed = block.timestamp - position.startTime;
     for (uint j=0; j < user.tokenData.length; j++) {
       IERC20 token = pool.tokenData[j].token;
-      uint256 blocksAhead = position.endBlock - position.startBlock;
+      uint256 stakeTime = position.endTime - position.startTime;
       totalAmountShares += (position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j]);
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.timestamp) {
         //past expiry date
         //return tokens
         token.transfer(
@@ -104,17 +104,17 @@ contract IncreasedBlockRewardFacet is  Modifiers {
         );
         //request nft Reward
         RewardFacet(address(this)).requestReward(
-          msg.sender, address(token), blocksAhead*position.amounts[j]
+          msg.sender, address(token), stakeTime*position.amounts[j]
         );
       } else {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, position.amounts[j]
+          position.startTime, position.endTime, position.amounts[j]
         );
         token.transfer(
           msg.sender,
           refund
         );
-        s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
+        s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
         s.tokenRewardData[address(token)].penalties += penalty;
       }
       user.tokenData[j].amount -= position.amounts[j];
@@ -127,15 +127,15 @@ contract IncreasedBlockRewardFacet is  Modifiers {
 
     //Manage SDEX
     uint256 pending = totalAmountShares / s.unity;
-    uint256 bonus = calcBonus(pending, position.startBlock, position.nftid);
+    uint256 bonus = calcBonus(pending, position.startTime, position.nftid);
     pending += bonus;
 
     if (pending >0) {
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.timestamp) {
         //Past Expiry Date
         SdexFacet(address(this)).transfer(msg.sender, pending);
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
+          msg.sender, position.startTime, position.endTime, pool.allocPoint, pending
         );
       } else {
         s.accSdexPenaltyPool += pending;
@@ -158,7 +158,9 @@ contract IncreasedBlockRewardFacet is  Modifiers {
     uint256 shares = position.shares;
     require(shares > 0, "Nothing to withdraw");
     uint256 vaultBalance = SdexVaultFacet(address(this)).vaultBalance();
+    console.log('IBRA::vaultBalance', vaultBalance);
     uint256 currentAmount = shares * vaultBalance / s.vTotalShares;
+    console.log('IBRA:currentAMount', currentAmount);
     vUser.shares -= shares;
     // what if currentAmount?
     s.vTotalShares -= shares;
@@ -183,16 +185,14 @@ contract IncreasedBlockRewardFacet is  Modifiers {
       vUser.sdexAtLastUserAction = 0;
     }
     vUser.lastUserActionTime = block.timestamp;
-    uint256 blocksAhead = position.endBlock - position.startBlock;
-    console.log('IncreasedBlockRewardFacet::withdrawVault::blocksStaked', blocksAhead);
-    console.log('IncreasedBlockRewardFacet::withdrawVault::elapsedBlocks', block.number - position.startBlock);
+    uint256 stakeTime = position.endTime - position.startTime;
     uint256 accruedSdex = currentAmount - position.amount;
+    console.log('IBRA::accruedSDEX', accruedSdex);
     /*******************/
-    console.log('IncreasedBlockRewardFacet::withdrawVault::accruedSdex', accruedSdex);
-    uint256 bonus = calcBonus(accruedSdex, position.startBlock, position.nftid);
-    console.log('IncreasedBlockRewardFacet::withdrawVault::bonus', bonus);
+    uint256 bonus = calcBonus(accruedSdex, position.startTime, position.nftid);
+    console.log('IBRA::bonus', bonus);
     /*******************/
-    if (position.endBlock <= block.number) {
+    if (position.endTime <= block.timestamp) {
       SdexFacet(address(this)).transfer(
         msg.sender,
         currentAmount + bonus
@@ -200,18 +200,24 @@ contract IncreasedBlockRewardFacet is  Modifiers {
       s.vSdex -= currentAmount;
       //request nft Reward
       RewardFacet(address(this)).requestReward(
-        msg.sender, address(this), position.amount*blocksAhead
+        msg.sender, address(this), position.amount*stakeTime
       );
       RewardFacet(address(this)).requestSdexReward(
-        msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
+        msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex
       );
     } else {
+      console.log('hi');
       (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-        position.startBlock, position.endBlock, position.amount
+        position.startTime, position.endTime, position.amount
       );
+      console.log('refund', refund);
+      console.log('->penalty', penalty);
+
       (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
-        position.startBlock, position.endBlock, accruedSdex + bonus
+        position.startTime, position.endTime, accruedSdex + bonus
       );
+      console.log('IBRA::refundAcc', refundAcc);
+      console.log('IBRA::penaltyAcc', penaltyAcc);
 
       SdexFacet(address(this)).transfer(
         msg.sender,
@@ -220,7 +226,7 @@ contract IncreasedBlockRewardFacet is  Modifiers {
       s.vSdex -= currentAmount;
 
       s.accSdexPenaltyPool += penaltyAcc + refundAcc;
-      s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
+      s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
       s.tokenRewardData[address(this)].penalties += penalty;
     }
     position.amount = 0;
@@ -231,29 +237,32 @@ contract IncreasedBlockRewardFacet is  Modifiers {
 
   function calcBonus(
     uint256 accSdex,
-    uint256 startBlock,
+    uint256 startTime,
     uint256 nftid
 
   ) private returns (uint256) {
     AppStorage storage s = LibAppStorage.diamondStorage();
     IBRAmount storage iBRAmount = s.iBRAmounts[nftid];
 
-    uint256 blocksElapsed = block.number - startBlock;
-    uint256 rewardPerBlock = accSdex / blocksElapsed;
-    console.log('IBRewardFacet::rewardPerBlock', rewardPerBlock);
+    uint256 mintsElapsed = (block.timestamp - startTime) / 60;
+    console.log('IncreasedBlockRewardFacet::calcBonus::mintsElapsed    ', mintsElapsed);
+    console.log('IncreasedBlockRewardFacet::calcBonus::iBRAmount.amount', iBRAmount.amount);
+    uint256 rewardPerMint = accSdex / mintsElapsed;
+    console.log('IncreasedBlockRewardFacet::calcBonus::rewardPerMint   ', rewardPerMint);
     // double rewardPerBlock until bonus is gone or left
-    uint256 blocksOfBonus = iBRAmount.amount / rewardPerBlock ;
-    console.log('IBRewardFacet::blocksOfBonus', blocksOfBonus);
+    uint256 blocksOfBonus = iBRAmount.amount / rewardPerMint;
+    
+    console.log('IncreasedBlockRewardFacet::calcBonus::blocksOfBonus   ', blocksOfBonus);
 
     uint256 bonus = 0;
-    if (blocksElapsed > blocksOfBonus) {
+    if (mintsElapsed > blocksOfBonus) {
       bonus =  iBRAmount.amount;
     } else {
-      bonus = rewardPerBlock * blocksElapsed;
+      bonus = rewardPerMint * mintsElapsed;
     }
-    console.log('IBRewardFacet::bonus', bonus);
     iBRAmount.amount -= bonus;
 
+    console.log('IncreasedBlockRewardFacet::calcBonus::bonus           ', bonus);
     if (s.iBRAmounts[nftid].rewardPool == REWARDPOOL.BASE) {
       s.tokenRewardData[address(this)].rewarded -= bonus;
       s.tokenRewardData[address(this)].paidOut += bonus;

@@ -89,10 +89,12 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     //Manage Tokens 
     for (uint j=0; j < user.tokenData.length; j++) {
       IERC20 token = pool.tokenData[j].token;
-      uint256 blocksAhead = position.endBlock - position.startBlock;
+
+      uint256 stakeTime = position.endTime - position.startTime;
+
       totalAmountShares += position.amounts[j]*pool.tokenData[j].accSdexPerShare - position.rewardDebts[j];
       
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.timestamp) {
         //past expiry date
         //return tokens
         token.transfer(
@@ -101,11 +103,11 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
         );
         //request nft Reward
         RewardFacet(address(this)).requestReward(
-          msg.sender, address(token), blocksAhead*position.amounts[j]
+          msg.sender, address(token), stakeTime*position.amounts[j]
         );
       } else {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, position.amounts[j]
+          position.startTime, position.endTime, position.amounts[j]
         );
         RPRAmount storage rPRAmount = s.rPRAmounts[position.nftid];
         if (address(token) == rPRAmount.token) {
@@ -146,7 +148,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
           msg.sender,
           refund
         );
-        s.tokenRewardData[address(token)].blockAmountGlobal -= position.amounts[j] * blocksAhead;
+        s.tokenRewardData[address(token)].timeAmountGlobal -= position.amounts[j] * stakeTime;
         s.tokenRewardData[address(token)].penalties += penalty;
       }
       user.tokenData[j].amount -= position.amounts[j];
@@ -159,11 +161,11 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     //Manage SDEX
     uint256 pending = totalAmountShares / s.unity;
     if (pending >0) {
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.timestamp) {
         //Past Expiry Date
         SdexFacet(address(this)).transfer(msg.sender, pending);
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, position.endBlock, pool.allocPoint, pending
+          msg.sender, position.startTime, position.endTime, pool.allocPoint, pending
         );
       } else {
         s.accSdexPenaltyPool += pending;
@@ -213,9 +215,9 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
     }
     vUser.lastUserActionTime = block.timestamp;
     
-    uint256 blocksAhead = position.endBlock - position.startBlock;
+    uint256 stakeTime = position.endTime - position.startTime;
     uint256 accruedSdex = currentAmount - position.amount;
-    if (position.endBlock <= block.number) {
+    if (position.endTime <= block.timestamp) {
         SdexFacet(address(this)).transfer(
           msg.sender,
           currentAmount
@@ -223,20 +225,20 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
         s.vSdex -= currentAmount;
         //request nft Reward
         RewardFacet(address(this)).requestReward(
-          msg.sender, address(this), position.amount*blocksAhead
+          msg.sender, address(this), position.amount*stakeTime
         );
 
         // experimental
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
+          msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex
         );
 
     } else {
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, position.amount
+          position.startTime, position.endTime, position.amount
         );
         (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, accruedSdex
+          position.startTime, position.endTime, accruedSdex
         );
         // Perhaps it should be lose all Acc
         RPRAmount storage rPRAmount = s.rPRAmounts[position.nftid];
@@ -279,7 +281,7 @@ contract ReducedPenaltyRewardFacet is  Modifiers {
         );
         //s.vSdex -= refund;
         s.vSdex -= currentAmount - bonus;
-        s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
+        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
         s.tokenRewardData[address(this)].penalties += penalty;
         s.accSdexPenaltyPool += penaltyAcc + refundAcc;
         

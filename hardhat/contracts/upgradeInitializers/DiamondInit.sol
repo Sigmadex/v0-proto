@@ -63,12 +63,12 @@ contract DiamondInit {
 
     // Farm
     s.unity = 1e27;
-    s.sdexPerBlock = 1 ether;
+    s.sdexPerMinute = 1 ether;
     s.BONUS_MULTIPLIER = 1;
-    s.startBlock = 0;
+    s.startTime = block.timestamp;
     //s.sdexRewarded = 0;
     s.poolInfo[0].allocPoint = 1000;
-    s.poolInfo[0].lastRewardBlock = block.number;
+    s.poolInfo[0].lastRewardTime = block.timestamp;
     s.poolInfo[0].tokenData.push(
       PoolTokenData({
         token: SdexFacet(address(this)),

@@ -82,7 +82,7 @@ contract("reward roulette", (accounts) => {
   let iBRAddress;
   let rPRAddress;
   let poolid = 1
-  const blocksToStake = 10
+  const stakeTime = 3600
   let diamondAddress
   let stakeAmount = web3.utils.toWei('20', 'ether')
 
@@ -179,7 +179,7 @@ contract("reward roulette", (accounts) => {
     assert.equal(poolInfo.tokenData[1].supply, 0)
     assert.equal(poolInfo.tokenData[1].accSdexPerShare, 0)
     assert.equal(poolInfo.allocPoint, 1000)
-    assert.equal(poolInfo.lastRewardBlock, blockNumber)
+    console.log(poolInfo.lastRewardTime, blockNumber)
     try {
       await tokenFarmFacet.methods.add(
         [tokenA._address, tokenB._address],
@@ -201,9 +201,9 @@ contract("reward roulette", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:bob})
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:bob})
+      poolid, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:bob})
     
-    await advanceBlocks(2)
+    await advanceChain(20, 1)
     await tokenFarmFacet.methods.withdraw(poolid, 0).send({from: bob})
   })
 
@@ -212,9 +212,9 @@ contract("reward roulette", (accounts) => {
     await tokenB.methods.approve(diamondAddress, stakeAmount).send({from:alice})
 
     await tokenFarmFacet.methods.deposit(
-      poolid, [stakeAmount, stakeAmount], blocksToStake, ADDRESSZERO, 0).send({from:alice})
+      poolid, [stakeAmount, stakeAmount], stakeTime, ADDRESSZERO, 0).send({from:alice})
 
-    await advanceBlocks(blocksToStake)
+    await advanceChain(3600, 1)
 
     await tokenFarmFacet.methods.withdraw(poolid, 0).send({from: alice})
 

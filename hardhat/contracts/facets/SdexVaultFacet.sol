@@ -23,13 +23,13 @@ contract SdexVaultFacet {
   /**
    * depositVault deposits ones funds in the SDEX vault, that auto restakes ones earnings to compound their returns.
    * @param amount amount of SDEX to stake in vault
-   * @param blocksAhead the amount of blocks in the future a user wants to commit 
+   * @param timeAhead the amount of seconds in the future a user wants to commit 
    * @param nftReward address of NFT reward to apply to position, address(0) for no NFT
    * @param nftid id of NFT reward to apply, 0 for no NFT
    */ 
   function depositVault(
     uint256 amount,
-    uint256 blocksAhead,
+    uint256 timeAhead,
     address nftReward,
     uint256 nftid
   ) external   {
@@ -55,15 +55,15 @@ contract SdexVaultFacet {
     vUser.lastUserActionTime = block.timestamp;
 
     // Hmmmm this might not belong, worth noting
-    s.tokenRewardData[address(this)].blockAmountGlobal += amount*blocksAhead;
+    s.tokenRewardData[address(this)].timeAmountGlobal += amount*timeAhead;
 
     uint256[] memory amountArray = new uint256[](1);
     amountArray[0] =  currentShares;
     VaultUserPosition memory newPosition = VaultUserPosition({
       amount: amount,
       shares: currentShares,
-      startBlock: block.number,
-      endBlock: block.number + blocksAhead,
+      startTime: block.timestamp,
+      endTime: block.timestamp + timeAhead,
       nftReward: address(0),
       nftid: 0
     });
@@ -152,9 +152,9 @@ contract SdexVaultFacet {
         vUser.sdexAtLastUserAction = 0;
       }
       vUser.lastUserActionTime = block.timestamp;
-      uint256 blocksAhead = position.endBlock - position.startBlock;
+      uint256 stakeTime = position.endTime - position.startTime;
       uint256 accruedSdex = currentAmount - position.amount;
-      if (position.endBlock <= block.number) {
+      if (position.endTime <= block.timestamp) {
         SdexFacet(address(this)).transfer(
           msg.sender,
           currentAmount
@@ -162,19 +162,19 @@ contract SdexVaultFacet {
         s.vSdex -= currentAmount;
         //request nft Reward
         RewardFacet(address(this)).requestReward(
-          msg.sender, address(this), position.amount*blocksAhead
+          msg.sender, address(this), position.amount*stakeTime
         );
         console.log('SdexVaultFacet::withdrawVault::accruedSdex', accruedSdex);
         RewardFacet(address(this)).requestSdexReward(
-          msg.sender, position.startBlock, position.endBlock, s.poolInfo[0].allocPoint, accruedSdex
+          msg.sender, position.startTime, position.endTime, s.poolInfo[0].allocPoint, accruedSdex
         );
       } else {
         console.log('SdexVaultFacet::withdrawVault::penaltyTriggered');
         (uint256 refund, uint256 penalty) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, position.amount
+          position.startTime, position.endTime, position.amount
         );
         (uint256 refundAcc, uint256 penaltyAcc) = ToolShedFacet(address(this)).calcRefund(
-          position.startBlock, position.endBlock, accruedSdex
+          position.startTime, position.endTime, accruedSdex
         );
 
         SdexFacet(address(this)).transfer(
@@ -184,7 +184,7 @@ contract SdexVaultFacet {
         s.vSdex -= currentAmount;
 
         s.accSdexPenaltyPool += penaltyAcc + refundAcc;
-        s.tokenRewardData[address(this)].blockAmountGlobal -= position.amount * blocksAhead;
+        s.tokenRewardData[address(this)].timeAmountGlobal -= position.amount * stakeTime;
         s.tokenRewardData[address(this)].penalties += penalty;
       }
       position.amount = 0;

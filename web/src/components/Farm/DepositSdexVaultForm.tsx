@@ -29,7 +29,7 @@ const DepositSdexVaultForm: FC<DepositVaultFormProps> = ({usersValidNFTs, farmid
 
   // Form 
   const [amountA, setAmountA] = useState(0)
-  const [blocksStake, setBlocksStake] = useState(0)
+  const [timeStake, setTimeStake] = useState(0)
   const [nftAddr, setNFTAddr] = useState(Static.addresses.ZERO)
   const [nftid, setNFTid] = useState(0)
   
@@ -100,7 +100,7 @@ const DepositSdexVaultForm: FC<DepositVaultFormProps> = ({usersValidNFTs, farmid
   
   const {onDeposit} = useDepositSdexVault(
     amountA,
-    blocksStake,
+    timeStake,
     nftAddr, // no nft for now
     nftid
   )
@@ -164,8 +164,8 @@ const DepositSdexVaultForm: FC<DepositVaultFormProps> = ({usersValidNFTs, farmid
           <div className="card-body">
             <div className="row">
               <div className="col-8">
-                Blocks to Stake:
-                <input type="text" name="from" className="form-control" placeholder="0.0" value={blocksStake} onChange={e => setBlocksStake(e.target.value)}/>
+                Time to Stake: 
+                <input type="text" name="from" className="form-control" placeholder="0.0" value={timeStake} onChange={e => setTimeStake(e.target.value)}/>
               </div>
               <div className="col-4 text-end">
                 <br />

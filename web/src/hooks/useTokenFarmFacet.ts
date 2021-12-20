@@ -104,7 +104,7 @@ export const useGetUserInfo = () => {
 export const useDepositFarm = (
   poolid:number,
   amounts:number[],
-  blocksToStake:number,
+  timeToStake:number,
   nftAddress:string,
   nftid:number
 ) => {
@@ -120,7 +120,7 @@ export const useDepositFarm = (
       const deposit = await contract.methods.deposit(
         poolid,
         amounts,
-        blocksToStake,
+        timeToStake,
         nftAddress,
         nftid
       ).send({from:account})
@@ -129,7 +129,7 @@ export const useDepositFarm = (
       console.log(e)
       return false
     }
-  }, [account, amounts, blocksToStake, library, nftAddress, nftid, poolid])
+  }, [account, amounts, timeToStake, library, nftAddress, nftid, poolid])
 
   return { onDeposit: handleDeposit }
 }
